@@ -52,7 +52,7 @@ export const Footer = () => {
               </Link>
             </li>
             <li>
-              <a href="http://localhost:3000/api/docs" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-cyan-400 transition-colors">
+              <a href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001'}/api/docs`} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-cyan-400 transition-colors">
                 Dokumentasi API (Swagger)
               </a>
             </li>
