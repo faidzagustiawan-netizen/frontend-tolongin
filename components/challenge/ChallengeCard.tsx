@@ -15,6 +15,8 @@ export interface ChallengeCardProps {
   logoUrl?: string;
   rewardDescription?: string;
   deadlineAt?: string;
+  type?: 'COMPANY' | 'PUBLIC';
+  trustScore?: number;
 }
 
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({
@@ -27,6 +29,8 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   logoUrl,
   rewardDescription,
   deadlineAt,
+  type = 'COMPANY',
+  trustScore,
 }) => {
   const getDifficultyColor = (diff: string) => {
     switch (diff) {
@@ -64,9 +68,16 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
               )}
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">
-                {companyName}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">
+                  {companyName}
+                </h4>
+                {type === 'PUBLIC' && (
+                  <span className="text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                    PUBLIC
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">
                   {getCategoryLabel(category)}
@@ -74,6 +85,11 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full border ${getDifficultyColor(difficulty)}`}>
                   {difficulty}
                 </span>
+                {type === 'COMPANY' && trustScore !== undefined && trustScore < 70 && (
+                  <span className="text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400" title="Perusahaan ini terdeteksi lambat dalam memberikan umpan balik (SLA Timeout)">
+                    LAMBAT MERESPONS
+                  </span>
+                )}
               </div>
             </div>
           </div>

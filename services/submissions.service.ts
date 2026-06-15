@@ -37,6 +37,10 @@ export const submissionsService = {
     const { data } = await apiClient.get('/workspace/company-submissions', { params: { challengeId } });
     return { data };
   },
+  getChallengeStats: async () => {
+    const { data } = await apiClient.get('/workspace/challenge-stats');
+    return { data };
+  },
   gradeSubmission: async (submissionId: string, payload: GradeSubmissionPayload) => {
     const { data } = await apiClient.put(`/workspace/grade/${submissionId}`, payload);
     return { data };

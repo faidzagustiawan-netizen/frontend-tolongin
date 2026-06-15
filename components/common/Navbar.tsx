@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '../../store/userStore';
 import { notificationsService, NotificationItem } from '../../services/notifications.service';
+import { tokenService } from '../../services/tokenService';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Navbar = () => {
@@ -28,8 +29,15 @@ export const Navbar = () => {
     refetchInterval: 15000,
   });
 
+  const { data: tokenData, refetch: refetchTokens } = useQuery({
+    queryKey: ['tokens', user?.id],
+    queryFn: () => tokenService.getBalance(),
+    enabled: isAuthenticated && user?.role === 'TALENT',
+  });
+
   const notifications: NotificationItem[] = notifData?.data || [];
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const tokenBalance = tokenData?.tokenBalance || 0;
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -49,10 +57,17 @@ export const Navbar = () => {
     }
   };
 
-  const navLinks = [
+  const talentNavLinks = [
     { name: 'Directory', href: '/challenges', icon: Briefcase },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
+
+  const companyNavLinks = [
+    { name: 'Review Submisi', href: '/workspace', icon: CheckCheck },
+    { name: 'Buat Challenge', href: '/challenges/create', icon: Code2 },
+  ];
+
+  const navLinks = user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-dark-bg/80 backdrop-blur-md">
@@ -73,6 +88,7 @@ export const Navbar = () => {
                 {navLinks.map((link) => {
                   const Icon = link.icon;
                   const isActive = pathname.startsWith(link.href);
+
                   return (
                     <Link
                       key={link.name}
@@ -95,6 +111,14 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
+                {/* Token Balance */}
+                {user?.role === 'TALENT' && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                    <Coins className="h-4 w-4" />
+                    <span className="text-xs font-bold font-mono">{tokenBalance} Tokens</span>
+                  </div>
+                )}
+
                 {/* Notification Dropdown */}
                 <div className="relative">
                   <button
@@ -209,7 +233,7 @@ export const Navbar = () => {
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
                         >
                           <Briefcase className="h-4 w-4 text-cyan-400" />
-                          {user?.role === 'TALENT' ? 'Workspace Saya' : 'Submisi Kandidat'}
+                          Dashboard
                         </Link>
                         <div className="border-t border-dark-border my-1" />
                         <button
@@ -282,6 +306,7 @@ export const Navbar = () => {
                 {navLinks.map((link) => {
                   const Icon = link.icon;
                   const isActive = pathname.startsWith(link.href);
+
                   return (
                     <Link
                       key={link.name}
@@ -325,7 +350,7 @@ export const Navbar = () => {
                     className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-gray-300 hover:text-white hover:bg-white/5"
                   >
                     <Briefcase className="h-5 w-5 text-cyan-400" />
-                    {user?.role === 'TALENT' ? 'Workspace Saya' : 'Submisi Kandidat'}
+                    Dashboard
                   </Link>
                   <button
                     onClick={() => {

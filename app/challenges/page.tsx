@@ -280,10 +280,12 @@ export default function ChallengesDirectoryPage() {
               summary={challenge.summary}
               category={challenge.category}
               difficulty={challenge.difficulty}
-              companyName={challenge.company?.companyName || 'Perusahaan Mitra'}
+              type={challenge.type}
+              companyName={challenge.type === 'PUBLIC' ? 'Public Challenge' : challenge.company?.companyName || 'Perusahaan Mitra'}
               logoUrl={challenge.company?.logoUrl}
-              rewardDescription={challenge.rewardDescription}
+              rewardDescription={challenge.type === 'PUBLIC' ? 'Reward: +50 Tokens & +150 XP' : challenge.rewardDescription}
               deadlineAt={challenge.deadlineAt}
+              trustScore={challenge.company?.trustScore}
             />
           ))}
         </div>

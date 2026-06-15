@@ -244,7 +244,27 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {!isTalent && companyProfile && (
+          <div className="flex items-center gap-6 bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-xl relative z-10">
+            <div className="text-center px-4 border-r border-dark-border">
+              <h4 className={`font-display text-3xl font-extrabold ${companyProfile.trustScore >= 80 ? 'text-emerald-400' : companyProfile.trustScore >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                {companyProfile.trustScore ?? 100}
+              </h4>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">Trust Score</p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {!isTalent && companyProfile && companyProfile.trustScore < 80 && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
+          <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" />
+          <p className="text-xs font-medium leading-relaxed">
+            <strong>Peringatan SLA Penilaian:</strong> Trust Score Anda telah turun di bawah batas optimal. Sistem telah mendeteksi keterlambatan dalam memberikan umpan balik (feedback) pada submisi kandidat (&gt; 7 hari). Harap segera evaluasi submisi tertunda agar visibilitas studi kasus Anda tidak dikurangi.
+          </p>
+        </div>
+      )}
 
       {verificationSuccess && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
