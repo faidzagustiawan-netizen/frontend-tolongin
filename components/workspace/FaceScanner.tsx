@@ -6,7 +6,7 @@ import { Camera, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface FaceScannerProps {
-  onCaptureComplete: (descriptor: number[]) => void;
+  onCaptureComplete: (descriptor: number[], imageDataUrl?: string) => void;
   onCancel?: () => void;
   title?: string;
   description?: string;
@@ -18,6 +18,8 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
   const [isCapturing, setIsCapturing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isFaceDetected, setIsFaceDetected] = useState(false);
+  const detectionInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -54,7 +56,26 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
       });
   };
 
+  useEffect(() => {
+    if (modelsLoaded && videoRef.current) {
+      detectionInterval.current = setInterval(async () => {
+        if (videoRef.current && videoRef.current.readyState === 4) {
+          try {
+            const detection = await faceapi.detectSingleFace(videoRef.current);
+            setIsFaceDetected(!!detection);
+          } catch (e) {
+            setIsFaceDetected(false);
+          }
+        }
+      }, 500);
+    }
+    return () => {
+      if (detectionInterval.current) clearInterval(detectionInterval.current);
+    };
+  }, [modelsLoaded]);
+
   const stopVideo = () => {
+    if (detectionInterval.current) clearInterval(detectionInterval.current);
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       const tracks = stream.getTracks();
@@ -77,10 +98,29 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
         setError("Wajah tidak terdeteksi. Harap pastikan wajah Anda terlihat jelas oleh kamera.");
       } else {
         const descriptorArray = Array.from(detection.descriptor);
+        
+        // Capture frame as Data URL
+        let imageDataUrl = undefined;
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Because video is mirrored in UI, we mirror it in canvas
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          }
+        } catch (e) {
+          console.error('Failed to capture image frame', e);
+        }
+
         setSuccess("Wajah berhasil dipindai!");
         setTimeout(() => {
           stopVideo();
-          onCaptureComplete(descriptorArray);
+          onCaptureComplete(descriptorArray, imageDataUrl);
         }, 1000);
       }
     } catch (err) {
@@ -117,7 +157,9 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
         />
 
         {/* Framing Overlay */}
-        <div className="absolute inset-0 border-[6px] border-emerald-500/30 rounded-2xl pointer-events-none z-10 m-8"></div>
+        <div className={`absolute inset-0 border-[6px] rounded-2xl pointer-events-none z-10 m-8 transition-colors duration-300 ${
+          isFaceDetected ? 'border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+        }`}></div>
         
         {isCapturing && (
           <div className="absolute inset-0 bg-emerald-500/20 z-20 flex items-center justify-center backdrop-blur-sm">
@@ -146,7 +188,7 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
             Batal
           </Button>
         )}
-        <Button onClick={handleCapture} isLoading={isCapturing} disabled={!modelsLoaded || !!success} className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+        <Button onClick={handleCapture} isLoading={isCapturing} disabled={!modelsLoaded || !!success || !isFaceDetected} className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
           Pindai Wajah Sekarang
         </Button>
       </div>

@@ -66,22 +66,28 @@ export default function ProfilePage() {
     }
   }, [profileData?.data, updateUserProfile]);
 
-  const handleFaceCaptureComplete = async (descriptor: number[]) => {
+  const handleFaceCaptureComplete = async (descriptor: number[], imageDataUrl?: string) => {
     setVerificationError(null);
     setVerificationSuccess(null);
     try {
       if (!user?.id) throw new Error("Pengguna belum login");
 
-      await authService.updateProfile({
+      const payload: any = {
         biometricFeatureVector: descriptor,
-      });
+      };
+      
+      if (imageDataUrl) {
+        payload.avatarUrl = imageDataUrl;
+      }
+
+      await authService.updateProfile(payload);
 
       setVerificationSuccess('Verifikasi biometrik wajah berhasil disimpan secara lokal!');
       setShowLivenessCam(false);
       
       // Update local state temporarily, or refetch
       if (profile?.talentProfile) {
-        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor });
+        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor, ...(imageDataUrl ? { avatarUrl: imageDataUrl } : {}) });
       }
       refetchVerification();
       refetch();
