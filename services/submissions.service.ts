@@ -11,6 +11,7 @@ export interface SubmitSolutionPayload {
   figmaUrl?: string;
   liveDemoUrl?: string;
   notes?: string;
+  responses?: any[];
 }
 
 export interface GradeSubmissionPayload {

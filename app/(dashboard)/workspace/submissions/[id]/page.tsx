@@ -153,9 +153,7 @@ export default function SubmissionDetailPage() {
                   </a>
                 )}
               </div>
-              </div>
             </div>
-
             {submission.componentResponses && submission.componentResponses.length > 0 && (
               <div className="mt-6 pt-6 border-t border-dark-border">
                 <h3 className="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">Komponen Asesmen Dinamis</h3>
@@ -180,7 +178,7 @@ export default function SubmissionDetailPage() {
                       ) : (
                         <div className="text-sm text-gray-300 whitespace-pre-wrap">{res.textValue || 'Tidak ada teks/jawaban diberikan.'}</div>
                       )}
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">{res.component?.type?.replace('_', ' ')} • {res.score || 0}/{res.component?.points || 0} Pts</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">{res.component?.type?.replace('_', ' ')} • {res.score || 0}{' / '}{res.component?.points || 0} Pts</p>
                     </div>
                   ))}
                 </div>

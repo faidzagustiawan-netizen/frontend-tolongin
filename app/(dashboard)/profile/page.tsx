@@ -8,7 +8,8 @@ import { authService } from '../../../services/auth.service';
 import { subscriptionsService, UpgradeSubscriptionPayload } from '../../../services/subscriptions.service';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
-import { FaceScanner } from '../../../components/workspace/FaceScanner';
+import dynamic from 'next/dynamic';
+const FaceScanner = dynamic(() => import('../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 import { User, ShieldCheck, Award, Building2, AlertCircle, CheckCircle2, RefreshCw, Upload, FileText, Crown, Zap, Sparkles, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -23,10 +24,6 @@ export default function ProfilePage() {
   const [kybDocUrl, setKybDocUrl] = useState('');
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
-  const [verificationMethod, setVerificationMethod] = useState<'CAMERA' | 'UPLOAD'>('CAMERA');
-  const [uploadedSelfieUrl, setUploadedSelfieUrl] = useState<string | null>(null);
-  const [uploadedKtpUrl, setUploadedKtpUrl] = useState<string | null>(null);
-  const [isUploadingVerify, setIsUploadingVerify] = useState(false);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -71,7 +68,7 @@ export default function ProfilePage() {
     try {
       if (!user?.id) throw new Error("Pengguna belum login");
 
-      await authService.updateProfile(user.id, {
+      await authService.updateProfile({
         biometricFeatureVector: descriptor,
       });
 
@@ -91,24 +88,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'SELFIE' | 'KTP') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === 'SELFIE') setUploadedSelfieUrl(reader.result as string);
-        else setUploadedKtpUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmitUploadedPhotos = async () => {
-    if (!uploadedSelfieUrl || !uploadedKtpUrl) return;
-    setIsUploadingVerify(true);
-    await handleFaceCaptureComplete(uploadedSelfieUrl, uploadedKtpUrl);
-    setIsUploadingVerify(false);
-  };
 
   const handleKybSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

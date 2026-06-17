@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import * as faceapi from '@vladmandic/face-api';
-import { FaceScanner } from '../../../../components/workspace/FaceScanner';
+import dynamic from 'next/dynamic';
+const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 import Editor from '@monaco-editor/react';
 
 export default function EnrollmentWorkspacePage() {
@@ -134,7 +134,7 @@ export default function EnrollmentWorkspacePage() {
     setIsVerifyingFace(true);
 
     try {
-      const storedVector = user?.talentProfile?.biometricFeatureVector;
+      const storedVector = (user as any)?.talentProfile?.biometricFeatureVector;
       
       if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
         setFaceVerified(false);
@@ -145,6 +145,7 @@ export default function EnrollmentWorkspacePage() {
       const desc1 = new Float32Array(scannedDescriptor);
       // Since prisma returns it as JSON array, we can map it to Float32Array
       const desc2 = new Float32Array(storedVector as number[]);
+      const faceapi = await import('@vladmandic/face-api');
       const distance = faceapi.euclideanDistance(desc1, desc2);
 
       // 0.6 is a standard threshold for face-api.js model
