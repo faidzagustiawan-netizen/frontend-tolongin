@@ -6,6 +6,7 @@ import { portfoliosService } from '../../services/portfolios.service';
 import { useUserStore } from '../../store/userStore';
 import { Trophy, Award, User, Medal, Zap, Filter, MapPin, Globe, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 const RANKS = [
   { minLevel: 1, maxLevel: 1, name: 'Bronze', color: 'text-[#CD7F32]', border: 'border-[#CD7F32]/50', bg: 'bg-[#CD7F32]/10' },
@@ -159,11 +160,11 @@ export default function LeaderboardPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                      <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                         {talent.avatarUrl ? (
-                          <img src={talent.avatarUrl} alt={talent.fullName} className="h-full w-full object-cover" />
+                          <Image src={talent.avatarUrl} alt={talent.fullName} fill sizes="64px" className="object-cover" />
                         ) : (
-                          <User className="h-6 w-6 text-gray-400" />
+                          <User className="relative z-10 h-6 w-6 text-gray-400" />
                         )}
                       </div>
                       <div>

@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
-import Editor from '@monaco-editor/react';
+const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-dark-bg text-gray-500 animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
 
 export default function EnrollmentWorkspacePage() {
   const { user, loadUserFromStorage } = useUserStore();

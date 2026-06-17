@@ -42,7 +42,13 @@ export const useUserStore = create<UserStore>((set) => ({
       if (userData && token) {
         try {
           const user = JSON.parse(userData);
-          set({ user, isAuthenticated: true });
+          set((state) => {
+            // Prevent state update if user object hasn't changed to avoid render thrashing
+            if (state.isAuthenticated && JSON.stringify(state.user) === JSON.stringify(user)) {
+              return state;
+            }
+            return { user, isAuthenticated: true };
+          });
         } catch (e) {
           console.error('Failed to parse user data from storage', e);
           set({ user: null, isAuthenticated: false });

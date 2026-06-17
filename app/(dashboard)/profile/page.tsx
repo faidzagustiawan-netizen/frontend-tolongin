@@ -9,6 +9,7 @@ import { subscriptionsService, UpgradeSubscriptionPayload } from '../../../servi
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 const FaceScanner = dynamic(() => import('../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 import { User, ShieldCheck, Award, Building2, AlertCircle, CheckCircle2, RefreshCw, Upload, FileText, Crown, Zap, Sparkles, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -236,13 +237,13 @@ export default function ProfilePage() {
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="flex items-center gap-6 relative z-10">
-          <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xl">
+          <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xl">
             {isTalent && talentProfile?.avatarUrl ? (
-              <img src={talentProfile.avatarUrl} alt={talentProfile.fullName} className="h-full w-full object-cover" />
+              <Image src={talentProfile.avatarUrl} alt={talentProfile.fullName} fill sizes="112px" className="object-cover" />
             ) : !isTalent && companyProfile?.logoUrl ? (
-              <img src={companyProfile.logoUrl} alt={companyProfile.companyName} className="h-full w-full object-cover" />
+              <Image src={companyProfile.logoUrl} alt={companyProfile.companyName} fill sizes="112px" className="object-cover" />
             ) : (
-              <User className="h-12 w-12 text-gray-400" />
+              <User className="relative z-10 h-12 w-12 text-gray-400" />
             )}
           </div>
 
@@ -529,11 +530,11 @@ export default function ProfilePage() {
                 {talentProfile?.faceVerificationStatus === 'VERIFIED' && (
                   <div className="space-y-4 pt-2">
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
-                      <div className="h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex-shrink-0 shadow-md">
+                      <div className="relative h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex-shrink-0 shadow-md">
                         {talentProfile.avatarUrl ? (
-                          <img src={talentProfile.avatarUrl} alt="Verified Biometric" className="h-full w-full object-cover transform scale-x-[-1]" />
+                          <Image src={talentProfile.avatarUrl} alt="Verified Biometric" fill sizes="64px" className="object-cover transform scale-x-[-1]" />
                         ) : (
-                          <User className="h-8 w-8 text-emerald-400 mx-auto my-4" />
+                          <User className="relative z-10 h-8 w-8 text-emerald-400 mx-auto my-4" />
                         )}
                       </div>
                       <div className="space-y-1">

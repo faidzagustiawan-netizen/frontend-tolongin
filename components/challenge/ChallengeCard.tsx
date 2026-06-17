@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Calendar, Award, Building2, ChevronRight, Briefcase } from 'lucide-react';
 import { Button } from '../common/Button';
@@ -60,11 +61,11 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       <div>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+            <div className="relative h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
               {logoUrl ? (
-                <img src={logoUrl} alt={companyName} className="h-full w-full object-cover" />
+                <Image src={logoUrl} alt={companyName} fill sizes="48px" className="object-cover" />
               ) : (
-                <Building2 className="h-6 w-6 text-gray-400" />
+                <Building2 className="h-6 w-6 text-gray-400 relative z-10" />
               )}
             </div>
             <div>

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '../../../../../../services/submissions.service';
 import { useUserStore } from '../../../../../../store/userStore';
 import { Button } from '../../../../../../components/common/Button';
+import Image from 'next/image';
 import { FileText, CheckCircle, Clock, XCircle, Search, ChevronRight, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -112,11 +113,11 @@ export default function ChallengeSubmissionsPage() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold overflow-hidden">
+                        <div className="relative h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold overflow-hidden">
                           {sub.talent.avatarUrl ? (
-                            <img src={sub.talent.avatarUrl} alt={sub.talent.fullName} className="w-full h-full object-cover" />
+                            <Image src={sub.talent.avatarUrl} alt={sub.talent.fullName} fill sizes="40px" className="object-cover" />
                           ) : (
-                            sub.talent.fullName[0].toUpperCase()
+                            <span className="relative z-10">{sub.talent.fullName[0].toUpperCase()}</span>
                           )}
                         </div>
                         <div>

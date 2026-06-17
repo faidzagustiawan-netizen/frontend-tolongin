@@ -7,6 +7,7 @@ import { submissionsService } from '../../../../../services/submissions.service'
 import { useUserStore } from '../../../../../store/userStore';
 import { Button } from '../../../../../components/common/Button';
 import { Input, Textarea } from '../../../../../components/common/Input';
+import Image from 'next/image';
 import { ArrowLeft, ExternalLink, Code2, FileText, CheckCircle, Clock, XCircle, Brain, Target, ShieldAlert, FileCode2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -96,11 +97,11 @@ export default function SubmissionDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold overflow-hidden text-xl">
+              <div className="relative h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold overflow-hidden text-xl">
                 {submission.talent.avatarUrl ? (
-                  <img src={submission.talent.avatarUrl} alt={submission.talent.fullName} className="w-full h-full object-cover" />
+                  <Image src={submission.talent.avatarUrl} alt={submission.talent.fullName} fill sizes="64px" className="object-cover" />
                 ) : (
-                  submission.talent.fullName[0].toUpperCase()
+                  <span className="relative z-10">{submission.talent.fullName[0].toUpperCase()}</span>
                 )}
               </div>
               <div>

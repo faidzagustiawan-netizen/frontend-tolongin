@@ -10,6 +10,7 @@ import { Button } from '../../../components/common/Button';
 import { Modal } from '../../../components/common/Modal';
 import { RubricTable } from '../../../components/challenge/RubricTable';
 import { DiscussionThread } from '../../../components/challenge/DiscussionThread';
+import Image from 'next/image';
 import { Building2, Calendar, Award, CheckCircle2, AlertCircle, FileText, ArrowRight, Clock, ShieldCheck } from 'lucide-react';
 
 export default function ChallengeDetailPage() {
@@ -93,11 +94,11 @@ export default function ChallengeDetailPage() {
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 relative z-10">
           <div className="space-y-6 max-w-3xl">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
+              <div className="relative h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
                 {challenge.company?.logoUrl ? (
-                  <img src={challenge.company.logoUrl} alt={challenge.company.companyName} className="h-full w-full object-cover" />
+                  <Image src={challenge.company.logoUrl} alt={challenge.company.companyName} fill sizes="64px" className="object-cover" />
                 ) : (
-                  <Building2 className="h-8 w-8 text-gray-400" />
+                  <Building2 className="relative z-10 h-8 w-8 text-gray-400" />
                 )}
               </div>
               <div>
@@ -198,9 +199,9 @@ export default function ChallengeDetailPage() {
                 {challenge.briefAttachments.map((att: any, idx: number) => {
                   if (att.type === 'image') {
                     return (
-                      <div key={idx} className="bg-dark-bg rounded-xl overflow-hidden border border-dark-border group relative shadow-lg">
-                        <img src={att.url} alt={att.caption || 'Lampiran Gambar'} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
-                        {att.caption && <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-sm p-3 text-xs text-white font-medium border-t border-white/10">{att.caption}</div>}
+                      <div key={idx} className="relative h-48 bg-dark-bg rounded-xl overflow-hidden border border-dark-border group shadow-lg">
+                        <Image src={att.url} alt={att.caption || 'Lampiran Gambar'} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        {att.caption && <div className="absolute bottom-0 inset-x-0 z-10 bg-black/80 backdrop-blur-sm p-3 text-xs text-white font-medium border-t border-white/10">{att.caption}</div>}
                       </div>
                     );
                   }
