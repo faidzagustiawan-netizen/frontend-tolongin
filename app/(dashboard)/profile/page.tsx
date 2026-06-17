@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '../../../store/userStore';
+import { challengesService } from '../../../services/challenges.service';
 import { verificationService } from '../../../services/verification.service';
 import { authService } from '../../../services/auth.service';
 import { subscriptionsService, UpgradeSubscriptionPayload } from '../../../services/subscriptions.service';
@@ -58,6 +59,13 @@ export default function ProfilePage() {
   const profile = profileData?.data;
   const verificationStatus = verificationStatusData?.data;
   const subStatus = subStatusData?.data;
+
+  const { data: myChallengesData } = useQuery({
+    queryKey: ['my-challenges', user?.id],
+    queryFn: () => challengesService.getAll({ companyId: profile?.companyProfile?.id, includeDrafts: true }),
+    enabled: !!user?.id && user?.role === 'COMPANY' && !!profile?.companyProfile?.id,
+  });
+  const myChallenges = myChallengesData?.data || [];
 
   useEffect(() => {
     if (profileData?.data) {
@@ -239,29 +247,29 @@ export default function ProfilePage() {
   const subscriptionPlans = [
     {
       tier: 'STARTUP' as const,
-      name: 'Startup Mitra',
-      price: 'Gratis',
-      period: 'selamanya',
+      name: 'Paket Murah',
+      price: 'Rp 500.000',
+      period: '/ bulan',
       desc: 'Ideal untuk startup tahap awal yang mencari talenta unggul.',
-      features: ['Direktori studi kasus dasar', 'Maksimal 5 studi kasus aktif', 'Koreksi kode otomatis AI', 'Dukungan komunitas'],
+      features: ['Maksimal 1 studi kasus (aktif/draf)', 'Direktori studi kasus dasar', 'Koreksi kode otomatis AI', 'Dukungan komunitas'],
       popular: false,
     },
     {
       tier: 'KONGLOMERAT' as const,
-      name: 'Konglomerat Pro',
+      name: 'Paket Pro',
       price: 'Rp 2.500.000',
       period: '/ bulan',
       desc: 'Solusi lengkap untuk perusahaan berskala besar dan enterprise.',
-      features: ['Studi kasus aktif tak terbatas', 'Pembuat studi kasus otomatis AI', 'Verifikasi AI Anti-Joki prioritas', 'Laporan analitik rekrutmen mendalam', 'Dedicated Account Support'],
+      features: ['Maksimal 5 studi kasus (aktif/draf)', 'Pembuat studi kasus otomatis AI', 'Verifikasi AI Anti-Joki prioritas', 'Laporan analitik rekrutmen mendalam', 'Dedicated Account Support'],
       popular: true,
     },
     {
       tier: 'CUSTOM' as const,
-      name: 'Enterprise Custom',
+      name: 'Paket Custom',
       price: 'Kustom',
       period: '/ kontrak',
       desc: 'Disesuaikan dengan kebutuhan infrastruktur dan integrasi ATS internal.',
-      features: ['Semua fitur Konglomerat Pro', 'Integrasi API langsung ke ATS internal', 'Rubrik penilaian kustom khusus', 'SLA jaminan uptime 99.9%', 'Pelatihan rekruter khusus'],
+      features: ['Studi kasus aktif tak terbatas', 'Semua fitur Paket Pro', 'Integrasi API langsung ke ATS internal', 'Rubrik penilaian kustom khusus', 'SLA jaminan uptime 99.9%', 'Pelatihan rekruter khusus'],
       popular: false,
     },
   ];
@@ -437,7 +445,29 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
                 <Crown className="h-4 w-4" /> Manajemen Berlangganan
               </div>
-              <h3 className="font-display text-2xl font-bold text-white">Tingkatkan Paket Perusahaan Anda</h3>
+              <h3 className="font-display text-2xl font-bold text-white">Ringkasan Penggunaan Layanan</h3>
+              <div className="bg-dark-bg border border-dark-border rounded-2xl p-5 flex flex-col gap-4">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h4 className="text-sm font-bold text-white mb-1">Studi Kasus Digunakan</h4>
+                     <p className="text-xs text-gray-400">Total studi kasus (Draf & Aktif) yang Anda miliki saat ini.</p>
+                   </div>
+                   <span className={`text-sm font-bold px-3 py-1 rounded-full border ${
+                      myChallenges.length >= (companyProfile.subscriptionTier === 'STARTUP' ? 1 : companyProfile.subscriptionTier === 'KONGLOMERAT' ? 5 : 999) 
+                        ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    }`}>
+                     {myChallenges.length} / {companyProfile.subscriptionTier === 'STARTUP' ? 1 : companyProfile.subscriptionTier === 'KONGLOMERAT' ? 5 : 'Tak Terbatas'}
+                   </span>
+                 </div>
+                 {myChallenges.length > 0 && (
+                   <div className="pt-3 border-t border-dark-border text-xs text-gray-400">
+                     <p>Status: {myChallenges.filter((c:any) => c.status === 'PUBLISHED').length} Aktif, {myChallenges.filter((c:any) => c.status === 'DRAFT').length} Draf.</p>
+                   </div>
+                 )}
+              </div>
+              
+              <h3 className="font-display text-2xl font-bold text-white mt-8">Tingkatkan Paket Perusahaan Anda</h3>
               <p className="text-sm text-gray-400">
                 Pilih paket langganan yang paling sesuai untuk memaksimalkan efisiensi rekrutmen dan asesmen otomatis AI.
               </p>

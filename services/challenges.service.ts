@@ -13,6 +13,7 @@ export interface CreateChallengePayload {
   deadlineAt?: string;
   gradingRubric?: Record<string, any>;
   components?: any[];
+  status?: 'DRAFT' | 'PUBLISHED';
 }
 
 export interface GenerateAiChallengePayload {
@@ -27,7 +28,7 @@ export interface CreateDiscussionPayload {
 }
 
 export const challengesService = {
-  getAll: async (params?: { category?: string; difficulty?: string; search?: string; companyId?: string }) => {
+  getAll: async (params?: { category?: string; difficulty?: string; search?: string; companyId?: string; includeDrafts?: boolean }) => {
     const { data } = await apiClient.get('/challenges', { params });
     return { data };
   },
@@ -37,6 +38,10 @@ export const challengesService = {
   },
   create: async (payload: CreateChallengePayload) => {
     const { data } = await apiClient.post('/challenges', payload);
+    return { data };
+  },
+  update: async (id: string, payload: Partial<CreateChallengePayload>) => {
+    const { data } = await apiClient.patch(`/challenges/${id}`, payload);
     return { data };
   },
   generateAi: async (payload: GenerateAiChallengePayload) => {

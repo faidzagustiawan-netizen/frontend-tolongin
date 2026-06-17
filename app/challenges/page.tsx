@@ -10,7 +10,7 @@ import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import {
   Search, RefreshCw, Briefcase, Sparkles, Plus, Wand2, FileText,
-  CheckCircle2, AlertCircle, Clock, DollarSign, Layers, Zap, ShieldCheck
+  CheckCircle2, AlertCircle, Clock, DollarSign, Layers, Zap, ShieldCheck, Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -84,9 +84,10 @@ export default function ChallengesDirectoryPage() {
 
   const challenges = data?.data || [];
   const isCompanyOrAdmin = user && (user.role === 'COMPANY' || user.role === 'ADMIN');
+  const userProfile = useUserStore((state) => state.userProfile);
+  const isStartupTier = userProfile?.subscriptionTier === 'STARTUP';
 
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitChallenge = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!title || !summary || !description) {
       setSubmitError('Harap lengkapi judul, ringkasan, dan deskripsi studi kasus.');
       return;
@@ -114,9 +115,10 @@ export default function ChallengesDirectoryPage() {
         difficulty,
         rewardDescription,
         gradingRubric,
+        status,
       });
 
-      setSubmitSuccess('Studi Kasus berhasil diterbitkan! Kini talenta dapat mulai mendaftar dan mengumpulkan solusi.');
+      setSubmitSuccess(status === 'DRAFT' ? 'Draf berhasil disimpan! Anda bisa mengeditnya di Profil.' : 'Studi Kasus berhasil diterbitkan!');
       refetch();
       setTimeout(() => {
         setCreateModalOpen(false);
@@ -126,10 +128,15 @@ export default function ChallengesDirectoryPage() {
         setDescription('');
       }, 2500);
     } catch (err: any) {
-      setSubmitError(err.message || 'Gagal menerbitkan studi kasus. Silakan coba lagi.');
+      setSubmitError(err.response?.data?.message || err.message || 'Gagal menyimpan studi kasus. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitChallenge('PUBLISHED');
   };
 
   const handleAiSubmit = async (e: React.FormEvent) => {
@@ -150,7 +157,7 @@ export default function ChallengesDirectoryPage() {
         difficulty: aiDifficulty,
       });
 
-      setSubmitSuccess('AI berhasil merancang dan merumuskan draf studi kasus! Kasus baru telah ditambahkan ke direktori.');
+      setSubmitSuccess('AI berhasil merancang dan merumuskan draf studi kasus! Kasus baru telah ditambahkan sebagai Draf.');
       refetch();
       setTimeout(() => {
         setCreateModalOpen(false);
@@ -158,7 +165,7 @@ export default function ChallengesDirectoryPage() {
         setAiPrompt('');
       }, 2500);
     } catch (err: any) {
-      setSubmitError(err.message || 'Gagal menghasilkan studi kasus via AI. Silakan coba lagi.');
+      setSubmitError(err.response?.data?.message || err.message || 'Gagal menghasilkan studi kasus via AI. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -327,17 +334,20 @@ export default function ChallengesDirectoryPage() {
             </button>
             <button
               onClick={() => {
+                if (isStartupTier) return;
                 setSubmitError(null);
                 setSubmitSuccess(null);
                 setCreateTab('AI');
               }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-display font-bold text-xs transition-all ${
+                isStartupTier ? 'opacity-50 cursor-not-allowed bg-dark-bg text-gray-500' :
                 createTab === 'AI'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Wand2 className="h-4 w-4" /> AI Prompt Generator
+              {isStartupTier ? <Lock className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
+              AI Prompt Generator {isStartupTier && '(Pro)'}
             </button>
           </div>
 
@@ -462,6 +472,7 @@ export default function ChallengesDirectoryPage() {
 
               <div className="pt-4 flex items-center justify-end gap-3">
                 <Button variant="ghost" onClick={() => setCreateModalOpen(false)}>Batal</Button>
+                <Button type="button" variant="secondary" onClick={() => submitChallenge('DRAFT')} isLoading={isSubmitting}>Simpan Draf</Button>
                 <Button type="submit" isLoading={isSubmitting} className="shadow-xl">Terbitkan Studi Kasus</Button>
               </div>
             </form>
