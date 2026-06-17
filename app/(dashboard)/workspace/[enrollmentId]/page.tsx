@@ -11,7 +11,7 @@ import { FileUploader } from '../../../../components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -84,9 +84,15 @@ export default function EnrollmentWorkspacePage() {
     const startedAtMs = new Date(selectedEnrollment.startedAt).getTime();
     const durationHours = selectedEnrollment.challenge?.gradingRubric?.durationHours || 72;
     const expiresAtMs = startedAtMs + durationHours * 3600 * 1000;
+    const submissions = selectedEnrollment?.submissions || [];
+    const latestSubmission = submissions[submissions.length - 1];
 
     const updateTimer = () => {
-      const now = Date.now();
+      let now = Date.now();
+      if (latestSubmission) {
+        now = new Date(latestSubmission.createdAt).getTime();
+      }
+
       const diff = expiresAtMs - now;
       if (diff <= 0) {
         setIsExpired(true);
@@ -275,7 +281,7 @@ export default function EnrollmentWorkspacePage() {
                   {isExpired ? <Lock className="h-4 w-4 flex-shrink-0" /> : <Timer className="h-4 w-4 flex-shrink-0 animate-spin-slow" />}
                   <div className="text-right">
                     <p className="text-xs font-mono font-bold tracking-wider">{timeLeftString}</p>
-                    <p className="text-[9px] text-gray-500 uppercase font-semibold">{isExpired ? 'Waktu Habis' : 'Sisa Waktu Server'}</p>
+                    <p className="text-[9px] text-gray-500 uppercase font-semibold">{isExpired ? 'Waktu Habis' : (selectedEnrollment?.submissions?.length > 0) ? 'Sisa Waktu (Saat Submit)' : 'Sisa Waktu Server'}</p>
                   </div>
                 </div>
 
