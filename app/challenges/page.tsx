@@ -84,7 +84,7 @@ export default function ChallengesDirectoryPage() {
 
   const challenges = data?.data || [];
   const isCompanyOrAdmin = user && (user.role === 'COMPANY' || user.role === 'ADMIN');
-  const userProfile = useUserStore((state) => state.userProfile);
+  const userProfile = useUserStore((state) => state.user?.profile);
   const isStartupTier = userProfile?.subscriptionTier === 'STARTUP';
 
   const submitChallenge = async (status: 'DRAFT' | 'PUBLISHED') => {
