@@ -90,7 +90,7 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/portfolios" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-amber-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
+          <Link href="/profile" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-amber-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
             <div className="space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                 <Trophy className="h-6 w-6" />

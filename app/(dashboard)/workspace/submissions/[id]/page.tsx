@@ -55,7 +55,7 @@ export default function SubmissionDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold text-white mb-4">Submisi Tidak Ditemukan</h2>
-        <Button onClick={() => router.push('/workspace/submissions')} variant="secondary">Kembali</Button>
+        <Button onClick={() => router.push('/workspace')} variant="secondary">Kembali</Button>
       </div>
     );
   }
@@ -202,7 +202,7 @@ export default function SubmissionDetailPage() {
               <Brain className="w-12 h-12 text-gray-600 mb-3" />
               <h3 className="text-white font-medium mb-1">AI Assessment Tidak Tersedia</h3>
               <p className="text-sm text-gray-400 max-w-sm mb-4">Fitur penilaian otomatis dan deteksi plagiarisme hanya tersedia untuk perusahaan dengan paket Premium (Konglomerat / Custom).</p>
-              <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>Upgrade Sekarang</Button>
+              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>Upgrade Sekarang</Button>
             </div>
           )}
         </div>

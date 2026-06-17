@@ -28,6 +28,10 @@ export default function ProfilePage() {
   const [uploadedKtpUrl, setUploadedKtpUrl] = useState<string | null>(null);
   const [isUploadingVerify, setIsUploadingVerify] = useState(false);
 
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
+
   useEffect(() => {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
@@ -144,6 +148,48 @@ export default function ProfilePage() {
       setIsUpgradingTier(false);
       setSelectedTier(null);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    setVerificationError(null);
+    setVerificationSuccess(null);
+    try {
+      const payload: any = { ...editFormData };
+      if (payload.skills && typeof payload.skills === 'string') {
+        payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+      await authService.updateProfile(payload);
+      setVerificationSuccess('Profil berhasil diperbarui!');
+      setIsEditingProfile(false);
+      refetch();
+    } catch (err: any) {
+      setVerificationError(err.message || 'Gagal memperbarui profil.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleEditToggle = () => {
+    if (!isEditingProfile) {
+      setEditFormData(isTalent ? {
+        fullName: talentProfile?.fullName || '',
+        headline: talentProfile?.headline || '',
+        bio: talentProfile?.bio || '',
+        skills: talentProfile?.skills?.join(', ') || '',
+        githubUrl: talentProfile?.githubUrl || '',
+        linkedinUrl: talentProfile?.linkedinUrl || '',
+        figmaUrl: talentProfile?.figmaUrl || '',
+        ktpNik: talentProfile?.ktpNik || '',
+      } : {
+        companyName: companyProfile?.companyName || '',
+        industry: companyProfile?.industry || '',
+        companySize: companyProfile?.companySize || '',
+        websiteUrl: companyProfile?.websiteUrl || '',
+        description: companyProfile?.description || '',
+      });
+    }
+    setIsEditingProfile(!isEditingProfile);
   };
 
   if (isLoading) {
@@ -283,43 +329,88 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl space-y-6">
-            <h3 className="font-display text-xl font-bold text-white border-b border-dark-border pb-4">
-              {isTalent ? 'Informasi Profil Talenta' : 'Informasi Perusahaan Mitra'}
-            </h3>
+            <div className="flex justify-between items-center border-b border-dark-border pb-4">
+              <h3 className="font-display text-xl font-bold text-white">
+                {isTalent ? 'Informasi Profil Talenta' : 'Informasi Perusahaan Mitra'}
+              </h3>
+              <Button 
+                variant={isEditingProfile ? "secondary" : "primary"} 
+                size="sm" 
+                onClick={handleEditToggle}
+              >
+                {isEditingProfile ? 'Batal' : 'Edit Profil'}
+              </Button>
+            </div>
 
             {isTalent ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Nama Lengkap" defaultValue={talentProfile?.fullName} disabled />
-                  <Input label="Keahlian Utama (Headline)" defaultValue={talentProfile?.headline} disabled />
+                  <Input label="Nama Lengkap" defaultValue={talentProfile?.fullName} value={isEditingProfile ? editFormData.fullName : undefined} onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="Keahlian Utama (Headline)" defaultValue={talentProfile?.headline} value={isEditingProfile ? editFormData.headline : undefined} onChange={(e) => setEditFormData({...editFormData, headline: e.target.value})} disabled={!isEditingProfile} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input label="NIK KTP" defaultValue={talentProfile?.ktpNik} value={isEditingProfile ? editFormData.ktpNik : undefined} onChange={(e) => setEditFormData({...editFormData, ktpNik: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="Daftar Keahlian (Pisahkan dengan koma)" defaultValue={talentProfile?.skills?.join(', ')} value={isEditingProfile ? editFormData.skills : undefined} onChange={(e) => setEditFormData({...editFormData, skills: e.target.value})} disabled={!isEditingProfile} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Input label="URL GitHub" defaultValue={talentProfile?.githubUrl} value={isEditingProfile ? editFormData.githubUrl : undefined} onChange={(e) => setEditFormData({...editFormData, githubUrl: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="URL LinkedIn" defaultValue={talentProfile?.linkedinUrl} value={isEditingProfile ? editFormData.linkedinUrl : undefined} onChange={(e) => setEditFormData({...editFormData, linkedinUrl: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="URL Figma" defaultValue={talentProfile?.figmaUrl} value={isEditingProfile ? editFormData.figmaUrl : undefined} onChange={(e) => setEditFormData({...editFormData, figmaUrl: e.target.value})} disabled={!isEditingProfile} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Daftar Keahlian (Skills)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {talentProfile?.skills?.map((s: string) => (
-                      <span key={s} className="bg-white/5 border border-white/10 text-gray-200 text-xs px-3 py-1.5 rounded-xl font-medium">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Bio / Tentang Saya</label>
+                  {isEditingProfile ? (
+                    <textarea 
+                      className="w-full bg-dark-bg border border-dark-border rounded-xl p-4 text-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                      rows={4}
+                      value={editFormData.bio}
+                      onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})}
+                    />
+                  ) : (
+                    <p className="text-xs text-gray-400 leading-relaxed bg-dark-bg border border-dark-border p-4 rounded-xl">
+                      {talentProfile?.bio || 'Belum ada bio.'}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Nama Perusahaan" defaultValue={companyProfile?.companyName} disabled />
-                  <Input label="Bidang Industri" defaultValue={companyProfile?.industry} disabled />
+                  <Input label="Nama Perusahaan" defaultValue={companyProfile?.companyName} value={isEditingProfile ? editFormData.companyName : undefined} onChange={(e) => setEditFormData({...editFormData, companyName: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="Bidang Industri" defaultValue={companyProfile?.industry} value={isEditingProfile ? editFormData.industry : undefined} onChange={(e) => setEditFormData({...editFormData, industry: e.target.value})} disabled={!isEditingProfile} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input label="Ukuran Perusahaan" defaultValue={companyProfile?.companySize} value={isEditingProfile ? editFormData.companySize : undefined} onChange={(e) => setEditFormData({...editFormData, companySize: e.target.value})} disabled={!isEditingProfile} />
+                  <Input label="URL Website" defaultValue={companyProfile?.websiteUrl} value={isEditingProfile ? editFormData.websiteUrl : undefined} onChange={(e) => setEditFormData({...editFormData, websiteUrl: e.target.value})} disabled={!isEditingProfile} />
                 </div>
                 <Input label="Paket Langganan Aktif Saat Ini" defaultValue={companyProfile?.subscriptionTier} disabled />
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Deskripsi Perusahaan</label>
-                  <p className="text-xs text-gray-400 leading-relaxed bg-dark-bg border border-dark-border p-4 rounded-xl">
-                    {companyProfile?.description || 'Belum ada deskripsi perusahaan.'}
-                  </p>
+                  {isEditingProfile ? (
+                    <textarea 
+                      className="w-full bg-dark-bg border border-dark-border rounded-xl p-4 text-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                      rows={4}
+                      value={editFormData.description}
+                      onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                    />
+                  ) : (
+                    <p className="text-xs text-gray-400 leading-relaxed bg-dark-bg border border-dark-border p-4 rounded-xl">
+                      {companyProfile?.description || 'Belum ada deskripsi perusahaan.'}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
+
+            {isEditingProfile && (
+              <div className="flex justify-end pt-4">
+                <Button onClick={handleSaveProfile} isLoading={isSavingProfile}>
+                  Simpan Perubahan
+                </Button>
+              </div>
+            )}
           </div>
+
 
           {!isTalent && companyProfile && (
             <div className="space-y-6">

@@ -55,7 +55,7 @@ export default function ChallengeSubmissionsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <button 
-        onClick={() => router.push('/workspace/submissions')}
+        onClick={() => router.push('/workspace')}
         className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard

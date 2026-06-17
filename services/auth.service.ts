@@ -36,6 +36,10 @@ export const authService = {
     const { data } = await apiClient.get(`/users/${userId}`);
     return { data };
   },
+  updateProfile: async (payload: any) => {
+    const { data } = await apiClient.patch('/users/me/profile', payload);
+    return { data };
+  },
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
