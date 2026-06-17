@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { Navbar } from "../components/common/Navbar";
 import { Footer } from "../components/common/Footer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,6 +37,7 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col">{children}</main>
           <Footer />
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
