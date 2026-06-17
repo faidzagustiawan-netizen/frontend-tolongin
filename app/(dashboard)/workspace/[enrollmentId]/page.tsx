@@ -578,6 +578,50 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 )}
 
+                {latestSubmission.componentResponses && latestSubmission.componentResponses.length > 0 && (
+                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-4">
+                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 border-b border-dark-border pb-2">
+                      <FileText className="h-4 w-4" /> Jawaban Komponen Spesifik
+                    </h5>
+                    <div className="space-y-4 pt-2">
+                      {latestSubmission.componentResponses.map((res: any, idx: number) => (
+                        <div key={idx} className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-2">
+                          <p className="text-xs font-bold text-emerald-400">{res.component?.question || 'Tugas / Pertanyaan'}</p>
+                          {res.component?.type === 'LIVE_CODING' ? (
+                            <pre className="text-xs text-gray-300 bg-black/50 p-3 rounded-lg overflow-x-auto font-mono border border-white/10">
+                              {res.textValue}
+                            </pre>
+                          ) : res.component?.type === 'MULTIPLE_CHOICE' ? (
+                            <p className="text-sm text-gray-300">
+                              Pilihan Anda: <span className="font-semibold text-white">{res.component?.options?.find((o: any) => o.id === res.textValue)?.text || res.textValue}</span>
+                            </p>
+                          ) : res.fileUrl ? (
+                            <a href={res.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-cyan-400 hover:underline flex items-center gap-1">
+                              Lihat Berkas Lampiran
+                            </a>
+                          ) : (
+                            <div className="text-sm text-gray-300 whitespace-pre-wrap">{res.textValue || 'Tidak ada jawaban diberikan.'}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(latestSubmission.repositoryUrl || latestSubmission.liveDemoUrl || latestSubmission.figmaUrl || latestSubmission.solutionFilesUrl) && (
+                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3 font-mono">
+                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-dark-border pb-2">
+                      <ExternalLink className="h-4 w-4" /> Tautan Terlampir
+                    </h5>
+                    <ul className="text-xs space-y-2">
+                      {latestSubmission.repositoryUrl && <li><a href={latestSubmission.repositoryUrl} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline flex items-center gap-2"><GitBranch className="w-3 h-3"/> {latestSubmission.repositoryUrl}</a></li>}
+                      {latestSubmission.liveDemoUrl && <li><a href={latestSubmission.liveDemoUrl} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline flex items-center gap-2"><Globe className="w-3 h-3"/> {latestSubmission.liveDemoUrl}</a></li>}
+                      {latestSubmission.figmaUrl && <li><a href={latestSubmission.figmaUrl} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline flex items-center gap-2"><Layout className="w-3 h-3"/> {latestSubmission.figmaUrl}</a></li>}
+                      {latestSubmission.solutionFilesUrl && <li><a href={latestSubmission.solutionFilesUrl} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline flex items-center gap-2"><FileText className="w-3 h-3"/> {latestSubmission.solutionFilesUrl}</a></li>}
+                    </ul>
+                  </div>
+                )}
+
                 {latestSubmission.aiCorrectionSummary && (
                   <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3">
                     <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">

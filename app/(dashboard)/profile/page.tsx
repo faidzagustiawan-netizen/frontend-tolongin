@@ -26,6 +26,9 @@ export default function ProfilePage() {
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
 
+  const [showTestFaceCam, setShowTestFaceCam] = useState(false);
+  const [testFaceResult, setTestFaceResult] = useState<boolean | null>(null);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
@@ -86,6 +89,32 @@ export default function ProfilePage() {
       setShowLivenessCam(false);
       const msg = err.response?.data?.message || err.message || 'Gagal menyimpan model wajah.';
       setVerificationError(msg);
+    }
+  };
+
+  const handleFaceTestComplete = async (descriptor: number[]) => {
+    try {
+       const storedVector = talentProfile?.biometricFeatureVector;
+       if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
+         alert('Belum ada data wajah terdaftar.');
+         setShowTestFaceCam(false);
+         return;
+       }
+       const desc1 = new Float32Array(descriptor);
+       const desc2 = new Float32Array(storedVector as number[]);
+       const faceapi = await import('@vladmandic/face-api');
+       const distance = faceapi.euclideanDistance(desc1, desc2);
+       if (distance < 0.6) {
+         setTestFaceResult(true);
+         alert('Berhasil! Wajah Anda cocok dengan profil (Tingkat Kemiripan: ' + ((1 - distance) * 100).toFixed(1) + '%)');
+       } else {
+         setTestFaceResult(false);
+         alert('Gagal! Wajah tidak cocok dengan profil terdaftar (Tingkat Kemiripan: ' + ((1 - distance) * 100).toFixed(1) + '%)');
+       }
+       setShowTestFaceCam(false);
+    } catch (err) {
+       alert('Gagal melakukan tes wajah');
+       setShowTestFaceCam(false);
     }
   };
 
@@ -543,15 +572,33 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {!showLivenessCam ? (
-                      <Button variant="outline" onClick={() => setShowLivenessCam(true)} className="w-full text-xs">
-                        <RefreshCw className="h-4 w-4 mr-2" /> Ambil Ulang Foto Verifikasi Wajah (Retake)
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" onClick={() => setShowLivenessCam(false)} className="w-full text-xs text-red-400 border border-red-500/20 bg-red-500/10">
-                        Batal Pengambilan Ulang
+                    {!showLivenessCam && !showTestFaceCam && (
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button variant="outline" onClick={() => setShowTestFaceCam(true)} className="w-full text-xs border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
+                          <CheckCircle2 className="h-4 w-4 mr-2" /> Cek Deteksi Wajah (Test)
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowLivenessCam(true)} className="w-full text-xs">
+                          <RefreshCw className="h-4 w-4 mr-2" /> Ambil Ulang Foto (Retake)
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {(showLivenessCam || showTestFaceCam) && (
+                      <Button variant="ghost" onClick={() => { setShowLivenessCam(false); setShowTestFaceCam(false); }} className="w-full text-xs text-red-400 border border-red-500/20 bg-red-500/10">
+                        Batal Kamera
                       </Button>
                     )}
+                  </div>
+                )}
+
+                {showTestFaceCam && (
+                  <div className="pt-4 border-t border-dark-border space-y-6">
+                    <FaceScanner 
+                      onCaptureComplete={handleFaceTestComplete} 
+                      onCancel={() => setShowTestFaceCam(false)}
+                      title="Tes Kecocokan Wajah"
+                      description="Arahkan wajah Anda ke kamera. Sistem akan mencocokkannya dengan data biometrik Anda yang sudah terdaftar."
+                    />
                   </div>
                 )}
 
