@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import * as faceapi from '@vladmandic/face-api';
+import { FaceScanner } from '../../../../components/workspace/FaceScanner';
+import Editor from '@monaco-editor/react';
 
 export default function EnrollmentWorkspacePage() {
   const { user, loadUserFromStorage } = useUserStore();
@@ -34,6 +37,7 @@ export default function EnrollmentWorkspacePage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [timeLeftString, setTimeLeftString] = useState<string>('--:--:--');
   const [isExpired, setIsExpired] = useState<boolean>(false);
+  const [componentResponses, setComponentResponses] = useState<Record<string, any>>({});
 
   // Proctoring & Anti-Joki State
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
@@ -120,54 +124,42 @@ export default function EnrollmentWorkspacePage() {
   }, [selectedEnrollment, isProctored, isExpired]);
 
   // Start Webcam Stream
-  const handleStartWebcam = async () => {
+  const handleStartWebcam = () => {
     setWebcamOpen(true);
     setIsVerifyingFace(false);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-    } catch (err) {
-      console.error('Webcam permission denied or unavailable', err);
-    }
   };
 
-  const handleCaptureAndVerifyFace = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const handleFaceVerification = async (scannedDescriptor: number[]) => {
+    setWebcamOpen(false);
     setIsVerifyingFace(true);
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-      if (video.srcObject) {
-        const stream = video.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-      }
-
-      try {
-        const res = await verificationService.verifyExecution({ livePhotoUrl: dataUrl });
-        if (res.data.verified) {
-          setFaceVerified(true);
-        } else {
-          setFaceVerified(false);
-          alert(res.data.message);
-        }
-      } catch (err: any) {
+    try {
+      const storedVector = user?.talentProfile?.biometricFeatureVector;
+      
+      if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
         setFaceVerified(false);
-        alert(err.response?.data?.message || err.message || 'Gagal memverifikasi wajah. Harap pastikan Anda sudah melakukan verifikasi KTP/Selfie di halaman Profil!');
+        alert('Anda belum mendaftarkan wajah di halaman Profil. Harap daftarkan wajah (Scan Wajah) terlebih dahulu.');
+        return;
       }
+
+      const desc1 = new Float32Array(scannedDescriptor);
+      // Since prisma returns it as JSON array, we can map it to Float32Array
+      const desc2 = new Float32Array(storedVector as number[]);
+      const distance = faceapi.euclideanDistance(desc1, desc2);
+
+      // 0.6 is a standard threshold for face-api.js model
+      if (distance < 0.6) {
+        setFaceVerified(true);
+      } else {
+        setFaceVerified(false);
+        alert(`Wajah tidak cocok dengan profil terdaftar (Distance: ${distance.toFixed(2)}). Pastikan Anda adalah peserta yang sah.`);
+      }
+    } catch (err: any) {
+      setFaceVerified(false);
+      alert('Terjadi kesalahan saat memverifikasi wajah.');
+    } finally {
+      setIsVerifyingFace(false);
     }
-    setIsVerifyingFace(false);
-    setWebcamOpen(false);
   };
 
   if (isTalentLoading || !selectedEnrollment) {
@@ -179,8 +171,20 @@ export default function EnrollmentWorkspacePage() {
     );
   }
 
+  const components = selectedEnrollment?.challenge?.components || [];
   const customOutputs: Array<{ id: string; label: string; placeholder: string; required?: boolean }> =
     selectedEnrollment?.challenge?.gradingRubric?.customOutputs || [];
+
+  const handleComponentChange = (componentId: string, value: any, field: 'textValue' | 'fileUrl') => {
+    setComponentResponses(prev => ({
+      ...prev,
+      [componentId]: {
+        ...prev[componentId],
+        componentId,
+        [field]: value
+      }
+    }));
+  };
 
   const handleSubmitSolution = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,6 +214,8 @@ export default function EnrollmentWorkspacePage() {
 
     combinedNotes += proctoringNotes;
 
+    const responsesArray = Object.values(componentResponses);
+
     try {
       await submissionsService.submitSolution({
         enrollmentId: selectedEnrollment.id,
@@ -218,6 +224,7 @@ export default function EnrollmentWorkspacePage() {
         figmaUrl,
         liveDemoUrl,
         notes: combinedNotes,
+        responses: responsesArray,
       });
       setSubmitSuccess(true);
       refetchTalent();
@@ -340,42 +347,12 @@ export default function EnrollmentWorkspacePage() {
                           exit={{ opacity: 0, height: 0 }}
                           className="pt-4 overflow-hidden"
                         >
-                          <div className="bg-dark-bg border border-dark-border rounded-2xl p-4 space-y-4">
-                            <div className="relative aspect-video w-full max-w-sm mx-auto bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
-                              <video ref={videoRef} className="w-full h-full object-cover transform -scale-x-100" muted playsInline />
-                              <canvas ref={canvasRef} className="hidden" />
-                              <div className="absolute inset-0 border-2 border-emerald-500/50 rounded-xl pointer-events-none animate-pulse" />
-                              <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-mono text-emerald-400 flex items-center gap-1.5">
-                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" /> Live Biometric Scan
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-center gap-3">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (videoRef.current?.srcObject) {
-                                    const st = videoRef.current.srcObject as MediaStream;
-                                    st.getTracks().forEach((t) => t.stop());
-                                  }
-                                  setWebcamOpen(false);
-                                }}
-                              >
-                                Tutup Kamera
-                              </Button>
-                              <Button
-                                type="button"
-                                isLoading={isVerifyingFace}
-                                onClick={handleCaptureAndVerifyFace}
-                                size="sm"
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
-                              >
-                                Verifikasi Wajah Kandidat
-                              </Button>
-                            </div>
-                          </div>
+                          <FaceScanner 
+                            onCaptureComplete={handleFaceVerification}
+                            onCancel={() => setWebcamOpen(false)}
+                            title="Verifikasi Wajah Peserta"
+                            description="Sistem akan membandingkan wajah Anda dengan profil yang terdaftar secara instan (Lokal)."
+                          />
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -399,75 +376,179 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-200">Berkas / Aset Solusi Utama</label>
-                  <FileUploader
-                    onUploadComplete={(url) => setSolutionFilesUrl(url)}
-                    maxSizeMB={25}
-                  />
-                </div>
+                {/* DYNAMIC COMPONENTS RENDERING */}
+                {components.length > 0 && (
+                  <div className="space-y-8 border-t border-dark-border pt-8">
+                    <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-emerald-400" /> Komponen Ujian (Wajib Diisi)
+                    </h4>
+                    
+                    {components.map((comp: any, idx: number) => (
+                      <div key={comp.id} className="bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner space-y-4">
+                        <div className="flex justify-between items-start gap-4 mb-4 border-b border-dark-border/50 pb-4">
+                          <h5 className="font-bold text-white text-base leading-relaxed">
+                            {idx + 1}. {comp.question}
+                          </h5>
+                          <span className="text-xs bg-dark-card border border-dark-border px-2 py-1 rounded text-emerald-400 whitespace-nowrap font-semibold shadow-sm">
+                            {comp.points} Poin
+                          </span>
+                        </div>
+                        {comp.description && (
+                          <p className="text-sm text-gray-400 mb-4 bg-black/20 p-4 rounded-xl border border-white/5">{comp.description}</p>
+                        )}
 
-                {customOutputs.length > 0 && (
-                  <div className="space-y-6 bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner">
-                    <div className="flex items-center gap-2 border-b border-dark-border pb-3">
-                      <FileText className="h-5 w-5 text-emerald-400" />
-                      <h4 className="font-display font-bold text-white text-base">Persyaratan Output Khusus (Custom Deliverables)</h4>
-                    </div>
-                    <p className="text-xs text-gray-400">Perusahaan menerapkan rubrik pengumpulan spesifik untuk studi kasus ini. Lengkapi tautan di bawah:</p>
+                        {comp.type === 'MULTIPLE_CHOICE' && comp.options && (
+                          <div className="space-y-3">
+                            {comp.options.map((opt: any, optIdx: number) => (
+                              <label key={optIdx} className="flex items-center gap-3 p-3 rounded-xl border border-dark-border hover:border-emerald-500/50 cursor-pointer transition-colors bg-dark-card">
+                                <input
+                                  type="radio"
+                                  name={`comp-${comp.id}`}
+                                  value={opt.id}
+                                  onChange={() => handleComponentChange(comp.id, opt.id, 'textValue')}
+                                  checked={componentResponses[comp.id]?.textValue === opt.id}
+                                  className="w-4 h-4 text-emerald-500 bg-dark-bg border-gray-600 focus:ring-emerald-500"
+                                />
+                                <span className="text-sm text-gray-200">{opt.text}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
 
-                    <div className="space-y-4 pt-2">
-                      {customOutputs.map((out) => (
-                        <Input
-                          key={out.id}
-                          label={`${out.label} ${out.required ? '*' : '(Opsional)'}`}
-                          type="url"
-                          placeholder={out.placeholder}
-                          required={out.required}
-                          value={customInputs[out.id] || ''}
-                          onChange={(e) => setCustomInputs({ ...customInputs, [out.id]: e.target.value })}
-                        />
-                      ))}
-                    </div>
+                        {comp.type === 'ESSAY' && (
+                          <Textarea
+                            placeholder="Ketik jawaban Anda di sini..."
+                            value={componentResponses[comp.id]?.textValue || ''}
+                            onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
+                            rows={5}
+                          />
+                        )}
+
+                        {comp.type === 'URL_SUBMISSION' && (
+                          <Input
+                            placeholder="https://..."
+                            type="url"
+                            value={componentResponses[comp.id]?.textValue || ''}
+                            onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
+                            icon={<Globe className="w-4 h-4" />}
+                          />
+                        )}
+
+                        {comp.type === 'FILE_UPLOAD' && (
+                          <FileUploader
+                            onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
+                            maxSizeMB={10}
+                          />
+                        )}
+
+                        {comp.type === 'VIDEO_UPLOAD' && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-amber-400 mb-2 font-medium">Unggah berkas video (MP4/WebM) maksimal 25MB.</p>
+                            <FileUploader
+                              onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
+                              maxSizeMB={25}
+                              accept="video/*"
+                            />
+                          </div>
+                        )}
+
+                        {comp.type === 'LIVE_CODING' && (
+                          <div className="rounded-xl overflow-hidden border border-dark-border shadow-2xl">
+                            <div className="bg-dark-card px-4 py-2 border-b border-dark-border flex justify-between items-center">
+                              <span className="text-xs font-mono text-emerald-400">Main.{comp.metadata?.language || 'js'}</span>
+                              <span className="text-xs text-gray-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Live Editor Mode</span>
+                            </div>
+                            <Editor
+                              height="400px"
+                              language={comp.metadata?.language || 'javascript'}
+                              theme="vs-dark"
+                              value={componentResponses[comp.id]?.textValue || ''}
+                              onChange={(value) => handleComponentChange(comp.id, value, 'textValue')}
+                              options={{
+                                minimap: { enabled: false },
+                                fontSize: 14,
+                                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                scrollBeyondLastLine: false,
+                                smoothScrolling: true,
+                                cursorBlinking: "smooth",
+                                cursorSmoothCaretAnimation: "on",
+                                formatOnPaste: true
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input
-                    label="Tautan Repositori (GitHub/GitLab) - Jika Ada"
-                    type="url"
-                    placeholder="https://github.com/username/repo"
-                    value={repositoryUrl}
-                    onChange={(e) => setRepositoryUrl(e.target.value)}
-                    icon={<GitBranch className="h-5 w-5" />}
-                  />
-                  <Input
-                    label="Tautan Demo Langsung (Vercel/Netlify/Loom)"
-                    type="url"
-                    placeholder="https://my-project.vercel.app"
-                    value={liveDemoUrl}
-                    onChange={(e) => setLiveDemoUrl(e.target.value)}
-                    icon={<Globe className="h-5 w-5" />}
+                {/* LEGACY FIELDS (Dapat dikosongkan jika sudah menggunakan dynamic components) */}
+                <div className="space-y-8 pt-8 border-t border-dark-border">
+                  <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-emerald-400" /> Informasi Pengumpulan Tambahan
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-200">Berkas / Aset Solusi Tambahan (Opsional)</label>
+                    <FileUploader
+                      onUploadComplete={(url) => setSolutionFilesUrl(url)}
+                      maxSizeMB={25}
+                    />
+                  </div>
+
+                  {customOutputs.length > 0 && (
+                    <div className="space-y-6 bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner">
+                      <div className="flex items-center gap-2 border-b border-dark-border pb-3">
+                        <FileText className="h-5 w-5 text-emerald-400" />
+                        <h4 className="font-display font-bold text-white text-base">Persyaratan Output Khusus (Legacy)</h4>
+                      </div>
+                      <p className="text-xs text-gray-400">Perusahaan menerapkan rubrik pengumpulan spesifik untuk studi kasus ini. Lengkapi tautan di bawah:</p>
+
+                      <div className="space-y-4 pt-2">
+                        {customOutputs.map((out) => (
+                          <Input
+                            key={out.id}
+                            label={`${out.label} ${out.required ? '*' : '(Opsional)'}`}
+                            type="url"
+                            placeholder={out.placeholder}
+                            required={out.required}
+                            value={customInputs[out.id] || ''}
+                            onChange={(e) => setCustomInputs({ ...customInputs, [out.id]: e.target.value })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Input
+                      label="Tautan Repositori (GitHub/GitLab) - Opsional"
+                      type="url"
+                      placeholder="https://github.com/username/repo"
+                      value={repositoryUrl}
+                      onChange={(e) => setRepositoryUrl(e.target.value)}
+                      icon={<GitBranch className="h-5 w-5" />}
+                    />
+                    <Input
+                      label="Tautan Demo Langsung (Vercel/Netlify) - Opsional"
+                      type="url"
+                      placeholder="https://my-project.vercel.app"
+                      value={liveDemoUrl}
+                      onChange={(e) => setLiveDemoUrl(e.target.value)}
+                      icon={<Globe className="h-5 w-5" />}
+                    />
+                  </div>
+
+                  <Textarea
+                    label="Catatan Eksekutif Tambahan"
+                    placeholder="Catatan tambahan di luar format komponen di atas..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
                   />
                 </div>
 
-                <Input
-                  label="Tautan Desain (Figma / Canva / Miro) - Opsional"
-                  type="url"
-                  placeholder="https://figma.com/file/..."
-                  value={figmaUrl}
-                  onChange={(e) => setFigmaUrl(e.target.value)}
-                  icon={<Layout className="h-5 w-5" />}
-                />
-
-                <Textarea
-                  label="Catatan Implementasi & Keputusan Eksekutif / Arsitektur"
-                  placeholder="Jelaskan pola desain, strategi pemasaran, atau metodologi riset yang Anda gunakan..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                />
-
-                <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full shadow-xl">
+                <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full shadow-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 text-base mt-8">
                   <Send className="h-5 w-5 mr-2" />
                   Kirim Solusi untuk Dievaluasi AI & Rekruter
                 </Button>

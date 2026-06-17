@@ -8,7 +8,7 @@ import { authService } from '../../../services/auth.service';
 import { subscriptionsService, UpgradeSubscriptionPayload } from '../../../services/subscriptions.service';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
-import { LivenessCam } from '../../../components/workspace/LivenessCam';
+import { FaceScanner } from '../../../components/workspace/FaceScanner';
 import { User, ShieldCheck, Award, Building2, AlertCircle, CheckCircle2, RefreshCw, Upload, FileText, Crown, Zap, Sparkles, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -65,23 +65,28 @@ export default function ProfilePage() {
     }
   }, [profileData?.data, updateUserProfile]);
 
-  const handleFaceCaptureComplete = async (selfieUrl: string, idCardUrl: string) => {
+  const handleFaceCaptureComplete = async (descriptor: number[]) => {
     setVerificationError(null);
     setVerificationSuccess(null);
     try {
-      await verificationService.verifyFace({ selfiePhotoUrl: selfieUrl, idCardPhotoUrl: idCardUrl });
-      setVerificationSuccess('Verifikasi biometrik wajah berhasil! Akun Anda kini berstatus Verified Talent.');
+      if (!user?.id) throw new Error("Pengguna belum login");
+
+      await authService.updateProfile(user.id, {
+        biometricFeatureVector: descriptor,
+      });
+
+      setVerificationSuccess('Verifikasi biometrik wajah berhasil disimpan secara lokal!');
       setShowLivenessCam(false);
+      
+      // Update local state temporarily, or refetch
       if (profile?.talentProfile) {
-        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED' });
+        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor });
       }
       refetchVerification();
       refetch();
     } catch (err: any) {
       setShowLivenessCam(false);
-      const msg = typeof err.message === 'string' 
-        ? err.message 
-        : (Array.isArray(err.message) ? err.message.join(', ') : (err.error || 'Gagal memverifikasi dokumen. Pastikan pencahayaan terang dan foto tajam.'));
+      const msg = err.response?.data?.message || err.message || 'Gagal menyimpan model wajah.';
       setVerificationError(msg);
     }
   };
@@ -525,7 +530,7 @@ export default function ProfilePage() {
                 <div className="bg-dark-bg border border-dark-border rounded-2xl p-5 flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-white mb-1">AI Liveness Check</h4>
-                    <p className="text-xs text-gray-400">Verifikasi biometrik wajah & KTP</p>
+                    <p className="text-xs text-gray-400">Verifikasi wajah mandiri (Tanpa KTP)</p>
                   </div>
                   <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
                     talentProfile?.faceVerificationStatus === 'VERIFIED'
@@ -553,8 +558,8 @@ export default function ProfilePage() {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah KTP Terdaftar</span>
-                        <p className="text-xs text-gray-300 leading-relaxed">Foto biometrik ini digunakan sistem anti-joki untuk verifikasi otomatis saat Anda mengumpulkan studi kasus.</p>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah Terdaftar (Lokal)</span>
+                        <p className="text-xs text-gray-300 leading-relaxed">Topologi wajah Anda telah direkam sebagai descriptor numerik. Ini akan digunakan secara otomatis sebelum mengumpulkan studi kasus.</p>
                       </div>
                     </div>
 
@@ -572,88 +577,12 @@ export default function ProfilePage() {
 
                 {showLivenessCam && (
                   <div className="pt-4 border-t border-dark-border space-y-6">
-                    <div className="flex bg-dark-bg p-1.5 rounded-2xl border border-dark-border">
-                      <button
-                        type="button"
-                        onClick={() => setVerificationMethod('CAMERA')}
-                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-                          verificationMethod === 'CAMERA' ? 'bg-emerald-500 text-white shadow-lg font-extrabold' : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        📷 Kamera Web (Live)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setVerificationMethod('UPLOAD')}
-                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-                          verificationMethod === 'UPLOAD' ? 'bg-emerald-500 text-white shadow-lg font-extrabold' : 'text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        📂 Unggah File Foto
-                      </button>
-                    </div>
-
-                    {verificationMethod === 'CAMERA' ? (
-                      <LivenessCam onCaptureComplete={handleFaceCaptureComplete} />
-                    ) : (
-                      <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl space-y-6 text-center animate-fadeIn">
-                        <h3 className="text-lg font-bold text-white">Unggah Berkas KTP & Foto Wajah (Selfie)</h3>
-                        <p className="text-xs text-gray-400 leading-relaxed">
-                          Pastikan foto KTP dan wajah Anda jelas, tajam, dan memiliki pencahayaan terang agar lolos pemindaian AI anti-joki.
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                          <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-300">1. Foto KTP Asli</label>
-                            <div className="border-2 border-dashed border-dark-border hover:border-cyan-500/50 rounded-2xl p-4 text-center cursor-pointer relative bg-dark-bg transition-all min-h-[160px] flex flex-col items-center justify-center overflow-hidden">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleFileUpload(e, 'KTP')}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                              />
-                              {uploadedKtpUrl ? (
-                                <img src={uploadedKtpUrl} alt="Preview KTP" className="max-h-36 w-full object-contain rounded-xl mx-auto" />
-                              ) : (
-                                <div className="py-4 space-y-2 pointer-events-none">
-                                  <Upload className="h-8 w-8 text-cyan-400 mx-auto animate-bounce" />
-                                  <p className="text-xs text-gray-400 font-medium">Pilih atau seret foto KTP ke sini</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-300">2. Foto Selfie Wajah</label>
-                            <div className="border-2 border-dashed border-dark-border hover:border-emerald-500/50 rounded-2xl p-4 text-center cursor-pointer relative bg-dark-bg transition-all min-h-[160px] flex flex-col items-center justify-center overflow-hidden">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleFileUpload(e, 'SELFIE')}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                              />
-                              {uploadedSelfieUrl ? (
-                                <img src={uploadedSelfieUrl} alt="Preview Selfie" className="max-h-36 w-full object-contain rounded-xl mx-auto" />
-                              ) : (
-                                <div className="py-4 space-y-2 pointer-events-none">
-                                  <Upload className="h-8 w-8 text-emerald-400 mx-auto animate-bounce" />
-                                  <p className="text-xs text-gray-400 font-medium">Pilih atau seret foto Selfie ke sini</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={handleSubmitUploadedPhotos}
-                          disabled={!uploadedSelfieUrl || !uploadedKtpUrl || isUploadingVerify}
-                          isLoading={isUploadingVerify}
-                          className="w-full font-bold shadow-xl py-3"
-                        >
-                          Kirim & Mulai Pemindaian AI
-                        </Button>
-                      </div>
-                    )}
+                    <FaceScanner 
+                      onCaptureComplete={handleFaceCaptureComplete} 
+                      onCancel={() => setShowLivenessCam(false)}
+                      title="Pendaftaran Wajah Baru"
+                      description="Arahkan wajah Anda ke kamera untuk direkam sebagai verifikator saat pengumpulan tugas."
+                    />
                   </div>
                 )}
               </div>

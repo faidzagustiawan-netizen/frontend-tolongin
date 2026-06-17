@@ -6,7 +6,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { challengesService, CreateChallengePayload } from '../../../../services/challenges.service';
 import { Button } from '../../../../components/common/Button';
 import { Input, Textarea } from '../../../../components/common/Input';
-import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info } from 'lucide-react';
+import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info, Trash2, GripVertical, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CreateChallengePage() {
@@ -36,7 +36,37 @@ export default function CreateChallengePage() {
     description: '',
     category: 'FRONTEND',
     difficulty: 'MEDIOR',
+    components: [],
   });
+
+  const addComponent = (type: string) => {
+    setManualData({
+      ...manualData,
+      components: [
+        ...(manualData.components || []),
+        {
+          type,
+          question: '',
+          description: '',
+          points: 10,
+          options: type === 'MULTIPLE_CHOICE' ? [{ id: '1', text: '', isCorrect: true }, { id: '2', text: '', isCorrect: false }] : undefined,
+          metadata: type === 'LIVE_CODING' ? { language: 'javascript' } : undefined,
+        }
+      ]
+    });
+  };
+
+  const removeComponent = (index: number) => {
+    const newComponents = [...(manualData.components || [])];
+    newComponents.splice(index, 1);
+    setManualData({ ...manualData, components: newComponents });
+  };
+
+  const updateComponent = (index: number, field: string, value: any) => {
+    const newComponents = [...(manualData.components || [])];
+    newComponents[index] = { ...newComponents[index], [field]: value };
+    setManualData({ ...manualData, components: newComponents });
+  };
 
   const handleAiGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,6 +311,143 @@ export default function CreateChallengePage() {
                 onChange={(e) => setManualData({ ...manualData, description: e.target.value })}
                 rows={8}
               />
+
+              {/* Dynamic Components Builder */}
+              <div className="pt-6 border-t border-dark-border space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">Assessment Builder</h3>
+                  <p className="text-sm text-gray-400">Rancang kustom ujian (pilihan ganda, essay, live coding, dll).</p>
+                </div>
+
+                <div className="space-y-4">
+                  {(manualData.components || []).map((comp, idx) => (
+                    <div key={idx} className="bg-dark-bg border border-dark-border rounded-xl p-5 relative group">
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded">
+                          {comp.type.replace('_', ' ')}
+                        </span>
+                        <button type="button" onClick={() => removeComponent(idx)} className="text-red-400 hover:text-red-300 transition-colors">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4 pr-20">
+                        <Input 
+                          label={`Pertanyaan / Instruksi #${idx + 1}`} 
+                          value={comp.question} 
+                          onChange={(e) => updateComponent(idx, 'question', e.target.value)} 
+                          placeholder="Masukkan pertanyaan..."
+                        />
+                        
+                        {comp.type === 'MULTIPLE_CHOICE' && comp.options && (
+                          <div className="space-y-2 mt-2 bg-black/20 p-4 rounded-lg">
+                            <label className="text-xs text-gray-400 font-semibold uppercase">Pilihan Jawaban</label>
+                            {comp.options.map((opt: any, optIdx: number) => (
+                              <div key={optIdx} className="flex items-center gap-3">
+                                <input 
+                                  type="radio" 
+                                  name={`correct-${idx}`} 
+                                  checked={opt.isCorrect} 
+                                  onChange={() => {
+                                    const newOpts = [...comp.options];
+                                    newOpts.forEach(o => o.isCorrect = false);
+                                    newOpts[optIdx].isCorrect = true;
+                                    updateComponent(idx, 'options', newOpts);
+                                  }}
+                                  className="w-4 h-4 text-emerald-500 focus:ring-emerald-500 border-gray-600 bg-dark-bg"
+                                />
+                                <Input 
+                                  value={opt.text} 
+                                  onChange={(e) => {
+                                    const newOpts = [...comp.options];
+                                    newOpts[optIdx].text = e.target.value;
+                                    updateComponent(idx, 'options', newOpts);
+                                  }}
+                                  placeholder={`Pilihan ${optIdx + 1}`}
+                                />
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const newOpts = [...comp.options];
+                                    newOpts.splice(optIdx, 1);
+                                    updateComponent(idx, 'options', newOpts);
+                                  }}
+                                  className="p-2 text-gray-500 hover:text-red-400"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const newOpts = [...comp.options, { id: Math.random().toString(), text: '', isCorrect: false }];
+                                updateComponent(idx, 'options', newOpts);
+                              }}
+                              className="text-xs text-emerald-400 hover:text-emerald-300 mt-2 font-medium"
+                            >
+                              + Tambah Pilihan
+                            </button>
+                          </div>
+                        )}
+
+                        {comp.type === 'LIVE_CODING' && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-1">Bahasa Pemrograman</label>
+                              <select 
+                                value={comp.metadata?.language || 'javascript'} 
+                                onChange={(e) => updateComponent(idx, 'metadata', { ...comp.metadata, language: e.target.value })}
+                                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                              >
+                                <option value="javascript">JavaScript</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="python">Python</option>
+                                <option value="html">HTML/CSS</option>
+                              </select>
+                            </div>
+                            <Input 
+                              label="Poin" 
+                              type="number" 
+                              value={comp.points} 
+                              onChange={(e) => updateComponent(idx, 'points', parseInt(e.target.value) || 0)} 
+                            />
+                          </div>
+                        )}
+                        
+                        {comp.type !== 'LIVE_CODING' && (
+                          <div className="w-1/3">
+                            <Input 
+                              label="Bobot Nilai (Poin)" 
+                              type="number" 
+                              value={comp.points} 
+                              onChange={(e) => updateComponent(idx, 'points', parseInt(e.target.value) || 0)} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" onClick={() => addComponent('ESSAY')} variant="secondary" size="sm" className="bg-dark-bg border border-dark-border hover:border-emerald-500 hover:text-emerald-400">
+                    + Essay Pendek
+                  </Button>
+                  <Button type="button" onClick={() => addComponent('MULTIPLE_CHOICE')} variant="secondary" size="sm" className="bg-dark-bg border border-dark-border hover:border-emerald-500 hover:text-emerald-400">
+                    + Pilihan Ganda
+                  </Button>
+                  <Button type="button" onClick={() => addComponent('URL_SUBMISSION')} variant="secondary" size="sm" className="bg-dark-bg border border-dark-border hover:border-emerald-500 hover:text-emerald-400">
+                    + URL Github/Figma
+                  </Button>
+                  <Button type="button" onClick={() => addComponent('LIVE_CODING')} variant="secondary" size="sm" className="bg-dark-bg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                    + Live Coding
+                  </Button>
+                  <Button type="button" onClick={() => addComponent('VIDEO_UPLOAD')} variant="secondary" size="sm" className="bg-dark-bg border border-dark-border hover:border-emerald-500 hover:text-emerald-400">
+                    + Video Presentasi
+                  </Button>
+                </div>
+              </div>
 
               <div className="pt-6 border-t border-dark-border flex justify-end">
                 <Button 

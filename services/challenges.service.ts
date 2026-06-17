@@ -12,6 +12,7 @@ export interface CreateChallengePayload {
   rewardDescription?: string;
   deadlineAt?: string;
   gradingRubric?: Record<string, any>;
+  components?: any[];
 }
 
 export interface GenerateAiChallengePayload {
