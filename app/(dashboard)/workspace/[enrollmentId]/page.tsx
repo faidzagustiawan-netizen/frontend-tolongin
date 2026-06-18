@@ -717,7 +717,7 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
