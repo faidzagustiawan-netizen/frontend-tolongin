@@ -454,6 +454,30 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 )}
 
+                {/* CHALLENGE DESCRIPTION / INSTRUCTIONS */}
+                <div className="space-y-6 border-b border-dark-border pb-8">
+                  <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-emerald-400" /> Instruksi & Spesifikasi Studi Kasus
+                  </h4>
+                  <div className="prose prose-invert max-w-none text-gray-300 space-y-4 leading-relaxed text-sm bg-dark-bg p-6 rounded-2xl border border-dark-border shadow-inner">
+                    {selectedEnrollment.challenge.description.split('\n\n').map((paragraph: string, i: number) => {
+                      if (paragraph.startsWith('### ')) {
+                        return <h4 key={i} className="text-base font-bold text-white mt-4 mb-2">{paragraph.replace('### ', '')}</h4>;
+                      }
+                      if (paragraph.startsWith('- ')) {
+                        return (
+                          <ul key={i} className="list-disc list-inside space-y-1 ml-4 text-xs">
+                            {paragraph.split('\n').map((item, j) => (
+                              <li key={j}>{item.replace('- ', '')}</li>
+                            ))}
+                          </ul>
+                        );
+                      }
+                      return <p key={i}>{paragraph}</p>;
+                    })}
+                  </div>
+                </div>
+
                 {/* DYNAMIC COMPONENTS RENDERING */}
                 {components.length > 0 && (
                   <div className="space-y-8 border-t border-dark-border pt-8">
