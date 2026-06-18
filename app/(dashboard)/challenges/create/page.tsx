@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function CreateChallengePage() {
   const router = useRouter();
   const { user, loadUserFromStorage, isAuthenticated } = useUserStore();
-  const [activeTab, setActiveTab] = useState<'MANUAL' | 'AI'>('AI');
+  const [activeTab, setActiveTab] = useState<'MANUAL' | 'AI'>('MANUAL');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -174,14 +174,26 @@ export default function CreateChallengePage() {
       </div>
 
       <div className="flex items-center gap-4 bg-dark-bg p-2 rounded-2xl border border-dark-border w-fit">
-        <button
-          onClick={() => setActiveTab('AI')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-            activeTab === 'AI' ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Sparkles className="h-4 w-4" /> AI Auto-Generate
-        </button>
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (user?.profile?.subscriptionTier !== 'STARTUP') {
+                setActiveTab('AI');
+              }
+            }}
+            disabled={user?.profile?.subscriptionTier === 'STARTUP'}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'AI' ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+            } ${user?.profile?.subscriptionTier === 'STARTUP' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Sparkles className="h-4 w-4" /> AI Auto-Generate
+          </button>
+          {user?.profile?.subscriptionTier === 'STARTUP' && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-dark-border text-xs text-white font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Tingkatkan ke Pro untuk Akses AI
+            </div>
+          )}
+        </div>
         <button
           onClick={() => setActiveTab('MANUAL')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${

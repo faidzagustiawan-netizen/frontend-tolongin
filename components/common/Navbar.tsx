@@ -8,7 +8,7 @@ import { useUserStore } from '../../store/userStore';
 import { notificationsService, NotificationItem } from '../../services/notifications.service';
 import { tokenService } from '../../services/tokenService';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Navbar = () => {
@@ -235,6 +235,16 @@ export const Navbar = () => {
                           <Briefcase className="h-4 w-4 text-cyan-400" />
                           Dashboard
                         </Link>
+                        {user?.role === 'COMPANY' && (
+                          <Link
+                            href="/company/billing"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                          >
+                            <CreditCard className="h-4 w-4 text-amber-400" />
+                            Langganan & Tagihan
+                          </Link>
+                        )}
                         <div className="border-t border-dark-border my-1" />
                         <button
                           onClick={() => {
@@ -352,6 +362,16 @@ export const Navbar = () => {
                     <Briefcase className="h-5 w-5 text-cyan-400" />
                     Dashboard
                   </Link>
+                  {user?.role === 'COMPANY' && (
+                    <Link
+                      href="/company/billing"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-gray-300 hover:text-white hover:bg-white/5"
+                    >
+                      <CreditCard className="h-5 w-5 text-amber-400" />
+                      Langganan & Tagihan
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
