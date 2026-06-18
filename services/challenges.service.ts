@@ -12,7 +12,7 @@ export interface CreateChallengePayload {
   rewardDescription?: string;
   deadlineAt?: string;
   gradingRubric?: Record<string, any>;
-  components?: any[];
+  sections?: any[];
   status?: 'DRAFT' | 'PUBLISHED';
 }
 

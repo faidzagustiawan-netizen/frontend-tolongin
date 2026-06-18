@@ -42,6 +42,7 @@ export default function EnrollmentWorkspacePage() {
   // Wizard State
   type Step = 'OVERVIEW' | 'FACE_CHECK' | 'QUESTIONS' | 'SUBMITTED';
   const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   // Proctoring & Anti-Joki State
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
@@ -211,7 +212,11 @@ export default function EnrollmentWorkspacePage() {
     );
   }
 
-  const components = selectedEnrollment?.challenge?.components || [];
+  const rawSections = selectedEnrollment?.challenge?.sections || [];
+  const rawComponents = selectedEnrollment?.challenge?.components || [];
+  const sections = rawSections.length > 0 
+    ? rawSections 
+    : (rawComponents.length > 0 ? [{ id: 'default', title: 'Seksi Ujian', components: rawComponents }] : []);
   const customOutputs: Array<{ id: string; label: string; placeholder: string; required?: boolean }> =
     selectedEnrollment?.challenge?.gradingRubric?.customOutputs || [];
 
@@ -478,109 +483,154 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 </div>
 
-                {/* DYNAMIC COMPONENTS RENDERING */}
-                {components.length > 0 && (
-                  <div className="space-y-8 border-t border-dark-border pt-8">
+                {/* DYNAMIC SECTIONS RENDERING */}
+                {sections.length > 0 && (
+                  <div className="space-y-6 border-t border-dark-border pt-8">
                     <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-emerald-400" /> Komponen Ujian (Wajib Diisi)
+                      <FileText className="w-5 h-5 text-emerald-400" /> Lembar Ujian
                     </h4>
+
+                    {sections.length > 1 && (
+                      <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
+                        {sections.map((sec: any, idx: number) => (
+                          <button
+                            key={sec.id || idx}
+                            type="button"
+                            onClick={() => setActiveSectionIndex(idx)}
+                            className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${
+                              activeSectionIndex === idx 
+                                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                                : 'bg-dark-bg border-dark-border text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                          >
+                            {sec.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     
-                    {components.map((comp: any, idx: number) => (
-                      <div key={comp.id} className="bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner space-y-4">
-                        <div className="flex justify-between items-start gap-4 mb-4 border-b border-dark-border/50 pb-4">
-                          <h5 className="font-bold text-white text-base leading-relaxed">
-                            {idx + 1}. {comp.question}
-                          </h5>
-                          <span className="text-xs bg-dark-card border border-dark-border px-2 py-1 rounded text-emerald-400 whitespace-nowrap font-semibold shadow-sm">
-                            {comp.points} Poin
-                          </span>
-                        </div>
-                        {comp.description && (
-                          <p className="text-sm text-gray-400 mb-4 bg-black/20 p-4 rounded-xl border border-white/5">{comp.description}</p>
-                        )}
-
-                        {comp.type === 'MULTIPLE_CHOICE' && comp.options && (
-                          <div className="space-y-3">
-                            {comp.options.map((opt: any, optIdx: number) => (
-                              <label key={optIdx} className="flex items-center gap-3 p-3 rounded-xl border border-dark-border hover:border-emerald-500/50 cursor-pointer transition-colors bg-dark-card">
-                                <input
-                                  type="radio"
-                                  name={`comp-${comp.id}`}
-                                  value={opt.id}
-                                  onChange={() => handleComponentChange(comp.id, opt.id, 'textValue')}
-                                  checked={componentResponses[comp.id]?.textValue === opt.id}
-                                  className="w-4 h-4 text-emerald-500 bg-dark-bg border-gray-600 focus:ring-emerald-500"
-                                />
-                                <span className="text-sm text-gray-200">{opt.text}</span>
-                              </label>
-                            ))}
+                    <div className="space-y-6">
+                      {sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => (
+                        <div key={comp.id} className="bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner space-y-4">
+                          <div className="flex justify-between items-start gap-4 mb-4 border-b border-dark-border/50 pb-4">
+                            <h5 className="font-bold text-white text-base leading-relaxed">
+                              {idx + 1}. {comp.question}
+                            </h5>
+                            <span className="text-xs bg-dark-card border border-dark-border px-2 py-1 rounded text-emerald-400 whitespace-nowrap font-semibold shadow-sm">
+                              {comp.points} Poin
+                            </span>
                           </div>
-                        )}
+                          {comp.description && (
+                            <p className="text-sm text-gray-400 mb-4 bg-black/20 p-4 rounded-xl border border-white/5">{comp.description}</p>
+                          )}
 
-                        {comp.type === 'ESSAY' && (
-                          <Textarea
-                            placeholder="Ketik jawaban Anda di sini..."
-                            value={componentResponses[comp.id]?.textValue || ''}
-                            onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
-                            rows={5}
-                          />
-                        )}
+                          {comp.type === 'MULTIPLE_CHOICE' && comp.options && (
+                            <div className="space-y-3">
+                              {comp.options.map((opt: any, optIdx: number) => (
+                                <label key={optIdx} className="flex items-center gap-3 p-3 rounded-xl border border-dark-border hover:border-emerald-500/50 cursor-pointer transition-colors bg-dark-card">
+                                  <input
+                                    type="radio"
+                                    name={`comp-${comp.id}`}
+                                    value={opt.id}
+                                    onChange={() => handleComponentChange(comp.id, opt.id, 'textValue')}
+                                    checked={componentResponses[comp.id]?.textValue === opt.id}
+                                    className="w-4 h-4 text-emerald-500 bg-dark-bg border-gray-600 focus:ring-emerald-500"
+                                  />
+                                  <span className="text-sm text-gray-200">{opt.text}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
 
-                        {comp.type === 'URL_SUBMISSION' && (
-                          <Input
-                            placeholder="https://..."
-                            type="url"
-                            value={componentResponses[comp.id]?.textValue || ''}
-                            onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
-                            icon={<Globe className="w-4 h-4" />}
-                          />
-                        )}
+                          {comp.type === 'ESSAY' && (
+                            <Textarea
+                              placeholder="Ketik jawaban Anda di sini..."
+                              value={componentResponses[comp.id]?.textValue || ''}
+                              onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
+                              rows={5}
+                            />
+                          )}
 
-                        {comp.type === 'FILE_UPLOAD' && (
-                          <FileUploader
-                            onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
-                            maxSizeMB={10}
-                          />
-                        )}
+                          {comp.type === 'URL_SUBMISSION' && (
+                            <Input
+                              placeholder="https://..."
+                              type="url"
+                              value={componentResponses[comp.id]?.textValue || ''}
+                              onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
+                              icon={<Globe className="w-4 h-4" />}
+                            />
+                          )}
 
-                        {comp.type === 'VIDEO_UPLOAD' && (
-                          <div className="space-y-2">
-                            <p className="text-xs text-amber-400 mb-2 font-medium">Unggah berkas video (MP4/WebM) maksimal 25MB.</p>
+                          {comp.type === 'FILE_UPLOAD' && (
                             <FileUploader
                               onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
-                              maxSizeMB={25}
-                              accept="video/*"
+                              maxSizeMB={10}
                             />
-                          </div>
-                        )}
+                          )}
 
-                        {comp.type === 'LIVE_CODING' && (
-                          <div className="rounded-xl overflow-hidden border border-dark-border shadow-2xl">
-                            <div className="bg-dark-card px-4 py-2 border-b border-dark-border flex justify-between items-center">
-                              <span className="text-xs font-mono text-emerald-400">Main.{comp.metadata?.language || 'js'}</span>
-                              <span className="text-xs text-gray-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Live Editor Mode</span>
+                          {comp.type === 'VIDEO_UPLOAD' && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-amber-400 mb-2 font-medium">Unggah berkas video (MP4/WebM) maksimal 25MB.</p>
+                              <FileUploader
+                                onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
+                                maxSizeMB={25}
+                                accept="video/*"
+                              />
                             </div>
-                            <Editor
-                              height="400px"
-                              language={comp.metadata?.language || 'javascript'}
-                              theme="vs-dark"
-                              value={componentResponses[comp.id]?.textValue || ''}
-                              onChange={(value) => handleComponentChange(comp.id, value, 'textValue')}
-                              options={{
-                                minimap: { enabled: false },
-                                fontSize: 14,
-                                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                                scrollBeyondLastLine: false,
-                                smoothScrolling: true,
-                                cursorBlinking: "smooth",
-                                cursorSmoothCaretAnimation: "on",
-                                formatOnPaste: true
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+
+                          {comp.type === 'LIVE_CODING' && (
+                            <div className="rounded-xl overflow-hidden border border-dark-border shadow-2xl">
+                              <div className="bg-dark-card px-4 py-2 border-b border-dark-border flex justify-between items-center">
+                                <span className="text-xs font-mono text-emerald-400">Main.{comp.metadata?.language || 'js'}</span>
+                                <span className="text-xs text-gray-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Live Editor Mode</span>
+                              </div>
+                              <Editor
+                                height="400px"
+                                language={comp.metadata?.language || 'javascript'}
+                                theme="vs-dark"
+                                value={componentResponses[comp.id]?.textValue || ''}
+                                onChange={(value) => handleComponentChange(comp.id, value, 'textValue')}
+                                options={{
+                                  minimap: { enabled: false },
+                                  fontSize: 14,
+                                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                  scrollBeyondLastLine: false,
+                                  smoothScrolling: true,
+                                  cursorBlinking: "smooth",
+                                  cursorSmoothCaretAnimation: "on",
+                                  formatOnPaste: true
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* NAVIGASI ANTAR SEKSI */}
+                    {sections.length > 1 && (
+                       <div className="flex justify-between items-center pt-6 mt-4">
+                         <Button 
+                           type="button" 
+                           variant="secondary" 
+                           onClick={() => setActiveSectionIndex(Math.max(0, activeSectionIndex - 1))} 
+                           disabled={activeSectionIndex === 0}
+                           className="bg-dark-bg border-dark-border"
+                         >
+                           <ArrowLeft className="w-4 h-4 mr-2" /> Seksi Sebelumnya
+                         </Button>
+                         <Button 
+                           type="button" 
+                           variant="secondary" 
+                           onClick={() => setActiveSectionIndex(Math.min(sections.length - 1, activeSectionIndex + 1))} 
+                           disabled={activeSectionIndex === sections.length - 1}
+                           className="bg-dark-bg border-dark-border"
+                         >
+                           Seksi Selanjutnya <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                         </Button>
+                       </div>
+                    )}
                   </div>
                 )}
 
