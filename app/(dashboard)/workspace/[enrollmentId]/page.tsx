@@ -39,6 +39,10 @@ export default function EnrollmentWorkspacePage() {
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [componentResponses, setComponentResponses] = useState<Record<string, any>>({});
 
+  // Wizard State
+  type Step = 'OVERVIEW' | 'FACE_CHECK' | 'QUESTIONS' | 'SUBMITTED';
+  const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
+
   // Proctoring & Anti-Joki State
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
   const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
@@ -75,6 +79,11 @@ export default function EnrollmentWorkspacePage() {
   useEffect(() => {
     if (!isTalentLoading && !selectedEnrollment) {
       router.push('/workspace');
+    } else if (selectedEnrollment) {
+      const subs = selectedEnrollment.submissions || [];
+      if (subs.length > 0) {
+        setCurrentStep('SUBMITTED');
+      }
     }
   }, [isTalentLoading, selectedEnrollment, router]);
 
@@ -129,6 +138,26 @@ export default function EnrollmentWorkspacePage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [selectedEnrollment, isProctored, isExpired]);
 
+  const handleEnterFullscreen = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (err) {
+      console.warn("Fullscreen API is not supported or was blocked.", err);
+    }
+  };
+
+  const handleExitFullscreen = async () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.warn("Could not exit fullscreen.", err);
+    }
+  };
+
   // Start Webcam Stream
   const handleStartWebcam = () => {
     setWebcamOpen(true);
@@ -140,7 +169,7 @@ export default function EnrollmentWorkspacePage() {
     setIsVerifyingFace(true);
 
     try {
-      const storedVector = (user as any)?.talentProfile?.biometricFeatureVector;
+      const storedVector = (user as any)?.profile?.biometricFeatureVector;
       
       if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
         setFaceVerified(false);
@@ -157,6 +186,10 @@ export default function EnrollmentWorkspacePage() {
       // 0.6 is a standard threshold for face-api.js model
       if (distance < 0.6) {
         setFaceVerified(true);
+        setTimeout(() => {
+           handleEnterFullscreen();
+           setCurrentStep('QUESTIONS');
+        }, 1500); // give time to show success message
       } else {
         setFaceVerified(false);
         alert(`Wajah tidak cocok dengan profil terdaftar (Distance: ${distance.toFixed(2)}). Pastikan Anda adalah peserta yang sah.`);
@@ -234,6 +267,8 @@ export default function EnrollmentWorkspacePage() {
         responses: responsesArray,
       });
       setSubmitSuccess(true);
+      setCurrentStep('SUBMITTED');
+      handleExitFullscreen();
       refetchTalent();
     } catch (err: any) {
       setSubmitError(err.message || 'Gagal mengirimkan solusi. Silakan coba lagi.');
@@ -291,7 +326,7 @@ export default function EnrollmentWorkspacePage() {
               </div>
             </div>
 
-            {isExpired && !latestSubmission ? (
+            {isExpired && currentStep !== 'SUBMITTED' ? (
               <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-8 text-center space-y-4">
                 <Lock className="h-12 w-12 text-red-400 mx-auto" />
                 <h4 className="font-display text-xl font-bold text-white">Waktu Pengerjaan Telah Berakhir</h4>
@@ -299,8 +334,30 @@ export default function EnrollmentWorkspacePage() {
                   Batas waktu pengerjaan LMS yang dihitung dari waktu server saat Anda pertama kali mendaftar telah habis. Pengumpulan solusi saat ini telah dikunci.
                 </p>
               </div>
-            ) : !latestSubmission ? (
-              <form onSubmit={handleSubmitSolution} className="space-y-6">
+            ) : currentStep === 'OVERVIEW' ? (
+              <div className="space-y-6 text-center py-8">
+                <ShieldCheck className="h-16 w-16 text-emerald-400 mx-auto opacity-80" />
+                <h4 className="font-display text-2xl font-bold text-white">Siap Memulai Pengerjaan?</h4>
+                <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+                  Pastikan Anda siap. Saat Anda menekan tombol di bawah, Anda akan masuk ke mode pengerjaan. {isProctored && 'Sistem akan memverifikasi wajah Anda dan mencatat aktivitas peramban secara penuh (Proctoring).'}
+                </p>
+                <Button 
+                  onClick={() => {
+                    if (isProctored) {
+                      setCurrentStep('FACE_CHECK');
+                    } else {
+                      handleEnterFullscreen();
+                      setCurrentStep('QUESTIONS');
+                    }
+                  }} 
+                  size="lg" 
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 px-8 mt-4"
+                >
+                  Mulai Pengerjaan Sekarang
+                </Button>
+              </div>
+            ) : currentStep === 'FACE_CHECK' ? (
+              <div className="space-y-6">
                 {/* PROCTORING SECURITY & BIOMETRIC BANNER */}
                 {isProctored && (
                   <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-inner">
@@ -363,9 +420,23 @@ export default function EnrollmentWorkspacePage() {
                         </motion.div>
                       )}
                     </AnimatePresence>
+                    {faceVerified && (
+                      <Button
+                        onClick={() => {
+                          handleEnterFullscreen();
+                          setCurrentStep('QUESTIONS');
+                        }}
+                        size="lg"
+                        className="w-full mt-6 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14"
+                      >
+                        Wajah Terverifikasi. Lanjutkan ke Halaman Soal
+                      </Button>
+                    )}
                   </div>
                 )}
-
+              </div>
+            ) : currentStep === 'QUESTIONS' ? (
+              <form onSubmit={handleSubmitSolution} className="space-y-6">
                 {submitSuccess && (
                   <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
                     <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
@@ -560,7 +631,7 @@ export default function EnrollmentWorkspacePage() {
                   Kirim Solusi untuk Dievaluasi AI & Rekruter
                 </Button>
               </form>
-            ) : (
+            ) : currentStep === 'SUBMITTED' ? (
               <div className="space-y-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
                   <div>
