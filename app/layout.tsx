@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { Navbar } from "../components/common/Navbar";
 import { Footer } from "../components/common/Footer";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,6 +37,11 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col">{children}</main>
           <Footer />
         </Providers>
+        <Script
+          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 'dummy_client_key'}
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

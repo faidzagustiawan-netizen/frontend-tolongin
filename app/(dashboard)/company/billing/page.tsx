@@ -72,15 +72,23 @@ export default function BillingPage() {
 
     setIsLoading(true);
     try {
-      await subscriptionsService.upgrade({ tier: plan.tier });
-      // Update local profile to reflect the change immediately
-      updateUserProfile({
-        ...user?.profile,
-        subscriptionTier: plan.tier,
-      });
-      alert('Berhasil mengupgrade paket langganan Anda!');
+      const { PaymentsService } = await import('../../../../services/payments.service');
+      const result = await PaymentsService.subscribePremium();
+      if (result.snapToken) {
+        (window as any).snap.pay(result.snapToken, {
+          onSuccess: function() {
+            alert('Pembayaran sukses! Akun Anda segera di-upgrade.');
+          },
+          onPending: function() {
+            alert('Menunggu pembayaran Anda...');
+          },
+          onError: function() {
+            alert('Pembayaran gagal.');
+          }
+        });
+      }
     } catch (err: any) {
-      alert(err.message || 'Gagal melakukan upgrade.');
+      alert(err.message || 'Gagal menghubungi Payment Gateway.');
     } finally {
       setIsLoading(false);
     }
