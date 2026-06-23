@@ -11,6 +11,7 @@ import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import Link from 'next/link';
 const FaceScanner = dynamic(() => import('../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 import { User, ShieldCheck, Award, Building2, AlertCircle, CheckCircle2, RefreshCw, Upload, FileText, Crown, Zap, Sparkles, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
