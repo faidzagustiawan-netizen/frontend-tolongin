@@ -1,11 +1,11 @@
-import api from './api';
+import { apiClient } from './api';
 
 export const PaymentsService = {
   /**
    * Request Top-Up Token untuk Talent
    */
   async topupToken(tokenAmount: number): Promise<{ snapToken: string; redirectUrl: string; orderId: string }> {
-    const response = await api.post('/payments/topup', { tokenAmount });
+    const response = await apiClient.post('/payments/topup', { tokenAmount });
     return response.data;
   },
 
@@ -13,7 +13,7 @@ export const PaymentsService = {
    * Request Langganan Professional untuk Company
    */
   async subscribePremium(): Promise<{ snapToken: string; redirectUrl: string; orderId: string }> {
-    const response = await api.post('/payments/subscribe');
+    const response = await apiClient.post('/payments/subscribe');
     return response.data;
   },
 };
