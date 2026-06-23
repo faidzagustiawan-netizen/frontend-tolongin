@@ -517,14 +517,14 @@ export default function ProfilePage() {
                             Paket Saat Ini Aktif
                           </Button>
                         ) : (
-                          <Button
-                            onClick={() => handleUpgradeTier(plan.tier)}
-                            isLoading={isSelectedLoading}
-                            variant={plan.popular ? 'primary' : 'secondary'}
-                            className="w-full font-semibold shadow-xl"
-                          >
-                            Pilih Paket Ini
-                          </Button>
+                          <Link href="/company/billing" className="w-full">
+                            <Button
+                              variant={plan.popular ? 'primary' : 'secondary'}
+                              className="w-full font-semibold shadow-xl"
+                            >
+                              Pilih Paket Ini
+                            </Button>
+                          </Link>
                         )}
                       </div>
                     </div>

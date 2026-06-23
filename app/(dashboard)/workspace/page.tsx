@@ -278,9 +278,11 @@ export default function WorkspacePage() {
                 <Code2 className="h-4 w-4" /> Buat Public Challenge (-50)
               </Button>
             </Link>
-            <Button onClick={() => setTopUpModalOpen(true)} size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Top-Up Token
-            </Button>
+            <Link href="/talent/tokens">
+              <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Top-Up Token
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -346,60 +348,7 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Modal Top-Up */}
-      <Modal isOpen={topUpModalOpen} onClose={() => setTopUpModalOpen(false)} title="Top-Up Token (Simulasi)">
-        <div className="space-y-6">
-          <p className="text-sm text-gray-300 leading-relaxed">
-            Dalam mode simulasi ini, Anda dapat menambahkan token secara gratis. Di lingkungan produksi sesungguhnya, fitur ini akan diintegrasikan dengan Payment Gateway (Midtrans/Stripe).
-          </p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              onClick={async () => {
-                setIsToppingUp(true);
-                try {
-                  await tokenService.topUp(100);
-                  refetchTokens();
-                  setTopUpModalOpen(false);
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setIsToppingUp(false);
-                }
-              }}
-              isLoading={isToppingUp}
-              variant="secondary"
-              className="flex flex-col items-center gap-2 py-6 h-auto"
-            >
-              <Coins className="h-8 w-8 text-amber-400" />
-              <span className="font-bold text-white text-lg">100 Token</span>
-              <span className="text-xs text-emerald-400 font-medium">Simulasi Gratis</span>
-            </Button>
-            
-            <Button
-              onClick={async () => {
-                setIsToppingUp(true);
-                try {
-                  await tokenService.topUp(500);
-                  refetchTokens();
-                  setTopUpModalOpen(false);
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setIsToppingUp(false);
-                }
-              }}
-              isLoading={isToppingUp}
-              variant="secondary"
-              className="flex flex-col items-center gap-2 py-6 h-auto border-amber-500/30 bg-amber-500/5"
-            >
-              <Sparkles className="h-8 w-8 text-amber-400" />
-              <span className="font-bold text-white text-lg">500 Token</span>
-              <span className="text-xs text-emerald-400 font-medium">Simulasi Gratis</span>
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Modal Top-Up telah dipindahkan ke halaman /talent/tokens */}
     </div>
   );
 }
