@@ -78,6 +78,7 @@ export default function BillingPage() {
         (window as any).snap.pay(result.snapToken, {
           onSuccess: function() {
             alert('Pembayaran sukses! Akun Anda segera di-upgrade.');
+            window.location.reload();
           },
           onPending: function() {
             alert('Menunggu pembayaran Anda...');

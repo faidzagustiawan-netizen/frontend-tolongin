@@ -15,8 +15,9 @@ export default function TokenTopUpPage() {
       if (result.snapToken) {
         // Panggil Midtrans Snap Pop-up
         (window as any).snap.pay(result.snapToken, {
-          onSuccess: function(result: any) {
-            alert('Pembayaran sukses! Token Anda telah ditambahkan.');
+          onSuccess: function() {
+            alert('Pembayaran sukses! Token Anda akan segera bertambah.');
+            window.location.reload();
           },
           onPending: function(result: any) {
             alert('Menunggu pembayaran Anda...');
