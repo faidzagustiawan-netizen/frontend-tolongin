@@ -1,6 +1,17 @@
 import { apiClient } from './api';
 
+export interface SectionPayload {
+  id?: string;
+  title: string;
+  description?: string;
+  order: number;
+  timeLimit?: number | null;
+  stageType?: 'QUIZ' | 'ASSIGNMENT';
+  components: any[];
+}
+
 export interface CreateChallengePayload {
+  id?: string;
   title: string;
   summary: string;
   description: string;

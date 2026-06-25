@@ -215,11 +215,19 @@ export default function WorkspacePage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <Link href={`/workspace/submissions/challenge/${challenge.id}`}>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400 hover:text-emerald-300">
-                              Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
+                          {challenge.status === 'DRAFT' ? (
+                            <Link href={`/challenges/create?id=${challenge.id}`}>
+                              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-400 hover:text-amber-300">
+                                Lanjutkan Edit Draf <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Link href={`/workspace/submissions/challenge/${challenge.id}`}>
+                              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400 hover:text-emerald-300">
+                                Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </Link>
+                          )}
                         </td>
                       </motion.tr>
                     );
