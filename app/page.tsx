@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { motion, useMotionValue } from 'framer-motion';
 import { useUserStore } from '../store/userStore';
 import {
   ArrowRight, Code2, ShieldCheck, Trophy, Sparkles, Building2, Users,
@@ -13,6 +14,87 @@ import { Button } from '../components/common/Button';
 export default function Home() {
   const { user, isAuthenticated, loadUserFromStorage } = useUserStore();
   const [billingCycle, setBillingCycle] = useState<'bulanan' | 'tahunan'>('bulanan');
+  const [isHoveringHero, setIsHoveringHero] = useState(false);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    mouseX.set(e.clientX);
+    mouseY.set(e.clientY);
+  };
+
+  const [isHovered1, setIsHovered1] = useState(false);
+  const [bg1, setBg1] = useState('var(--btn-eksplor-bg-default)');
+  const [border1, setBorder1] = useState('var(--btn-eksplor-bg-default)');
+  const [ripples1, setRipples1] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+
+  const [isHovered2, setIsHovered2] = useState(false);
+  const [bg2, setBg2] = useState('var(--btn-mitra-bg-default)');
+  const [border2, setBorder2] = useState('var(--btn-mitra-border-default)');
+  const [text2, setText2] = useState('var(--btn-mitra-text-default)');
+  const [ripples2, setRipples2] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+
+  const handleMouseEnter1 = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsHovered1(true);
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setRipples1((prev) => [...prev, { id, x, y, color: 'var(--btn-eksplor-bg-hover)' }]);
+    setTimeout(() => {
+      setBg1('var(--btn-eksplor-bg-hover)');
+      setBorder1('var(--btn-eksplor-bg-hover)');
+      setRipples1((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+  };
+
+  const handleMouseLeave1 = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsHovered1(false);
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setRipples1((prev) => [...prev, { id, x, y, color: 'var(--btn-eksplor-bg-default)' }]);
+    setTimeout(() => {
+      setBg1('var(--btn-eksplor-bg-default)');
+      setBorder1('var(--btn-eksplor-bg-default)');
+      setRipples1((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+  };
+
+  const handleMouseEnter2 = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsHovered2(true);
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setRipples2((prev) => [...prev, { id, x, y, color: 'var(--btn-mitra-bg-hover)' }]);
+    setTimeout(() => {
+      setBg2('var(--btn-mitra-bg-hover)');
+      setBorder2('var(--btn-mitra-border-hover)');
+      setText2('var(--btn-mitra-text-hover)');
+      setRipples2((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+  };
+
+  const handleMouseLeave2 = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsHovered2(false);
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+    setRipples2((prev) => [...prev, { id, x, y, color: 'var(--btn-mitra-bg-default)' }]);
+    setTimeout(() => {
+      setBg2('var(--btn-mitra-bg-default)');
+      setBorder2('var(--btn-mitra-border-default)');
+      setText2('var(--btn-mitra-text-default)');
+      setRipples2((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+  };
 
   useEffect(() => {
     loadUserFromStorage();
@@ -126,18 +208,54 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col items-center selection:bg-emerald-500/30 selection:text-emerald-200">
       {/* HERO SECTION */}
-      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32 text-center overflow-hidden">
+      <section
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHoveringHero(true)}
+        onMouseLeave={() => setIsHoveringHero(false)}
+        className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32 text-center overflow-hidden hero-no-cursor"
+      >
+        {isHoveringHero && (
+          <motion.div
+            style={{
+              position: 'fixed',
+              left: mouseX,
+              top: mouseY,
+              pointerEvents: 'none',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'flex-start',
+              transform: 'translate(-2px, -2px)',
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              style={{ display: 'block', flexShrink: 0 }}
+            >
+              <path
+                d="M2,2 L18,6 Q9,9 6,18 Z"
+                fill="black"
+                stroke="white"
+                strokeWidth="1.5"
+                strokeLinejoin="miter"
+              />
+            </svg>
+            <div
+              style={{
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                marginTop: '9px',
+                marginLeft: '-7px',
+              }}
+              className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full border shadow-lg text-white-keep"
+            >
+              You
+            </div>
+          </motion.div>
+        )}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-emerald-500/20 via-teal-500/15 to-cyan-500/20 rounded-full blur-[140px] pointer-events-none -z-10" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-lg"
-        >
-          <Sparkles className="h-4 w-4 text-emerald-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-200">Platform Perekrutan Teknis #1 Berbasis Kinerja Nyata</span>
-        </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -145,14 +263,14 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
           className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight max-w-5xl mx-auto leading-tight"
         >
-          Temukan Talenta Terhebat Melalui <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400">Penyelesaian Studi Kasus Nyata</span>
+          Prove Your Skills, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400">Get Hired!</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
-          className="mt-6 text-base sm:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed"
+          className="mt-6 text-base sm:text-xl text-black-400 max-w-3xl mx-auto leading-relaxed"
         >
           Tinggalkan proses penapisan resume yang usang. Uji kemampuan kandidat menggunakan studi kasus dari sistem perbankan hingga e-commerce, didukung verifikasi biometrik anti-joki dan koreksi kode algoritmik instan.
         </motion.p>
@@ -164,44 +282,76 @@ export default function Home() {
           className="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
           <Link href="/login">
-            <Button size="lg" className="text-base font-bold px-8 py-4 shadow-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:scale-105 transition-transform">
-              Mulai Eksplorasi Sekarang
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button
+              size="lg"
+              onMouseEnter={handleMouseEnter1}
+              onMouseLeave={handleMouseLeave1}
+              style={{
+                '--btn-bg-current': bg1,
+                '--btn-border-current': border1,
+              } as React.CSSProperties}
+              className="text-base font-bold px-8 py-4 shadow-2xl transition-transform relative overflow-hidden btn-eksplor"
+            >
+              <span className="relative z-10 flex items-center justify-center pointer-events-none">
+                Mulai Eksplorasi Sekarang
+                <ArrowRight className="ml-2 h-5 w-5 pointer-events-none" />
+              </span>
+              {ripples1.map((ripple) => (
+                <span
+                  key={ripple.id}
+                  style={{
+                    position: 'absolute',
+                    left: ripple.x,
+                    top: ripple.y,
+                    transform: 'translate(-50%, -50%) scale(0)',
+                    animation: 'ripple-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: ripple.color,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                />
+              ))}
             </Button>
           </Link>
           <Link href="/register?role=COMPANY">
-            <Button variant="secondary" size="lg" className="text-base font-bold px-8 py-4 border border-white/10 hover:border-white/20 hover:scale-105 transition-transform">
-              Bergabung Sebagai Mitra Perusahaan
+            <Button
+              variant="secondary"
+              size="lg"
+              onMouseEnter={handleMouseEnter2}
+              onMouseLeave={handleMouseLeave2}
+              style={{
+                '--btn-bg-current': bg2,
+                '--btn-border-current': border2,
+                '--btn-text-current': text2,
+              } as React.CSSProperties}
+              className="text-base font-bold px-8 py-4 transition-transform relative overflow-hidden btn-mitra"
+            >
+              <span className="relative z-10 flex items-center justify-center pointer-events-none">
+                Bergabung Sebagai Mitra Perusahaan
+              </span>
+              {ripples2.map((ripple) => (
+                <span
+                  key={ripple.id}
+                  style={{
+                    position: 'absolute',
+                    left: ripple.x,
+                    top: ripple.y,
+                    transform: 'translate(-50%, -50%) scale(0)',
+                    animation: 'ripple-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: ripple.color,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                />
+              ))}
             </Button>
           </Link>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
-          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto"
-        >
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">50.000+</h3>
-            <p className="text-xs font-semibold text-gray-400">Talenta Terverifikasi Biometrik</p>
-          </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-1">500+</h3>
-            <p className="text-xs font-semibold text-gray-400">Perusahaan & Startup Mitra</p>
-          </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">99.4%</h3>
-            <p className="text-xs font-semibold text-gray-400">Akurasi AI Evaluator</p>
-          </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-amber-400 mb-1">Rp 35M+</h3>
-            <p className="text-xs font-semibold text-gray-400">Total Penawaran Kerja Terjalin</p>
-          </div>
         </motion.div>
       </section>
 
@@ -209,7 +359,7 @@ export default function Home() {
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-dark-border">
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            <ShieldCheck className="h-4 w-4" /> Keunggulan Arsitektural
+            Keunggulan Arsitektural
           </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
             Menghilangkan Friksi, Bias, & Kecurangan
@@ -222,46 +372,55 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-emerald-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-                <Lock className="h-7 w-7" />
-              </div>
-              <h3 className="font-display text-2xl font-bold text-white">Biometrik Wajah & KTP (Anti-Joki)</h3>
+              <h3 className="font-display text-2xl font-bold text-white">Biometrik Wajah & KTP</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Fitur verifikasi identitas berlapis membandingkan keaslian wajah kandidat saat mengerjakan studi kasus dengan kartu identitas legal, menjamin integritas penuh.
               </p>
-            </div>
-            <div className="pt-4 border-t border-dark-border/50 flex items-center text-xs font-bold text-emerald-400 gap-1">
-              <span>Pelajari Liveness KYC</span> <ChevronRight className="h-4 w-4" />
+              <div className="h-30 w-30 rounded-2xl flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/biometrik.svg"
+                  alt="Biometrik"
+                  width={120}
+                  height={120}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             </div>
           </div>
 
           <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-cyan-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
-                <Code2 className="h-7 w-7" />
-              </div>
-              <h3 className="font-display text-2xl font-bold text-white">Mesin Koreksi Otomatis AI (AST)</h3>
+              <h3 className="font-display text-2xl font-bold text-white">Mesin Koreksi Otomatis AI</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Penilaian canggih menganalisis pohon sintaksis kode (AST), kompleksitas Big-O, celah keamanan OWASP, dan indeks plagiasi dalam hitungan detik.
               </p>
-            </div>
-            <div className="pt-4 border-t border-dark-border/50 flex items-center text-xs font-bold text-cyan-400 gap-1">
-              <span>Teknologi GPT-4o</span> <ChevronRight className="h-4 w-4" />
+              <div className="h-30 w-30 rounded-2xl flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/koreksi.svg"
+                  alt="Koreksi Otomatis"
+                  width={120}
+                  height={120}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             </div>
           </div>
 
           <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-amber-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
-                <Award className="h-7 w-7" />
-              </div>
               <h3 className="font-display text-2xl font-bold text-white">Gamifikasi Papan Peringkat</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Setiap penyelesaian studi kasus dikonversi menjadi lencana portofolio terverifikasi dan akumulasi XP untuk menduduki puncak podium talenta global.
               </p>
-            </div>
-            <div className="pt-4 border-t border-dark-border/50 flex items-center text-xs font-bold text-amber-400 gap-1">
-              <span>Lihat Podium XP</span> <ChevronRight className="h-4 w-4" />
+              <div className="h-30 w-30 rounded-2xl flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/gamifikasi.svg"
+                  alt="Gamifikasi"
+                  width={120}
+                  height={120}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -274,8 +433,8 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-emerald-500/10 via-cyan-500/10 to-teal-500/10 rounded-full blur-[150px] pointer-events-none -z-10" />
 
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-            <Building2 className="h-4 w-4" /> Investasi Perekrutan Mitra
+          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider px-3.5 py-1.5">
+            Investasi Perekrutan Mitra
           </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
             Paket Fleksibel untuk Segala Skala Organisasi
@@ -471,6 +630,33 @@ export default function Home() {
             </Link>
           </div>
         </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
+          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto"
+        >
+          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">50.000+</h3>
+            <p className="text-xs font-semibold text-gray-400">Talenta Terverifikasi Biometrik</p>
+          </div>
+          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-1">500+</h3>
+            <p className="text-xs font-semibold text-gray-400">Perusahaan & Startup Mitra</p>
+          </div>
+          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">99.4%</h3>
+            <p className="text-xs font-semibold text-gray-400">Akurasi AI Evaluator</p>
+          </div>
+          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-amber-400 mb-1">Rp 35M+</h3>
+            <p className="text-xs font-semibold text-gray-400">Total Penawaran Kerja Terjalin</p>
+          </div>
+        </motion.div>
       </section>
     </div>
   );

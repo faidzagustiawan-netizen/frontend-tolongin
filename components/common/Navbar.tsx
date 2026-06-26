@@ -2,14 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '../../store/userStore';
 import { notificationsService, NotificationItem } from '../../services/notifications.service';
 import { tokenService } from '../../services/tokenService';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export const Navbar = () => {
   const pathname = usePathname();
@@ -17,6 +19,32 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (document.documentElement.classList.contains('dark')) {
+      setTheme('dark');
+    } else {
+      setTheme('light');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   useEffect(() => {
     loadUserFromStorage();
@@ -74,13 +102,15 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:opacity-90 transition-opacity">
-                <span className="font-display font-bold text-xl text-white">T</span>
-              </div>
-              <span className="font-display font-bold text-xl tracking-tight text-white group-hover:text-emerald-400 transition-colors">
-                Tolongin<span className="text-emerald-500">.co</span>
-              </span>
+            <Link href="/" className="flex items-center group">
+              <Image
+                src={!mounted || theme === 'dark' ? '/logo_whites.svg' : '/logo_green.svg'}
+                alt="Logo Tolongin"
+                width={140}
+                height={40}
+                className="h-10 w-auto object-contain"
+                priority
+              />
             </Link>
 
             {isAuthenticated && (
@@ -109,6 +139,19 @@ export const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-200 text-gray-300 hover:text-white cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5 text-amber-400" />
+              ) : (
+                <Moon className="h-5 w-5 text-indigo-400" />
+              )}
+            </button>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 {/* Token Balance */}
@@ -250,6 +293,7 @@ export const Navbar = () => {
                           onClick={() => {
                             setDropdownOpen(false);
                             logout();
+                            router.push('/login');
                           }}
                           className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
                         >
@@ -274,6 +318,19 @@ export const Navbar = () => {
           </div>
 
           <div className="flex md:hidden items-center gap-3">
+            {/* Theme Toggle for Mobile */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5 text-amber-400" />
+              ) : (
+                <Moon className="h-5 w-5 text-indigo-400" />
+              )}
+            </button>
+
             {isAuthenticated && (
               <button
                 onClick={() => {
@@ -376,6 +433,11 @@ export const Navbar = () => {
                     onClick={() => {
                       setMobileMenuOpen(false);
                       logout();
+                      // refresh
+                      window.location.reload();
+                      // navigate
+                      router.push('/login')
+                      
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base text-red-400 hover:bg-red-500/10 text-left"
                   >
