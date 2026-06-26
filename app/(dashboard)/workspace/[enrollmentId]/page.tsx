@@ -43,6 +43,11 @@ export default function EnrollmentWorkspacePage() {
   type Step = 'OVERVIEW' | 'FACE_CHECK' | 'QUESTIONS' | 'SUBMITTED';
   const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [examQuestionIdx, setExamQuestionIdx] = useState(0);
+
+  useEffect(() => {
+    setExamQuestionIdx(0);
+  }, [activeSectionIndex]);
 
   // Proctoring & Anti-Joki State
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
@@ -510,7 +515,104 @@ export default function EnrollmentWorkspacePage() {
                     )}
                     
                     <div className="space-y-6">
-                      {sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => (
+                      {sections[activeSectionIndex]?.stageType === 'QUIZ' ? (
+                        <div className="flex flex-col sm:flex-row gap-6">
+                          <div className="flex-1 flex flex-col bg-dark-card border border-dark-border rounded-2xl overflow-hidden shadow-inner">
+                            <div className="p-6 border-b border-dark-border flex items-center justify-between">
+                              <div>
+                                <h2 className="font-bold text-xl text-white">Soal No. {examQuestionIdx + 1}</h2>
+                                <p className="text-sm text-gray-400 mt-1">Pilih satu jawaban yang paling tepat.</p>
+                              </div>
+                            </div>
+                            
+                            <div className="p-8 flex-1">
+                              {sections[activeSectionIndex]?.components?.[examQuestionIdx] ? (() => {
+                                const currentComp = sections[activeSectionIndex].components[examQuestionIdx];
+                                return (
+                                  <div className="max-w-3xl">
+                                    <p className="text-lg text-white mb-8 leading-relaxed whitespace-pre-wrap">{currentComp.question}</p>
+                                    
+                                    <div className="space-y-4">
+                                      {(currentComp.options || []).map((opt: any, optIdx: number) => (
+                                        <label 
+                                          key={optIdx} 
+                                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                                            componentResponses[currentComp.id]?.textValue === opt.id 
+                                              ? 'bg-cyan-500/10 border-cyan-500/50 text-white' 
+                                              : 'bg-dark-bg/50 border-dark-border text-gray-300 hover:border-white/20'
+                                          }`}
+                                        >
+                                          <input 
+                                            type="radio" 
+                                            name={`q-${examQuestionIdx}`} 
+                                            className="mt-1 w-5 h-5 text-cyan-500 focus:ring-cyan-500 bg-dark-bg" 
+                                            checked={componentResponses[currentComp.id]?.textValue === opt.id}
+                                            onChange={() => handleComponentChange(currentComp.id, opt.id, 'textValue')}
+                                          />
+                                          <span className="flex-1 text-base">{opt.text}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })() : (
+                                <p className="text-gray-500">Soal tidak ditemukan.</p>
+                              )}
+                            </div>
+
+                            <div className="p-6 border-t border-dark-border bg-[#111] flex items-center justify-between">
+                              <button 
+                                type="button"
+                                disabled={examQuestionIdx === 0}
+                                onClick={() => setExamQuestionIdx(Math.max(0, examQuestionIdx - 1))}
+                                className="px-6 py-2.5 rounded-xl font-bold text-sm bg-dark-bg border border-dark-border text-white hover:bg-white/5 disabled:opacity-50 flex items-center gap-2"
+                              >
+                                <ArrowLeft className="w-4 h-4" /> Sebelumnya
+                              </button>
+                              
+                              <button 
+                                type="button"
+                                disabled={examQuestionIdx === (sections[activeSectionIndex]?.components?.length || 1) - 1}
+                                onClick={() => setExamQuestionIdx(Math.min((sections[activeSectionIndex]?.components?.length || 1) - 1, examQuestionIdx + 1))}
+                                className="px-6 py-2.5 rounded-xl font-bold text-sm bg-cyan-500 hover:bg-cyan-600 text-black disabled:opacity-50 flex items-center gap-2"
+                              >
+                                Selanjutnya <ArrowLeft className="w-4 h-4 rotate-180" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="w-full sm:w-72 bg-dark-card border border-dark-border rounded-2xl p-6 flex flex-col">
+                            <h3 className="font-bold text-white mb-4">Navigasi Soal</h3>
+                            <div className="grid grid-cols-5 gap-2 overflow-y-auto custom-scrollbar flex-1 content-start">
+                              {sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => {
+                                const isAnswered = !!componentResponses[comp.id]?.textValue;
+                                const isActive = examQuestionIdx === idx;
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => setExamQuestionIdx(idx)}
+                                    className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${
+                                      isActive 
+                                        ? 'bg-cyan-500 text-black border-2 border-white' 
+                                        : isAnswered 
+                                          ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400' 
+                                          : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-white/5'
+                                    }`}
+                                  >
+                                    {idx + 1}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-6 pt-4 border-t border-dark-border space-y-2 text-xs text-gray-400">
+                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-cyan-500/20 border border-cyan-500/30"></div> Sudah Dijawab</div>
+                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-dark-bg border border-dark-border"></div> Belum Dijawab</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => (
                         <div key={comp.id} className="bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner space-y-4">
                           <div className="flex justify-between items-start gap-4 mb-4 border-b border-dark-border/50 pb-4">
                             <h5 className="font-bold text-white text-base leading-relaxed">
@@ -551,14 +653,22 @@ export default function EnrollmentWorkspacePage() {
                             />
                           )}
 
-                          {comp.type === 'URL_SUBMISSION' && (
-                            <Input
-                              placeholder="https://..."
-                              type="url"
-                              value={componentResponses[comp.id]?.textValue || ''}
-                              onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
-                              icon={<Globe className="w-4 h-4" />}
-                            />
+                          {comp.type === 'URL_LINK' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-2">Masukkan Tautan (URL)</label>
+                              <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl overflow-hidden focus-within:border-cyan-500 transition-colors">
+                                <div className="px-4 py-3 bg-[#1a1a1a] border-r border-dark-border text-gray-500">
+                                  https://
+                                </div>
+                                <input 
+                                  type="url" 
+                                  value={componentResponses[comp.id]?.textValue || ''}
+                                  onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
+                                  className="flex-1 bg-transparent px-4 py-3 text-white placeholder-gray-600 focus:outline-none"
+                                  placeholder="contoh: github.com/username/repo"
+                                />
+                              </div>
+                            </div>
                           )}
 
                           {comp.type === 'FILE_UPLOAD' && (
@@ -568,14 +678,25 @@ export default function EnrollmentWorkspacePage() {
                             />
                           )}
 
-                          {comp.type === 'VIDEO_UPLOAD' && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-amber-400 mb-2 font-medium">Unggah berkas video (MP4/WebM) maksimal 25MB.</p>
-                              <FileUploader
-                                onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
-                                maxSizeMB={25}
-                                accept="video/*"
-                              />
+                          {comp.type === 'VIDEO_RECORDING' && (
+                            <div className="space-y-4">
+                              <p className="text-xs text-amber-400 mb-2 font-medium">Perekaman Video Langsung</p>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const isRecording = componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan';
+                                  handleComponentChange(comp.id, isRecording ? '' : 'Rekaman Berhasil Disimpan', 'textValue');
+                                }}
+                                className={`w-full py-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-dark-bg border-dark-border text-gray-400 hover:bg-white/5 hover:border-cyan-500/50'}`}
+                              >
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                                  <Camera className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="text-center">
+                                  <span className="block font-bold text-lg mb-1">{componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'Rekaman Selesai' : 'Klik untuk Mulai Merekam'}</span>
+                                  <span className="text-sm opacity-70">Maksimal durasi 5 menit</span>
+                                </div>
+                              </button>
                             </div>
                           )}
 
@@ -605,7 +726,8 @@ export default function EnrollmentWorkspacePage() {
                             </div>
                           )}
                         </div>
-                      ))}
+                      ))
+                      )}
                     </div>
 
                     {/* NAVIGASI ANTAR SEKSI */}
