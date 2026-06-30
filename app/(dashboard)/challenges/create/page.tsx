@@ -165,23 +165,51 @@ export default function CreateChallengePage() {
         <ArrowLeft className="h-4 w-4" /> Kembali
       </button>
 
-      <div className="bg-dark-card border border-dark-border rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 sm:p-12 shadow-2xl">
 
+  {/* Glow lama tetap dipertahankan */}
+  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Background Shape */}
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="
+              M38 0
+              C55 5 72 18 100 32
+              L100 100
+              L0 100
+              L0 0
+              Z
+            "
+            fill="#1e7f4d"
+          />
+        </svg>
+
+        {/* Overlay transparan agar lebih lembut */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
+
+        {/* Content */}
         <div className="relative z-10 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
-            <PlusCircle className="h-4 w-4" /> Publikasi Tantangan Baru
-          </div>
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Rancang Studi Kasus Rekrutmen
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight leading-tight">
+            Buat Challenge,
+            <br />
+            Temukan Talenta Berkualitas
           </h1>
-          <p className="text-sm text-gray-400 max-w-2xl leading-relaxed">
-            Buat tantangan teknis atau bisnis untuk talenta. Anda dapat mendesain secara manual atau membiarkan AI generatif kami merancang spesifikasi dan rubrik secara otomatis.
+
+          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
+            Buat tantangan teknis atau bisnis untuk talenta. Anda dapat mendesain
+            secara manual atau membiarkan AI generatif kami merancang spesifikasi
+            dan rubrik secara otomatis.
           </p>
         </div>
+
       </div>
 
-      <div className="flex items-center gap-4 bg-dark-bg p-2 rounded-2xl border border-dark-border w-fit">
+      <div className="flex items-center gap-4 bg-bg p-2 rounded-2xl border border-border w-fit">
         <div className="relative group">
           <button
             onClick={() => {
@@ -191,25 +219,28 @@ export default function CreateChallengePage() {
             }}
             disabled={user?.profile?.subscriptionTier === 'STARTUP'}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'AI' ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+              activeTab === 'AI' ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]' : 'text-gray-400 hover:text-white'
             } ${user?.profile?.subscriptionTier === 'STARTUP' ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Sparkles className="h-4 w-4" /> AI Auto-Generate
           </button>
           {user?.profile?.subscriptionTier === 'STARTUP' && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-dark-border text-xs text-white font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-border text-xs text-white font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Tingkatkan ke Pro untuk Akses AI
             </div>
           )}
         </div>
         <button
-          onClick={() => setActiveTab('MANUAL')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-            activeTab === 'MANUAL' ? 'bg-white/10 text-white shadow-lg border border-white/5' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Briefcase className="h-4 w-4" /> Pembuatan Manual
-        </button>
+            onClick={() => setActiveTab('MANUAL')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'MANUAL'
+            ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]'
+            : 'text-muted hover:text-title hover:bg-card'
+            }`}
+          >
+            <Briefcase className="h-4 w-4" />
+            <span>Pembuatan Manual</span>
+          </button>
       </div>
 
       {successMsg && (
@@ -234,7 +265,7 @@ export default function CreateChallengePage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl"
+            className="bg-card border border-border rounded-3xl p-8 shadow-xl"
           >
             <form onSubmit={handleAiGenerate} className="space-y-6">
               <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-2xl p-4 flex gap-4 text-sm text-cyan-200">
@@ -258,7 +289,7 @@ export default function CreateChallengePage() {
                   <select
                     value={aiCategory}
                     onChange={(e) => setAiCategory(e.target.value as any)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="FRONTEND">Frontend Development</option>
                     <option value="BACKEND">Backend Development</option>
@@ -273,7 +304,7 @@ export default function CreateChallengePage() {
                   <select
                     value={aiDifficulty}
                     onChange={(e) => setAiDifficulty(e.target.value as any)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="JUNIOR">Junior (1-2 Tahun)</option>
                     <option value="MEDIOR">Medior (3-5 Tahun)</option>
@@ -282,7 +313,7 @@ export default function CreateChallengePage() {
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-dark-border">
+              <div className="pt-6 border-t border-border">
                 <Button 
                   type="submit" 
                   isLoading={isSubmitting} 

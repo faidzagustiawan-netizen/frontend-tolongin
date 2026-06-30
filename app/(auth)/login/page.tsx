@@ -11,6 +11,7 @@ import { authService } from '../../../services/auth.service';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
@@ -49,12 +50,17 @@ function LoginContent() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-      <div className="w-full max-w-md bg-dark-card border border-dark-border rounded-2xl p-8 shadow-2xl space-y-6">
+      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-2xl space-y-6">
         <div className="text-center space-y-2">
           <Link href="/" className="inline-block mb-2">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-              <span className="font-display font-bold text-2xl text-white">T</span>
-            </div>
+            <Image
+              src="/logo_tolongin.svg"
+              alt="Tolongin"
+              width={64}
+              height={64}
+              className="h-14 w-auto mx-auto"
+              priority
+            />
           </Link>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Selamat Datang Kembali
@@ -102,7 +108,7 @@ function LoginContent() {
 
           <div className="flex items-center justify-between text-xs">
             <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
-              <input type="checkbox" className="rounded bg-dark-bg border-dark-border text-emerald-500 focus:ring-emerald-500" />
+              <input type="checkbox" className="rounded bg-bg border-border text-emerald-500 focus:ring-emerald-500" />
               <span>Ingat saya</span>
             </label>
             <a href="#" className="text-emerald-400 hover:text-emerald-300 font-medium">
@@ -118,10 +124,10 @@ function LoginContent() {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-dark-border" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-dark-card px-4 text-gray-500 font-semibold tracking-wider">Atau</span>
+            <span className="bg-card px-4 text-gray-500 font-semibold tracking-wider">Atau</span>
           </div>
         </div>
 

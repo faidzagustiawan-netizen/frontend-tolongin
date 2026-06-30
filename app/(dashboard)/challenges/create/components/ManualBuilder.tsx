@@ -27,7 +27,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
   ];
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 bg-dark-card border border-dark-border rounded-3xl p-6 shadow-xl">
+    <div className="flex flex-col md:flex-row gap-6 bg-card border border-border rounded-3xl p-6 shadow-xl">
       {/* Sidebar Navigation */}
       <div className="w-full md:w-64 flex-shrink-0 flex flex-col gap-2">
         <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 px-4">
@@ -50,7 +50,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 bg-dark-bg border border-dark-border rounded-2xl p-6 md:p-8">
+      <div className="flex-1 min-w-0 bg-bg border border-border rounded-2xl p-6 md:p-8">
         {activeTab === 'GENERAL' && (
           <GeneralForm manualData={manualData} setManualData={setManualData} />
         )}
@@ -74,7 +74,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
               </p>
             </div>
 
-            <div className="bg-dark-card border border-dark-border rounded-xl p-6 space-y-4">
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500 block mb-1">Judul:</span>
@@ -104,7 +104,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
                 isLoading={isSubmitting}
                 disabled={!manualData.title || !manualData.summary || !manualData.description}
                 variant="secondary"
-                className="px-8 py-3 font-bold bg-dark-bg border border-dark-border hover:border-white/20"
+                className="px-8 py-3 font-bold bg-bg border border-border hover:border-white/20"
               >
                 <Save className="h-5 w-5 mr-2" /> Simpan ke Draf
               </Button>

@@ -31,7 +31,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           <select
             value={manualData.category}
             onChange={(e) => setManualData({ ...manualData, category: e.target.value as any })}
-            className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="FRONTEND">Frontend Development</option>
@@ -49,7 +49,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           <select
             value={manualData.difficulty}
             onChange={(e) => setManualData({ ...manualData, difficulty: e.target.value as any })}
-            className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="JUNIOR">Junior (1-2 Tahun)</option>
@@ -68,7 +68,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           type="datetime-local"
           value={manualData.deadlineAt ? new Date(manualData.deadlineAt).toISOString().slice(0, 16) : ''}
           onChange={(e) => setManualData({ ...manualData, deadlineAt: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-          className="w-full md:w-1/2 bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+          className="w-full md:w-1/2 bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
           required
         />
       </div>

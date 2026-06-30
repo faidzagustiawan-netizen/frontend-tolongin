@@ -87,38 +87,73 @@ export default function WorkspacePage() {
 
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-        <div className="bg-dark-card border border-dark-border rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 sm:p-12 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-8">
 
-          <div className="space-y-3 relative z-10">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
-              <Building2 className="h-4 w-4" /> Manajemen Asesmen & Submisi Kandidat
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+  {/* Glow hijau-cyan */}
+  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
+
+          {/* Shape hijau terang */}
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="
+                M38 0
+                C55 5 72 18 100 32
+                L100 100
+                L0 100
+                L0 0
+                Z
+              "
+              fill="#1e7f4d"
+            />
+          </svg>
+
+          {/* Overlay lembut */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
+
+          {/* Content */}
+          <div className="relative z-10 space-y-3">
+            <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight">
               Dashboard Studi Kasus Aktif
             </h1>
-            <p className="text-sm text-gray-400 max-w-2xl leading-relaxed">
-              Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat. Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
+
+            <p className="max-w-2xl text-sm text-white/90 opacity-90 leading-relaxed">
+              Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat.
+              Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-4 relative z-10 flex-shrink-0">
+          {/* Action */}
+          <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
+
             <Link href="/challenges/create">
-              <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center gap-2 shadow-xl font-bold">
-                <Briefcase className="h-4 w-4" /> Buat Studi Kasus Baru
+              <Button
+                size="sm"
+                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+              >
+                <Briefcase className="h-4 w-4" />
+                Buat Studi Kasus Baru
               </Button>
             </Link>
-            <div className="flex items-center gap-3">
-              <Button onClick={() => refetchStats()} variant="secondary" size="sm" className="flex items-center gap-2 shadow-xl">
-                <RefreshCw className="h-4 w-4" /> Muat Ulang
-              </Button>
-            </div>
+
+            <Button
+              onClick={() => refetchStats()}
+              size="sm"
+              className="bg-white/15 text-white/90 border border-white/20 hover:bg-white/20 font-bold flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Muat Ulang
+            </Button>
+
           </div>
         </div>
 
         {/* Recruiter Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400 uppercase font-semibold">Total Studi Kasus Aktif</p>
               <h3 className="font-display text-3xl font-extrabold text-white mt-1">{challenges.length}</h3>
@@ -128,7 +163,7 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400 uppercase font-semibold">Total Seluruh Submisi</p>
               <h3 className="font-display text-3xl font-extrabold text-white mt-1">{totalSubs}</h3>
@@ -138,10 +173,10 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          <div className="bg-dark-card border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+          <div className="bg-card border border-amber-500/30 rounded-2xl p-6 shadow-xl flex items-center justify-between">
             <div>
-              <p className="text-xs text-amber-400 uppercase font-semibold">Menunggu Penilaian</p>
-              <h3 className="font-display text-3xl font-extrabold text-amber-400 mt-1">{needReviewSubs}</h3>
+              <p className="text-xs text-[#1e7f4d] uppercase font-semibold">Menunggu Penilaian</p>
+              <h3 className="font-display text-3xl font-extrabold text-[#1e7f4d] mt-1">{needReviewSubs}</h3>
             </div>
             <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
               <Activity className="h-6 w-6" />
@@ -149,7 +184,7 @@ export default function WorkspacePage() {
           </div>
         </div>
 
-        <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-dark-card border border-border rounded-2xl overflow-hidden shadow-xl">
           {/* Toolbar */}
           <div className="p-4 border-b border-dark-border flex items-center justify-between bg-white/5">
             <div className="relative w-full max-w-md">
@@ -157,7 +192,7 @@ export default function WorkspacePage() {
               <input
                 type="text"
                 placeholder="Cari studi kasus..."
-                className="w-full pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-dark-bg border border-border rounded-xl text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
               />
@@ -169,7 +204,7 @@ export default function WorkspacePage() {
             {filteredChallenges.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-dark-bg/50 border-b border-dark-border">
+                  <tr className="bg-bg/50 border-b border-border">
                     <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Judul Challenge</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Kandidat</th>
                     <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Antrean Penilaian</th>
@@ -257,46 +292,92 @@ export default function WorkspacePage() {
   // ==========================================
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
 
-        <div className="space-y-2 relative z-10">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
-            <Briefcase className="h-4 w-4" /> Manajemen Studi Kasus
-          </div>
-          <h1 className="font-display text-3xl font-extrabold text-white tracking-tight">
+  {/* Glow hijau-cyan */}
+  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
+
+  {/* Shape kanan */}
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="
+              M38 0
+              C55 5 72 18 100 32
+              L100 100
+              L0 100
+              L0 0
+              Z
+            "
+            fill="#1e7f4d"
+          />
+        </svg>
+
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
+
+        {/* Content */}
+        <div className="relative z-10 space-y-2">
+
+          <h1 className="font-display text-3xl font-extrabold text-white/90 tracking-tight">
             Workspace Talenta
           </h1>
-          <p className="text-sm text-gray-400 max-w-xl">
-            Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah selesai dievaluasi akan muncul di sini. Pilih salah satu untuk melanjutkan pengerjaan.
+
+          <p className="text-sm text-white/90 opacity-90 max-w-xl leading-relaxed">
+            Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah
+            selesai dievaluasi akan muncul di sini. Pilih salah satu untuk
+            melanjutkan pengerjaan.
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-4 relative z-10 flex-shrink-0">
-          <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-3 rounded-2xl flex flex-col items-end">
-            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1">Saldo Token</p>
+        {/* Right Side */}
+        <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
+
+          {/* Token */}
+          <div className="bg-white/15 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl flex flex-col items-end">
+            <p className="text-[10px] text-white/70 font-bold uppercase tracking-wider mb-1">
+              Saldo Token
+            </p>
+
             <div className="flex items-center gap-2">
-              <Coins className="h-6 w-6 text-amber-400" />
-              <span className="font-display text-2xl font-extrabold text-white font-mono">{tokenData?.tokenBalance || 0}</span>
+              <Coins className="h-6 w-6 text-amber-300" />
+              <span className="font-display text-2xl font-extrabold text-white-keep font-mono">
+                {tokenData?.tokenBalance || 0}
+              </span>
             </div>
           </div>
+
+          {/* Buttons */}
           <div className="flex items-center gap-3">
             <Link href="/challenges/create">
-              <Button size="sm" variant="secondary" className="bg-white/5 border border-white/10 hover:bg-white/10 shadow-xl flex items-center gap-2">
-                <Code2 className="h-4 w-4" /> Buat Public Challenge (-50)
+              <Button
+                size="sm"
+                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+              >
+                <Code2 className="h-4 w-4" />
+                Buat Public Challenge (-50)
               </Button>
             </Link>
+
             <Link href="/talent/tokens">
-              <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Top-Up Token
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Top-Up Token
               </Button>
             </Link>
           </div>
+
         </div>
       </div>
 
       {enrollments.length === 0 ? (
-        <div className="bg-dark-bg border border-dark-border rounded-3xl p-12 text-center space-y-6 shadow-xl">
+        <div className="bg-bg border border-border rounded-3xl p-12 text-center space-y-6 shadow-xl">
           <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400 shadow-inner">
             <Briefcase className="h-8 w-8 text-emerald-400" />
           </div>
@@ -323,7 +404,7 @@ export default function WorkspacePage() {
 
             return (
               <Link key={enrollment.id} href={`/workspace/${enrollment.id}`} className="group">
-                <div className="bg-dark-card border border-dark-border rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full hover:border-emerald-500/50 transition-all relative overflow-hidden space-y-6">
+                <div className="bg-card border border-border rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full hover:border-emerald-500/50 transition-all relative overflow-hidden space-y-6">
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-start justify-between gap-3">
                       <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -341,7 +422,7 @@ export default function WorkspacePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-dark-border relative z-10">
+                  <div className="flex items-center justify-between pt-4 border-t border-border relative z-10">
                     <span className="text-xs font-semibold text-gray-400 flex items-center gap-2">
                       <Timer className="h-4 w-4" /> Masuk ke LMS
                     </span>

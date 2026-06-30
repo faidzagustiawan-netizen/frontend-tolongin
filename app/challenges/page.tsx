@@ -174,14 +174,6 @@ export default function ChallengesDirectoryPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md"
-        >
-          <Briefcase className="h-4 w-4 text-emerald-400" />
-          <span className="text-xs font-semibold text-gray-200">Direktori Studi Kasus Riil</span>
-        </motion.div>
         <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
           Pilih Tantangan & Buktikan Kinerja Anda
         </h1>

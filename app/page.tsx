@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, useMotionValue } from 'framer-motion';
+import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '../store/userStore';
 import {
   ArrowRight, Code2, ShieldCheck, Trophy, Sparkles, Building2, Users,
   CheckCircle2, Zap, Briefcase, Award, ChevronRight, Star, Laptop, Flame, Lock
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
+import { TestimonialMarquee } from '../components/common/TestimonialMarquee';
 
 export default function Home() {
   const { user, isAuthenticated, loadUserFromStorage } = useUserStore();
@@ -23,78 +24,36 @@ export default function Home() {
     mouseY.set(e.clientY);
   };
 
-  const [isHovered1, setIsHovered1] = useState(false);
-  const [bg1, setBg1] = useState('var(--btn-eksplor-bg-default)');
-  const [border1, setBorder1] = useState('var(--btn-eksplor-bg-default)');
-  const [ripples1, setRipples1] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+  const [ripple1, setRipple1] = useState({ x: 0, y: 0, active: false });
+  const [ripple2, setRipple2] = useState({ x: 0, y: 0, active: false });
 
-  const [isHovered2, setIsHovered2] = useState(false);
-  const [bg2, setBg2] = useState('var(--btn-mitra-bg-default)');
-  const [border2, setBorder2] = useState('var(--btn-mitra-border-default)');
-  const [text2, setText2] = useState('var(--btn-mitra-text-default)');
-  const [ripples2, setRipples2] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
-
-  const handleMouseEnter1 = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setIsHovered1(true);
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-    setRipples1((prev) => [...prev, { id, x, y, color: 'var(--btn-eksplor-bg-hover)' }]);
-    setTimeout(() => {
-      setBg1('var(--btn-eksplor-bg-hover)');
-      setBorder1('var(--btn-eksplor-bg-hover)');
-      setRipples1((prev) => prev.filter((r) => r.id !== id));
-    }, 600);
+  const handleMouseEnter1 = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple1({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
+  };
+  const handleMouseLeave1 = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple1({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: false });
   };
 
-  const handleMouseLeave1 = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setIsHovered1(false);
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-    setRipples1((prev) => [...prev, { id, x, y, color: 'var(--btn-eksplor-bg-default)' }]);
-    setTimeout(() => {
-      setBg1('var(--btn-eksplor-bg-default)');
-      setBorder1('var(--btn-eksplor-bg-default)');
-      setRipples1((prev) => prev.filter((r) => r.id !== id));
-    }, 600);
+  const handleMouseEnter2 = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple2({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
+  };
+  const handleMouseLeave2 = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setRipple2({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: false });
   };
 
-  const handleMouseEnter2 = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setIsHovered2(true);
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-    setRipples2((prev) => [...prev, { id, x, y, color: 'var(--btn-mitra-bg-hover)' }]);
-    setTimeout(() => {
-      setBg2('var(--btn-mitra-bg-hover)');
-      setBorder2('var(--btn-mitra-border-hover)');
-      setText2('var(--btn-mitra-text-hover)');
-      setRipples2((prev) => prev.filter((r) => r.id !== id));
-    }, 600);
-  };
+  const heroWords = ['kesempatan nyata', 'pengalaman industri', 'proyek profesional', 'karier terbaik'];
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
-  const handleMouseLeave2 = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setIsHovered2(false);
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-    setRipples2((prev) => [...prev, { id, x, y, color: 'var(--btn-mitra-bg-default)' }]);
-    setTimeout(() => {
-      setBg2('var(--btn-mitra-bg-default)');
-      setBorder2('var(--btn-mitra-border-default)');
-      setText2('var(--btn-mitra-text-default)');
-      setRipples2((prev) => prev.filter((r) => r.id !== id));
-    }, 600);
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWordIndex((prev) => (prev + 1) % heroWords.length);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -107,7 +66,7 @@ export default function Home() {
 
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-dark-card via-emerald-950/30 to-cyan-950/30 border border-dark-border p-8 sm:p-12 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-dark-card via-emerald-950/30 to-cyan-950/30 border border-border p-8 sm:p-12 shadow-2xl">
           <div className="absolute -right-20 -top-20 w-80 h-80 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -146,7 +105,7 @@ export default function Home() {
 
         {/* Quick Action Navigation Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link href="/challenges" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-emerald-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
+          <Link href="/challenges" className="group p-6 rounded-3xl bg-dark-card border border-border hover:border-emerald-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
             <div className="space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
                 <Briefcase className="h-6 w-6" />
@@ -159,7 +118,7 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/workspace" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-cyan-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
+          <Link href="/workspace" className="group p-6 rounded-3xl bg-dark-card border border-border hover:border-cyan-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
             <div className="space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                 <Laptop className="h-6 w-6" />
@@ -172,7 +131,7 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/profile" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-amber-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
+          <Link href="/profile" className="group p-6 rounded-3xl bg-dark-card border border-border hover:border-amber-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
             <div className="space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                 <Trophy className="h-6 w-6" />
@@ -185,7 +144,7 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/profile" className="group p-6 rounded-3xl bg-dark-card border border-dark-border hover:border-indigo-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
+          <Link href="/profile" className="group p-6 rounded-3xl bg-dark-card border border-border hover:border-indigo-500/50 hover:bg-dark-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56">
             <div className="space-y-3">
               <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                 <ShieldCheck className="h-6 w-6" />
@@ -261,19 +220,24 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-          className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight max-w-5xl mx-auto leading-tight"
+          className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-white tracking-tight max-w-5xl mx-auto leading-tight"
         >
-          Prove Your Skills, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400">Get Hired!</span>
+          Setiap talenta layak mendapat <br className="hidden sm:block" />
+          <div className="relative inline-block h-[1.2em] overflow-visible w-full mt-2">
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={currentWordIndex}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -40 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                className="absolute left-0 right-0 text-transparent bg-clip-text bg-gradient-to-r from-[#1e7f4d] to-[#2aa565]"
+              >
+                {heroWords[currentWordIndex]}
+              </motion.span>
+            </AnimatePresence>
+          </div>
         </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
-          className="mt-6 text-base sm:text-xl text-black-400 max-w-3xl mx-auto leading-relaxed"
-        >
-          Tinggalkan proses penapisan resume yang usang. Uji kemampuan kandidat menggunakan studi kasus dari sistem perbankan hingga e-commerce, didukung verifikasi biometrik anti-joki dan koreksi kode algoritmik instan.
-        </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -286,81 +250,63 @@ export default function Home() {
               size="lg"
               onMouseEnter={handleMouseEnter1}
               onMouseLeave={handleMouseLeave1}
-              style={{
-                '--btn-bg-current': bg1,
-                '--btn-border-current': border1,
-              } as React.CSSProperties}
-              className="text-base font-bold px-8 py-4 shadow-2xl transition-transform relative overflow-hidden btn-eksplor"
+              className="text-base font-bold px-8 py-4 shadow-2xl relative overflow-hidden bg-[var(--btn-primary-bg-default)] text-white border-transparent hover:border-transparent transition-none"
             >
               <span className="relative z-10 flex items-center justify-center pointer-events-none">
                 Mulai Eksplorasi Sekarang
                 <ArrowRight className="ml-2 h-5 w-5 pointer-events-none" />
               </span>
-              {ripples1.map((ripple) => (
-                <span
-                  key={ripple.id}
-                  style={{
-                    position: 'absolute',
-                    left: ripple.x,
-                    top: ripple.y,
-                    transform: 'translate(-50%, -50%) scale(0)',
-                    animation: 'ripple-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: ripple.color,
-                    pointerEvents: 'none',
-                    zIndex: 1,
-                  }}
-                />
-              ))}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: ripple1.x,
+                  top: ripple1.y,
+                  transform: `translate(-50%, -50%) scale(${ripple1.active ? 150 : 0})`,
+                  transition: `transform ${ripple1.active ? '0.5s' : '0.2s'} ease-out`,
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--btn-primary-bg-hover)',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
             </Button>
           </Link>
           <Link href="/register?role=COMPANY">
             <Button
-              variant="secondary"
+              variant="outline"
               size="lg"
               onMouseEnter={handleMouseEnter2}
               onMouseLeave={handleMouseLeave2}
-              style={{
-                '--btn-bg-current': bg2,
-                '--btn-border-current': border2,
-                '--btn-text-current': text2,
-              } as React.CSSProperties}
-              className="text-base font-bold px-8 py-4 transition-transform relative overflow-hidden btn-mitra"
+              className="text-base font-bold px-8 py-4 relative overflow-hidden bg-[var(--btn-secondary-bg-default)] border border-[var(--btn-secondary-border-default)] hover:border-[var(--btn-secondary-border-hover)] transition-none"
             >
-              <span className="relative z-10 flex items-center justify-center pointer-events-none">
+              <span className="relative z-10 flex items-center justify-center pointer-events-none transition-none" style={{ color: ripple2.active ? 'var(--btn-secondary-text-hover)' : 'var(--btn-secondary-text-default)' }}>
                 Bergabung Sebagai Mitra Perusahaan
               </span>
-              {ripples2.map((ripple) => (
-                <span
-                  key={ripple.id}
-                  style={{
-                    position: 'absolute',
-                    left: ripple.x,
-                    top: ripple.y,
-                    transform: 'translate(-50%, -50%) scale(0)',
-                    animation: 'ripple-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: ripple.color,
-                    pointerEvents: 'none',
-                    zIndex: 1,
-                  }}
-                />
-              ))}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: ripple2.x,
+                  top: ripple2.y,
+                  transform: `translate(-50%, -50%) scale(${ripple2.active ? 150 : 0})`,
+                  transition: `transform ${ripple2.active ? '0.5s' : '0.2s'} ease-out`,
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--btn-secondary-bg-hover)',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
             </Button>
           </Link>
         </motion.div>
       </section>
 
       {/* CORE VALUE PILLARS */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-dark-border">
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-border">
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            Keunggulan Arsitektural
-          </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
             Menghilangkan Friksi, Bias, & Kecurangan
           </h2>
@@ -370,9 +316,9 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-emerald-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
+          <div className="group bg-card border border-border rounded-3xl p-8 shadow-2xl space-y-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:border-emerald-500 hover:ring-1 hover:ring-emerald-400/30 hover:shadow-2xl hover:shadow-emerald-500/20 ">
             <div className="space-y-4">
-              <h3 className="font-display text-2xl font-bold text-white">Biometrik Wajah & KTP</h3>
+              <h3 className="font-display text-2xl font-bold text-white transition-colors duration-300 group-hover:text-emerald-500">Biometrik Wajah & KTP</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Fitur verifikasi identitas berlapis membandingkan keaslian wajah kandidat saat mengerjakan studi kasus dengan kartu identitas legal, menjamin integritas penuh.
               </p>
@@ -382,15 +328,15 @@ export default function Home() {
                   alt="Biometrik"
                   width={120}
                   height={120}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-cyan-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
+          <div className="group bg-card border border-border rounded-3xl p-8 shadow-2xl space-y-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:border-emerald-500 hover:ring-1 hover:ring-emerald-400/30 hover:shadow-2xl hover:shadow-emerald-500/20 ">
             <div className="space-y-4">
-              <h3 className="font-display text-2xl font-bold text-white">Mesin Koreksi Otomatis AI</h3>
+              <h3 className="font-display text-2xl font-bold text-white transition-colors duration-300 group-hover:text-emerald-500">Mesin Koreksi Otomatis AI</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Penilaian canggih menganalisis pohon sintaksis kode (AST), kompleksitas Big-O, celah keamanan OWASP, dan indeks plagiasi dalam hitungan detik.
               </p>
@@ -400,15 +346,15 @@ export default function Home() {
                   alt="Koreksi Otomatis"
                   width={120}
                   height={120}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl hover:border-amber-500/50 transition-all duration-300 space-y-5 flex flex-col justify-between">
+          <div className="group bg-card border border-border rounded-3xl p-8 shadow-2xl space-y-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 hover:border-emerald-500 hover:ring-1 hover:ring-emerald-400/30 hover:shadow-2xl hover:shadow-emerald-500/20 ">
             <div className="space-y-4">
-              <h3 className="font-display text-2xl font-bold text-white">Gamifikasi Papan Peringkat</h3>
+              <h3 className="font-display text-2xl font-bold text-white transition-colors duration-300 group-hover:text-emerald-500">Gamifikasi Papan Peringkat</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 Setiap penyelesaian studi kasus dikonversi menjadi lencana portofolio terverifikasi dan akumulasi XP untuk menduduki puncak podium talenta global.
               </p>
@@ -418,7 +364,7 @@ export default function Home() {
                   alt="Gamifikasi"
                   width={120}
                   height={120}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
             </div>
@@ -426,16 +372,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* TESTIMONIAL MARQUEE SECTION */}
+      <TestimonialMarquee />
+
       {/* ======================================================= */}
       {/* PROFESSIONAL COMPANY PRICING & SUBSCRIPTION PLANS       */}
       {/* ======================================================= */}
-      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-dark-border">
+      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-border">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-emerald-500/10 via-cyan-500/10 to-teal-500/10 rounded-full blur-[150px] pointer-events-none -z-10" />
 
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-          <div className="inline-flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider px-3.5 py-1.5">
-            Investasi Perekrutan Mitra
-          </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
             Paket Fleksibel untuk Segala Skala Organisasi
           </h2>
@@ -444,7 +390,7 @@ export default function Home() {
           </p>
 
           {/* Billing Toggle */}
-          <div className="pt-6 inline-flex items-center p-1.5 bg-dark-card border border-dark-border rounded-full shadow-lg">
+          <div className="pt-6 inline-flex items-center p-1.5 bg-dark-card border border-border rounded-full shadow-lg">
             <button
               onClick={() => setBillingCycle('bulanan')}
               className={`px-6 py-2.5 rounded-full font-bold text-xs transition-all ${
@@ -471,7 +417,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
           {/* TIER 1: STARTER */}
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden group hover:border-gray-500 transition-colors">
+          <div className="bg-dark-card border border-border rounded-3xl p-8 shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden group hover:border-gray-500 transition-colors">
             <div className="space-y-6">
               <div>
                 <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-gray-300 uppercase tracking-wider mb-3">Starter Instansi</span>
@@ -479,7 +425,7 @@ export default function Home() {
                 <p className="text-xs text-gray-400 mt-2">Untuk startup dan tim kecil yang baru mulai menguji kemampuan kandidat.</p>
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-dark-border/60">
+              <div className="space-y-3 pt-4 border-t border-border/60">
                 <div className="flex items-center gap-3 text-sm text-gray-300">
                   <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
                   <span>Maksimal 1 studi kasus aktif</span>
@@ -564,7 +510,7 @@ export default function Home() {
           </div>
 
           {/* TIER 3: ENTERPRISE */}
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden group hover:border-gray-500 transition-colors">
+          <div className="bg-dark-card border border-border rounded-3xl p-8 shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden group hover:border-gray-500 transition-colors">
             <div className="space-y-6">
               <div>
                 <span className="inline-block px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">Kustom Enterprise</span>
@@ -572,7 +518,7 @@ export default function Home() {
                 <p className="text-xs text-gray-400 mt-2">Untuk konglomerat & perbankan dengan keamanan dan kepatuhan khusus.</p>
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-dark-border/60">
+              <div className="space-y-3 pt-4 border-t border-border/60">
                 <div className="flex items-center gap-3 text-sm text-gray-300 font-medium">
                   <CheckCircle2 className="h-5 w-5 text-amber-400 flex-shrink-0" />
                   <span>Semua fitur paket Professional</span>
@@ -636,22 +582,22 @@ export default function Home() {
           transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
           className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto"
         >
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+          <div className="bg-dark-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">50.000+</h3>
             <p className="text-xs font-semibold text-gray-400">Talenta Terverifikasi Biometrik</p>
           </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+          <div className="bg-dark-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-1">500+</h3>
             <p className="text-xs font-semibold text-gray-400">Perusahaan & Startup Mitra</p>
           </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+          <div className="bg-dark-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-1">99.4%</h3>
             <p className="text-xs font-semibold text-gray-400">Akurasi AI Evaluator</p>
           </div>
-          <div className="bg-dark-card/60 border border-dark-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
+          <div className="bg-dark-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-amber-400 mb-1">Rp 35M+</h3>
             <p className="text-xs font-semibold text-gray-400">Total Penawaran Kerja Terjalin</p>

@@ -35,15 +35,59 @@ export const Navbar = () => {
     }
   }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = (e: React.MouseEvent) => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const isDark = newTheme === 'dark';
+
+    // If View Transitions API is not supported, fallback to simple toggle
+    if (!document.startViewTransition) {
+      setTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      return;
     }
+
+    // Get click coordinates for ripple origin
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Calculate distance to furthest corner
+    const endRadius = Math.hypot(
+      Math.max(x, innerWidth - x),
+      Math.max(y, innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => {
+      setTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
+
+      document.documentElement.animate(
+        {
+          clipPath: clipPath,
+        },
+        {
+          duration: 600,
+          easing: 'ease-in-out',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
+    });
   };
 
   useEffect(() => {
