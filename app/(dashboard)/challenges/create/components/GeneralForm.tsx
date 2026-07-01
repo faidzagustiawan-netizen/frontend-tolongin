@@ -1,5 +1,7 @@
 import React from 'react';
+import { Calendar } from 'lucide-react';
 import { Input, Textarea } from '../../../../../components/common/Input';
+import { DateTimePicker } from '../../../../../components/common/DateTimePicker';
 import { CreateChallengePayload } from '../../../../../services/challenges.service';
 
 interface GeneralFormProps {
@@ -11,8 +13,8 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h3 className="text-xl font-bold text-white mb-1">Informasi Umum</h3>
-        <p className="text-sm text-gray-400 mb-6">Lengkapi informasi dasar mengenai studi kasus yang akan Anda buat.</p>
+        <h3 className="text-xl font-bold text-title mb-1">Informasi Umum</h3>
+        <p className="text-sm text-muted mb-6">Lengkapi informasi dasar mengenai studi kasus yang akan Anda buat.</p>
       </div>
 
       <Input
@@ -25,13 +27,13 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-muted mb-2">
             Kategori Pekerjaan <span className="text-red-500 ml-1">*</span>
           </label>
           <select
             value={manualData.category}
             onChange={(e) => setManualData({ ...manualData, category: e.target.value as any })}
-            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="FRONTEND">Frontend Development</option>
@@ -43,13 +45,13 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-muted mb-2">
             Tingkat Kesulitan <span className="text-red-500 ml-1">*</span>
           </label>
           <select
             value={manualData.difficulty}
             onChange={(e) => setManualData({ ...manualData, difficulty: e.target.value as any })}
-            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="JUNIOR">Junior (1-2 Tahun)</option>
@@ -59,18 +61,15 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Batas Akhir / Deadline Global <span className="text-red-500 ml-1">*</span>
-        </label>
-        <p className="text-xs text-gray-500 mb-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
-        <input
-          type="datetime-local"
-          value={manualData.deadlineAt ? new Date(manualData.deadlineAt).toISOString().slice(0, 16) : ''}
-          onChange={(e) => setManualData({ ...manualData, deadlineAt: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-          className="w-full md:w-1/2 bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+      <div className="w-full md:w-1/2">
+        <DateTimePicker
+          label="Batas Akhir / Deadline Global"
+          value={manualData.deadlineAt}
+          onChange={(isoString) => setManualData({ ...manualData, deadlineAt: isoString })}
+          placeholder="Tentukan batas akhir..."
           required
         />
+        <p className="text-xs text-muted mt-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
       </div>
 
       <Textarea

@@ -1,6 +1,9 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
+const baseInputStyles =
+  'block w-full rounded-lg bg-dark-card border py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200 text-sm';
+
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -29,9 +32,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              'block w-full rounded-lg bg-dark-card border border-dark-border py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200 text-sm',
+              baseInputStyles,
               icon ? 'pl-10 pr-4' : 'px-4',
-              error ? 'border-red-500 focus:ring-red-500' : '',
+              error ? 'border-red-500 focus:ring-red-500' : 'border-dark-border',
               className
             )}
             {...props}
@@ -40,7 +43,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
       </div>
     );
-  },
+  }
 );
 
 Input.displayName = 'Input';
@@ -66,8 +69,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={textareaId}
           ref={ref}
           className={cn(
-            'block w-full rounded-lg bg-dark-card border border-dark-border px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200 text-sm',
-            error ? 'border-red-500 focus:ring-red-500' : '',
+            baseInputStyles,
+            'px-4',
+            error ? 'border-red-500 focus:ring-red-500' : 'border-dark-border',
             className
           )}
           {...props}
@@ -75,7 +79,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
       </div>
     );
-  },
+  }
 );
 
 Textarea.displayName = 'Textarea';

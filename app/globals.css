@@ -107,9 +107,9 @@ html:not(.dark) .shadow-xl {
 html:not(.dark) input,
 html:not(.dark) select,
 html:not(.dark) textarea {
-  background-color: #1f2937 !important;
+  background-color: #ffffff !important;
   color: #0f172a !important;
-  border-color: #1f2937 !important;
+  border-color: #e2e8f0 !important;
 }
 
 html:not(.dark) input::placeholder,
@@ -192,3 +192,51 @@ html:not(.dark) button .text-gray-400,
 html:not(.dark) button.text-gray-400 {
   color: #d1d5db !important;
 }
+/* Custom Modern Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 transparent;
+}
+
+html:not(.dark) * {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* Hide scrollbar completely if using .scrollbar-hide class */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+

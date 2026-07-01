@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, UploadCloud, ChevronRight, Play, CheckCircle2, Lock, Clock } from 'lucide-react';
 import { CreateChallengePayload } from '../../../../../services/challenges.service';
+import { QuestionTypeRegistry } from '../../../../../components/question-types';
 
 interface PreviewTabProps {
   manualData: CreateChallengePayload;
@@ -150,30 +151,18 @@ export default function PreviewTab({ manualData, onClose }: PreviewTabProps) {
             {currentComp ? (
               <div className="max-w-3xl">
                 <p className="text-lg text-white mb-8 leading-relaxed whitespace-pre-wrap">{currentComp.question}</p>
-                
                 <div className="space-y-4">
-                  {(currentComp.options || []).map((opt: any, optIdx: number) => (
-                    <label 
-                      key={optIdx} 
-                      className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                        examAnswers[`${examQuestionIdx}`] === opt.id 
-                          ? 'bg-cyan-500/10 border-cyan-500/50 text-white' 
-                          : 'bg-dark-bg/50 border-dark-border text-gray-300 hover:border-white/20'
-                      }`}
-                    >
-                      <input 
-                        type="radio" 
-                        name={`q-${examQuestionIdx}`} 
-                        className="mt-1 w-5 h-5 text-cyan-500 focus:ring-cyan-500 bg-dark-bg" 
-                        checked={examAnswers[`${examQuestionIdx}`] === opt.id}
-                        onChange={() => setExamAnswers({ ...examAnswers, [`${examQuestionIdx}`]: opt.id })}
+                  {(() => {
+                    const TypeComponent = QuestionTypeRegistry[currentComp.type]?.Solver;
+                    if (!TypeComponent) return <p className="text-red-400 text-sm">Tipe komponen {currentComp.type} belum didukung di Preview.</p>;
+                    return (
+                      <TypeComponent
+                        comp={currentComp}
+                        value={examAnswers[`${examQuestionIdx}`]}
+                        onChange={(val: any) => setExamAnswers({ ...examAnswers, [`${examQuestionIdx}`]: val })}
                       />
-                      <span className="flex-1 text-base">{opt.text}</span>
-                    </label>
-                  ))}
-                  {(!currentComp.options || currentComp.options.length === 0) && (
-                    <p className="text-red-400 italic">Pilihan jawaban belum diset di Builder.</p>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             ) : (

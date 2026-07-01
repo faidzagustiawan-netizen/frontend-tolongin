@@ -4,9 +4,12 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { portfoliosService } from '../../services/portfolios.service';
 import { useUserStore } from '../../store/userStore';
-import { Trophy, Award, User, Medal, Zap, Filter, MapPin, Globe, ChevronDown, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import { Trophy, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+import { LeaderboardFilterBar } from '../../components/leaderboard/LeaderboardFilterBar';
+import { Podium } from '../../components/leaderboard/Podium';
+import { LeaderboardTable } from '../../components/leaderboard/LeaderboardTable';
 
 const RANKS = [
   { minLevel: 1, maxLevel: 1, name: 'Bronze', color: 'text-[#CD7F32]', border: 'border-[#CD7F32]/50', bg: 'bg-[#CD7F32]/10' },
@@ -36,15 +39,6 @@ export default function LeaderboardPage() {
     return RANKS.find(r => level >= r.minLevel && level <= r.maxLevel) || RANKS[0];
   };
 
-  const getRankBadge = (rank: number) => {
-    switch (rank) {
-      case 1: return 'bg-yellow-400/20 border-yellow-400/50 text-yellow-400 shadow-yellow-400/20 shadow-lg scale-110 z-10';
-      case 2: return 'bg-gray-300/20 border-gray-300/50 text-gray-300 shadow-gray-300/10 scale-105';
-      case 3: return 'bg-[#CD7F32]/20 border-[#CD7F32]/50 text-[#CD7F32] shadow-[#CD7F32]/10 scale-105';
-      default: return 'bg-white/5 border-white/10 text-gray-400';
-    }
-  };
-
   // Mocking filtering since backend doesn't have region and precise roles
   const filteredLeaderboard = rawLeaderboard.filter((talent: any) => {
     if (selectedCategory === 'All Roles') return true;
@@ -61,6 +55,9 @@ export default function LeaderboardPage() {
     if (selectedRegion === 'Global' || selectedRegion === 'Indonesia') return true;
     return talent.mockRegion === selectedRegion;
   });
+
+  const topThree = filteredLeaderboard.slice(0, 3);
+  const remaining = filteredLeaderboard.slice(3);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
@@ -81,44 +78,14 @@ export default function LeaderboardPage() {
         </p>
       </div>
 
-      {/* Gamification Filters */}
-      <div className="bg-dark-card border border-dark-border rounded-3xl p-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 max-w-5xl mx-auto">
-        <div className="flex flex-col w-full sm:w-auto gap-2">
-          <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-            <Award className="h-3.5 w-3.5 text-cyan-400" /> Kategori Spesialisasi
-          </label>
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                  selectedCategory === cat 
-                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-transparent shadow-lg shadow-emerald-500/20'
-                  : 'bg-dark-bg border-dark-border text-gray-400 hover:text-white hover:border-emerald-500/30'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col w-full sm:w-auto gap-2 border-t sm:border-t-0 sm:border-l border-dark-border pt-4 sm:pt-0 sm:pl-6">
-          <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5 text-emerald-400" /> Region / Wilayah
-          </label>
-          <select 
-            value={selectedRegion}
-            onChange={(e) => setSelectedRegion(e.target.value)}
-            className="bg-dark-bg border border-dark-border rounded-xl px-4 py-2 text-sm text-white font-semibold focus:outline-none focus:border-emerald-500"
-          >
-            {REGIONS.map(reg => (
-              <option key={reg} value={reg}>{reg}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <LeaderboardFilterBar
+        categories={CATEGORIES}
+        regions={REGIONS}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        selectedRegion={selectedRegion}
+        setSelectedRegion={setSelectedRegion}
+      />
 
       {isLoading ? (
         <div className="space-y-4 animate-pulse max-w-5xl mx-auto">
@@ -131,81 +98,17 @@ export default function LeaderboardPage() {
           <p className="text-base text-red-400 font-medium">Gagal memuat papan peringkat.</p>
         </div>
       ) : filteredLeaderboard.length > 0 ? (
-        <div className="max-w-5xl mx-auto space-y-4 relative">
-          <AnimatePresence>
-            {filteredLeaderboard.map((talent: any, index: number) => {
-              const rank = index + 1;
-              const rankInfo = getRankInfo(talent.level || 1);
-              const isCurrentUser = user && user.email === talent.user?.email;
-
-              return (
-                <motion.div
-                  key={talent.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className={`bg-dark-card border-2 hover:border-white/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden ${
-                    isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-dark-border'
-                  }`}
-                >
-                  {isCurrentUser && (
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-cyan-500" />
-                  )}
-
-                  <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
-                    <div className={`h-12 w-12 sm:h-14 sm:w-14 rounded-2xl border flex items-center justify-center font-display font-bold text-lg sm:text-xl flex-shrink-0 ${getRankBadge(rank)}`}>
-                      {rank === 1 ? <Trophy className="h-6 w-6 sm:h-7 sm:w-7" /> : rank === 2 ? <Medal className="h-6 w-6 sm:h-7 sm:w-7" /> : rank === 3 ? <Medal className="h-5 w-5 sm:h-6 sm:w-6" /> : `#${rank}`}
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
-                        {talent.avatarUrl ? (
-                          <Image src={talent.avatarUrl} alt={talent.fullName} fill sizes="64px" className="object-cover" />
-                        ) : (
-                          <User className="relative z-10 h-6 w-6 text-gray-400" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className={`text-base sm:text-lg font-bold ${isCurrentUser ? 'text-emerald-400' : 'text-white'}`}>
-                            {talent.fullName} {isCurrentUser && '(Anda)'}
-                          </h4>
-                          {talent.faceVerificationStatus === 'VERIFIED' && (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {talent.mockRegion || 'Global'}</span>
-                          <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold tracking-wider ${rankInfo.bg} ${rankInfo.border} ${rankInfo.color}`}>
-                            {rankInfo.name}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-center sm:justify-end gap-4 sm:gap-8 bg-dark-bg sm:bg-transparent border border-dark-border sm:border-none rounded-xl p-4 sm:p-0 w-full sm:w-auto">
-                    <div className="text-center">
-                      <p className="text-2xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">{talent.level || 1}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Level</p>
-                    </div>
-                    <div className="w-px h-8 bg-dark-border hidden sm:block" />
-                    <div className="text-center">
-                      <p className="text-2xl font-display font-extrabold text-white flex items-center justify-center gap-1">
-                        <Zap className="h-5 w-5 text-amber-400 flex-shrink-0" />
-                        {talent.xp || 0}
-                      </p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Experience</p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+        <>
+          <Podium topThree={topThree} />
+          {remaining.length > 0 && (
+            <LeaderboardTable
+              leaderboard={remaining}
+              currentUserEmail={user?.email}
+              getRankInfo={getRankInfo}
+              startIndex={3}
+            />
+          )}
+        </>
       ) : (
         <div className="text-center py-20 bg-dark-card border border-dark-border rounded-2xl max-w-4xl mx-auto space-y-3">
           <Filter className="h-12 w-12 text-gray-500 mx-auto mb-2" />

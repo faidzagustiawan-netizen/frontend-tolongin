@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Plus, GripVertical, Settings } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { CreateChallengePayload } from '../../../../../services/challenges.service';
 import { Button } from '../../../../../components/common/Button';
 import { Input } from '../../../../../components/common/Input';
+import { DurationPicker } from '../../../../../components/common/DurationPicker';
+import { motion, AnimatePresence } from 'framer-motion';
+import { QuestionTypeRegistry } from '../../../../../components/question-types';
 
 interface QuestionBuilderProps {
   manualData: CreateChallengePayload;
@@ -12,14 +15,34 @@ interface QuestionBuilderProps {
 
 export default function QuestionBuilder({ manualData, setManualData }: QuestionBuilderProps) {
   const [selectedSectionIdx, setSelectedSectionIdx] = useState<number | null>(0);
-  const [selectedComponentIdx, setSelectedComponentIdx] = useState<number | null>(null);
-  const [bulkInput, setBulkInput] = useState<string>('');
-  const [showBulkAdd, setShowBulkAdd] = useState<boolean>(false);
+  const [expandedCompIdx, setExpandedCompIdx] = useState<number | null>(null);
   const [isEditorExpanded, setIsEditorExpanded] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Ensure all existing sections are set to QUIZ
+    if (manualData.sections && manualData.sections.length > 0) {
+      let needsUpdate = false;
+      const newSections = manualData.sections.map(sec => {
+        if (sec.stageType !== 'QUIZ') {
+          needsUpdate = true;
+          return { ...sec, stageType: 'QUIZ' };
+        }
+        return sec;
+      });
+      if (needsUpdate) {
+        setManualData(prev => ({ ...prev, sections: newSections as any }));
+      }
+    } else if (!manualData.sections || manualData.sections.length === 0) {
+      // Add default section if none exists
+      setManualData(prev => ({
+        ...prev,
+        sections: [{ title: 'Bagian 1', order: 0, components: [], timeLimit: null, stageType: 'QUIZ' }]
+      }));
+      setSelectedSectionIdx(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -38,11 +61,11 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
       ...prev,
       sections: [
         ...(prev.sections || []),
-        { title: `Tahap ${(prev.sections?.length || 0) + 1}`, order: prev.sections?.length || 0, components: [], timeLimit: null, stageType: 'ASSIGNMENT' }
+        { title: `Bagian ${(prev.sections?.length || 0) + 1}`, order: prev.sections?.length || 0, components: [], timeLimit: null, stageType: 'QUIZ' }
       ]
     }));
     setSelectedSectionIdx((manualData.sections?.length || 0));
-    setSelectedComponentIdx(null);
+    setExpandedCompIdx(null);
   };
 
   const removeSection = (secIdx: number) => {
@@ -51,7 +74,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     setManualData({ ...manualData, sections: newSections });
     if (selectedSectionIdx === secIdx) {
       setSelectedSectionIdx(newSections.length > 0 ? 0 : null);
-      setSelectedComponentIdx(null);
+      setExpandedCompIdx(null);
     }
   };
 
@@ -67,14 +90,6 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     setManualData({ ...manualData, sections: newSections });
   };
 
-  const updateSectionStageType = (secIdx: number, stageType: string) => {
-    const newSections = [...(manualData.sections || [])];
-    // If changing to QUIZ, we should technically warn them if they have non-quiz components, 
-    // but for now we just change it.
-    newSections[secIdx] = { ...newSections[secIdx], stageType };
-    setManualData({ ...manualData, sections: newSections });
-  };
-
   const addComponent = (secIdx: number, type: string) => {
     const newSections = [...(manualData.sections || [])];
     const sec = newSections[secIdx];
@@ -83,21 +98,23 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
       question: '',
       description: '',
       points: 10,
-      options: type === 'MULTIPLE_CHOICE' ? [{ id: Math.random().toString(), text: '', isCorrect: true }] : undefined,
+      options: type === 'MULTIPLE_CHOICE' ? [
+        { id: Math.random().toString(), text: 'Opsi 1', isCorrect: true },
+        { id: Math.random().toString(), text: 'Opsi 2', isCorrect: false }
+      ] : undefined,
       metadata: type === 'LIVE_CODING' ? { language: 'javascript' } : undefined,
     };
     sec.components = [...(sec.components || []), newComp];
     setManualData({ ...manualData, sections: newSections });
-    setSelectedSectionIdx(secIdx);
-    setSelectedComponentIdx(sec.components.length - 1);
+    setExpandedCompIdx(sec.components.length - 1);
   };
 
   const removeComponent = (secIdx: number, compIdx: number) => {
     const newSections = [...(manualData.sections || [])];
     newSections[secIdx].components.splice(compIdx, 1);
     setManualData({ ...manualData, sections: newSections });
-    if (selectedSectionIdx === secIdx && selectedComponentIdx === compIdx) {
-      setSelectedComponentIdx(null);
+    if (expandedCompIdx === compIdx) {
+      setExpandedCompIdx(null);
     }
   };
 
@@ -107,47 +124,19 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     setManualData({ ...manualData, sections: newSections });
   };
 
-  const handleBulkAdd = (secIdx: number, compIdx: number) => {
-    if (!bulkInput.trim()) return;
-    const lines = bulkInput.split('\n').filter((line) => line.trim() !== '');
-    const newSections = [...(manualData.sections || [])];
-    const comp = newSections[secIdx].components[compIdx];
-    
-    const newOptions = lines.map((line) => ({
-      id: Math.random().toString(),
-      text: line.trim(),
-      isCorrect: false,
-    }));
-    
-    comp.options = [...(comp.options || []), ...newOptions];
-    
-    // If no correct option exists, set the first one
-    if (!comp.options.find((o: any) => o.isCorrect) && comp.options.length > 0) {
-        comp.options[0].isCorrect = true;
-    }
-
-    setManualData({ ...manualData, sections: newSections });
-    setBulkInput('');
-    setShowBulkAdd(false);
-  };
-
-  const activeComp = selectedSectionIdx !== null && selectedComponentIdx !== null 
-    ? manualData.sections?.[selectedSectionIdx]?.components?.[selectedComponentIdx] 
-    : null;
-
   const content = (
-    <div className={`flex flex-col border border-dark-border overflow-hidden duration-500 ${
-      isEditorExpanded ? 'fixed inset-0 z-[100] bg-black rounded-none' : 'h-[750px] bg-dark-bg/30 rounded-2xl animate-in fade-in slide-in-from-bottom-4'
+    <div className={`flex flex-col border border-border overflow-hidden duration-500 ${
+      isEditorExpanded ? 'fixed inset-0 z-[100] bg-bg rounded-none' : 'h-[750px] bg-bg rounded-2xl animate-in fade-in slide-in-from-bottom-4'
     }`}>
       
       {/* Top Header & Horizontal Tabs for Stages */}
-      <div className="bg-dark-bg border-b border-dark-border pt-4 px-4 flex flex-col">
+      <div className="bg-card border-b border-border pt-4 px-4 flex flex-col">
         <div className="mb-4 px-2 flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-emerald-400" /> Assessment Builder
+              <Settings className="w-5 h-5 text-emerald-400" /> Kuis Builder (Mode LMS)
             </h3>
-            <p className="text-sm text-gray-400">Rancang struktur tes berdasarkan tahapan (progress) di sini.</p>
+            <p className="text-sm text-gray-400">Rancang daftar soal pilihan ganda dengan cepat dan efisien.</p>
           </div>
           <button
             onClick={() => setIsEditorExpanded(!isEditorExpanded)}
@@ -161,58 +150,46 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
           {(manualData.sections || []).map((section, secIdx) => (
             <button 
               key={secIdx}
-              onClick={() => { setSelectedSectionIdx(secIdx); setSelectedComponentIdx(null); }}
+              onClick={() => { setSelectedSectionIdx(secIdx); setExpandedCompIdx(null); }}
               className={`px-6 py-3 rounded-t-xl font-bold text-sm transition-colors whitespace-nowrap border-b-2 ${
                 selectedSectionIdx === secIdx 
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500' 
                   : 'text-gray-400 hover:bg-white/5 border-transparent'
               }`}
             >
-              {section.title || `Tahap ${secIdx + 1}`}
+              {section.title || `Bagian ${secIdx + 1}`}
             </button>
           ))}
           <button 
             onClick={addSection} 
             className="px-4 py-3 text-sm font-bold text-gray-400 hover:text-emerald-400 transition-colors flex items-center gap-1 whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" /> Tambah Tahap
+            <Plus className="w-4 h-4" /> Tambah Bagian
           </button>
         </div>
       </div>
 
-      {/* Content for Active Stage */}
+      {/* Main Content Area */}
       {selectedSectionIdx !== null && manualData.sections?.[selectedSectionIdx] && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Stage Settings Header (always visible for the active stage) */}
-          <div className="bg-[#111] p-6 border-b border-dark-border flex flex-wrap items-start gap-6">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Judul Tahap</label>
+        <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar bg-bg relative pb-32">
+          
+          {/* Section Settings */}
+          <div className="bg-card p-6 border-b border-border flex flex-wrap items-start gap-6 shadow-sm sticky top-0 z-20">
+            <div className="flex-1 min-w-[250px]">
+              <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Judul Bagian</label>
               <input 
                 value={manualData.sections[selectedSectionIdx].title}
                 onChange={(e) => updateSectionTitle(selectedSectionIdx, e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                placeholder="Contoh: Tahap 1 - Desain UI"
+                className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                placeholder="Contoh: Kuis Pemrograman React"
               />
             </div>
-            <div className="w-48">
-              <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Tipe Evaluasi</label>
-              <select
-                value={manualData.sections[selectedSectionIdx].stageType || 'ASSIGNMENT'}
-                onChange={(e) => updateSectionStageType(selectedSectionIdx, e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
-              >
-                <option value="ASSIGNMENT">Penugasan (Campur)</option>
-                <option value="QUIZ">Kuis (Pilihan Ganda)</option>
-              </select>
-            </div>
-            <div className="w-48">
-              <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Waktu (Menit)</label>
-              <input 
-                type="number"
-                value={manualData.sections[selectedSectionIdx].timeLimit || ''}
-                onChange={(e) => updateSectionTimeLimit(selectedSectionIdx, e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                placeholder="Global"
+            <div className="flex-1 min-w-[250px]">
+              <DurationPicker
+                label="Waktu Pengerjaan (Per Tahap)"
+                value={manualData.sections?.[selectedSectionIdx]?.timeLimit || null}
+                onChange={(val) => updateSectionTimeLimit(selectedSectionIdx, val)}
+                placeholder="Tak Terbatas"
               />
             </div>
             <div className="pt-7">
@@ -220,213 +197,133 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                 onClick={() => removeSection(selectedSectionIdx)} 
                 className="p-2.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold"
               >
-                <Trash2 className="w-4 h-4" /> Hapus Tahap
+                <Trash2 className="w-4 h-4" /> Hapus Bagian
               </button>
             </div>
           </div>
 
-          {/* Split Screen for Questions in this Stage */}
-          <div className="flex flex-1 overflow-hidden relative">
-            {/* Left Panel: List of Questions */}
-            <div className="w-1/3 flex flex-col gap-4 border-r border-dark-border p-6 overflow-y-auto custom-scrollbar bg-dark-bg/20 transition-all duration-300">
-                 <h4 className="font-bold text-white mb-2">Tugas / Soal</h4>
-                 <div className="space-y-2">
-                   {(manualData.sections[selectedSectionIdx].components || []).map((comp: any, compIdx: number) => (
-                     <div 
-                       key={compIdx} 
-                       onClick={() => setSelectedComponentIdx(compIdx)}
-                       className={`cursor-pointer p-3 rounded-xl border text-sm flex items-center gap-3 transition-all shadow-sm ${
-                         selectedComponentIdx === compIdx
-                           ? 'bg-emerald-500/10 border-emerald-500/50 text-white'
-                           : 'bg-dark-card border-dark-border text-gray-300 hover:bg-white/5 hover:border-white/10'
-                       }`}
-                     >
-                       <GripVertical className="w-4 h-4 text-gray-600" />
-                       <div className="flex flex-col overflow-hidden">
-                         <span className="truncate font-medium">{compIdx + 1}. {comp.question || 'Soal Kosong'}</span>
-                         <span className="text-[10px] text-gray-500 uppercase font-bold mt-0.5">{comp.type.replace('_', ' ')}</span>
-                       </div>
-                     </div>
-                   ))}
-                   
-                   {(!manualData.sections[selectedSectionIdx].components || manualData.sections[selectedSectionIdx].components.length === 0) && (
-                     <div className="text-center py-8 text-gray-500 text-sm border-2 border-dashed border-dark-border rounded-xl">
-                       Belum ada soal di tahap ini.
-                     </div>
-                   )}
-                 </div>
-
-                 <div className="mt-4 pt-4 border-t border-dark-border">
-                   <p className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-wider">Tambah Tugas Baru</p>
-                   {manualData.sections[selectedSectionIdx].stageType === 'QUIZ' ? (
-                     <button onClick={() => addComponent(selectedSectionIdx, 'MULTIPLE_CHOICE')} className="w-full text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors border border-white/5">+ Tambah Soal Pilihan Ganda</button>
-                   ) : (
-                     <div className="grid grid-cols-2 gap-2">
-                       <button onClick={() => addComponent(selectedSectionIdx, 'FILE_UPLOAD')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors border border-white/5">File Upload</button>
-                       <button onClick={() => addComponent(selectedSectionIdx, 'MULTIPLE_CHOICE')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors border border-white/5">Pilihan Ganda</button>
-                       <button onClick={() => addComponent(selectedSectionIdx, 'ESSAY')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors border border-white/5">Essay</button>
-                       <button onClick={() => addComponent(selectedSectionIdx, 'LIVE_CODING')} className="text-xs font-bold text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 px-3 py-2 rounded-lg transition-colors border border-emerald-500/20">Live Coding</button>
-                       <button onClick={() => addComponent(selectedSectionIdx, 'URL_LINK')} className="text-xs font-bold text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 px-3 py-2 rounded-lg transition-colors border border-cyan-500/20">Tautan URL</button>
-                       <button onClick={() => addComponent(selectedSectionIdx, 'VIDEO_RECORDING')} className="text-xs font-bold text-purple-400 bg-purple-400/10 hover:bg-purple-400/20 px-3 py-2 rounded-lg transition-colors border border-purple-500/20">Video / Audio</button>
-                     </div>
-                   )}
-                 </div>
-              </div>
-
-            {/* Right Panel: Detail Editor */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-dark-bg/10">
-              {!activeComp ? (
-                <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                  <Settings className="w-16 h-16 mb-6 opacity-10" />
-                  <p className="text-lg font-medium">Pilih soal di panel kiri untuk mengedit</p>
-                  <p className="text-sm mt-2 opacity-60">Atau tambahkan tugas baru</p>
-                </div>
-              ) : (
-                <div className={`${isEditorExpanded ? 'max-w-5xl mx-auto' : 'max-w-3xl'} space-y-6 transition-all duration-300`}>
-                   <div className="flex items-center justify-between border-b border-dark-border pb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20 uppercase tracking-wider">
-                          {activeComp.type.replace('_', ' ')}
-                        </span>
+          {/* List of Questions (LMS Style) */}
+          <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-4">
+            {(manualData.sections[selectedSectionIdx].components || []).length === 0 ? (
+               <div className="text-center py-16 text-muted border-2 border-dashed border-border rounded-2xl bg-card">
+                 <Settings className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                 <p className="text-lg font-medium text-title mb-2">Belum ada pertanyaan</p>
+                 <p className="text-sm">Klik tombol "Tambah Pertanyaan" di bawah untuk mulai membuat kuis.</p>
+               </div>
+            ) : (
+              (manualData.sections[selectedSectionIdx].components || []).map((comp: any, compIdx: number) => {
+                const isExpanded = expandedCompIdx === compIdx;
+                
+                return (
+                  <motion.div 
+                    layout
+                    key={compIdx}
+                    className={`bg-card border rounded-2xl overflow-hidden transition-colors ${
+                      isExpanded ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/5' : 'border-border hover:border-white/20 shadow-sm'
+                    }`}
+                  >
+                    {/* Card Header (Always visible) */}
+                    <div 
+                      className="p-4 sm:p-5 flex items-start gap-4 cursor-pointer"
+                      onClick={() => setExpandedCompIdx(isExpanded ? null : compIdx)}
+                    >
+                      <div className="mt-1 opacity-50 cursor-grab active:cursor-grabbing">
+                        <GripVertical className="w-5 h-5 text-gray-400" />
                       </div>
-                      <button 
-                        onClick={() => removeComponent(selectedSectionIdx!, selectedComponentIdx!)}
-                        className="flex items-center gap-2 text-sm font-bold text-red-400 hover:text-red-300 transition-colors px-3 py-1.5 hover:bg-red-400/10 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" /> Hapus Soal
-                      </button>
-                   </div>
-
-                   <Input 
-                      label="Teks / Instruksi Tugas" 
-                      value={activeComp.question} 
-                      onChange={(e) => updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'question', e.target.value)} 
-                      placeholder="Masukkan instruksi atau pertanyaan..."
-                   />
-
-                   <div className="w-1/3">
-                     <Input 
-                       label="Poin Nilai"
-                       type="number"
-                       value={activeComp.points}
-                       onChange={(e) => updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'points', parseInt(e.target.value) || 0)}
-                     />
-                   </div>
-
-                   {/* Live Coding Options */}
-                   {activeComp.type === 'LIVE_CODING' && (
-                     <div>
-                       <label className="block text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Bahasa Pemrograman Default</label>
-                       <select 
-                         value={activeComp.metadata?.language || 'javascript'} 
-                         onChange={(e) => updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'metadata', { ...activeComp.metadata, language: e.target.value })}
-                         className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"
-                       >
-                         <option value="javascript">JavaScript</option>
-                         <option value="typescript">TypeScript</option>
-                         <option value="python">Python</option>
-                         <option value="go">Go</option>
-                         <option value="java">Java</option>
-                       </select>
-                     </div>
-                   )}
-
-                   {/* Multiple Choice Options Builder */}
-                   {activeComp.type === 'MULTIPLE_CHOICE' && activeComp.options && (
-                     <div className="bg-black/20 p-6 rounded-2xl border border-white/5 space-y-6 mt-6">
-                        <div className="flex items-center justify-between border-b border-dark-border pb-4">
-                          <label className="text-base font-bold text-white">Pilihan Jawaban</label>
-                          <button 
-                            onClick={() => setShowBulkAdd(!showBulkAdd)}
-                            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 hover:bg-cyan-400/20 px-3 py-1.5 rounded-lg transition-colors border border-cyan-500/20"
-                          >
-                            {showBulkAdd ? 'Tutup Bulk Add' : 'Bulk Add Options'}
-                          </button>
+                      
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide border border-emerald-500/20">
+                            {comp.type.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-gray-400 font-medium">{comp.points} Poin</span>
                         </div>
+                        <h4 className={`text-base font-medium truncate transition-colors ${comp.question ? 'text-white' : 'text-gray-500 italic'}`}>
+                          {comp.question || 'Pertanyaan kosong...'}
+                        </h4>
+                      </div>
 
-                        {showBulkAdd && (
-                          <div className="bg-cyan-500/5 border border-cyan-500/20 p-5 rounded-xl space-y-4">
-                            <p className="text-sm text-cyan-200">
-                              Paste beberapa baris teks di bawah. Setiap baris baru akan diubah menjadi 1 opsi jawaban otomatis.
-                            </p>
-                            <textarea
-                              value={bulkInput}
-                              onChange={(e) => setBulkInput(e.target.value)}
-                              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                              rows={5}
-                              placeholder="Opsi A\nOpsi B\nOpsi C\nOpsi D"
-                            />
-                            <Button onClick={() => handleBulkAdd(selectedSectionIdx!, selectedComponentIdx!)} className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-600 text-black font-bold text-sm">
-                              Generate Opsi
-                            </Button>
-                          </div>
-                        )}
-
-                        <div className="space-y-3">
-                          {activeComp.options.map((opt: any, optIdx: number) => (
-                            <div key={optIdx} className="flex items-center gap-4 bg-dark-bg/50 p-2 pl-4 rounded-xl border border-dark-border focus-within:border-emerald-500/50 transition-colors">
-                              <input 
-                                type="radio" 
-                                name={`correct-${selectedSectionIdx}-${selectedComponentIdx}`} 
-                                checked={opt.isCorrect} 
-                                onChange={() => {
-                                  const newOpts = [...activeComp.options];
-                                  newOpts.forEach((o: any) => o.isCorrect = false);
-                                  newOpts[optIdx].isCorrect = true;
-                                  updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'options', newOpts);
-                                }}
-                                className="w-5 h-5 text-emerald-500 focus:ring-emerald-500 bg-dark-bg cursor-pointer"
-                              />
-                              <input
-                                value={opt.text}
-                                onChange={(e) => {
-                                  const newOpts = [...activeComp.options];
-                                  newOpts[optIdx].text = e.target.value;
-                                  updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'options', newOpts);
-                                }}
-                                className="flex-1 bg-transparent px-2 py-2 text-sm text-white focus:outline-none"
-                                placeholder={`Teks opsi ${optIdx + 1}`}
-                              />
-                              <button 
-                                onClick={() => {
-                                  const newOpts = [...activeComp.options];
-                                  newOpts.splice(optIdx, 1);
-                                  updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'options', newOpts);
-                                }}
-                                className="p-2.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
+                      <div className="flex items-center gap-3 flex-shrink-0">
                         <button 
-                          onClick={() => {
-                            const newOpts = [...activeComp.options, { id: Math.random().toString(), text: '', isCorrect: false }];
-                            updateComponent(selectedSectionIdx!, selectedComponentIdx!, 'options', newOpts);
-                          }}
-                          className="w-full py-3 mt-4 border-2 border-dashed border-dark-border text-gray-400 hover:text-white hover:border-white/20 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all"
+                          onClick={(e) => { e.stopPropagation(); removeComponent(selectedSectionIdx, compIdx); }}
+                          className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                         >
-                          <Plus className="w-4 h-4" /> Tambah Opsi Manual
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                     </div>
-                   )}
-                </div>
-              )}
+                        <div className="p-2 text-gray-400">
+                          {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Body (Editor) */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="border-t border-border bg-bg"
+                        >
+                          <div className="p-5 sm:p-6 space-y-6">
+                            
+                            <div className="flex gap-4">
+                              <div className="flex-1">
+                                <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Pertanyaan</label>
+                                <textarea 
+                                  value={comp.question}
+                                  onChange={(e) => updateComponent(selectedSectionIdx, compIdx, 'question', e.target.value)}
+                                  className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                                  rows={3}
+                                  placeholder="Tuliskan pertanyaan di sini..."
+                                />
+                              </div>
+                              <div className="w-24 flex-shrink-0">
+                                <label className="text-xs text-gray-500 font-bold mb-2 block uppercase tracking-wider">Poin</label>
+                                <input 
+                                  type="number"
+                                  value={comp.points}
+                                  onChange={(e) => updateComponent(selectedSectionIdx, compIdx, 'points', parseInt(e.target.value) || 0)}
+                                  className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="pt-2">
+                              {(() => {
+                                const TypeComponent = QuestionTypeRegistry[comp.type]?.Builder;
+                                if (!TypeComponent) return <p className="text-red-400 text-sm">Tipe komponen {comp.type} belum didukung.</p>;
+                                return (
+                                  <TypeComponent 
+                                    comp={comp} 
+                                    onChange={(field: string, value: any) => updateComponent(selectedSectionIdx, compIdx, field, value)} 
+                                  />
+                                );
+                              })()}
+                            </div>
+
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })
+            )}
+
+            {/* Sticky Add Button at the bottom */}
+            <div className="pt-6 pb-4">
+              <p className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-wider text-center">Tambah Pertanyaan Baru</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <button onClick={() => addComponent(selectedSectionIdx, 'MULTIPLE_CHOICE')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">Pilihan Ganda</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'ESSAY')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">Essay</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'LIVE_CODING')} className="text-xs font-bold text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 px-3 py-3 rounded-xl transition-colors border border-emerald-500/20 flex flex-col items-center justify-center gap-2">Live Coding</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'FILE_UPLOAD')} className="text-xs font-bold text-gray-300 bg-white/5 hover:bg-white/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">File Upload</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'URL_LINK')} className="text-xs font-bold text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 px-3 py-3 rounded-xl transition-colors border border-cyan-500/20 flex flex-col items-center justify-center gap-2">Tautan URL</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'VIDEO_RECORDING')} className="text-xs font-bold text-purple-400 bg-purple-400/10 hover:bg-purple-400/20 px-3 py-3 rounded-xl transition-colors border border-purple-500/20 flex flex-col items-center justify-center gap-2">Video / Audio</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Empty State when no section exists */}
-      {(!manualData.sections || manualData.sections.length === 0) && (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-          <Settings className="w-16 h-16 mb-4 opacity-20" />
-          <p className="text-lg">Belum ada tahap yang dibuat.</p>
-          <button onClick={addSection} className="mt-4 px-6 py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold hover:bg-emerald-500/20 transition-colors">
-            Mulai Buat Tahap Pertama
-          </button>
         </div>
       )}
     </div>
