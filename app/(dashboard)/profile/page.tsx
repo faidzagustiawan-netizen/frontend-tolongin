@@ -163,7 +163,7 @@ export default function ProfilePage() {
     setVerificationSuccess(null);
     try {
       const payload: any = { ...editFormData };
-      if (payload.skills && typeof payload.skills === 'string') {
+      if (typeof payload.skills === 'string') {
         payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
       await authService.updateProfile(payload);
