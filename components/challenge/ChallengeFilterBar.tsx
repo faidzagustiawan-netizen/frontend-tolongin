@@ -35,7 +35,7 @@ export const ChallengeFilterBar = ({
   difficulties
 }: ChallengeFilterBarProps) => {
   return (
-    <div className="bg-dark-card border border-dark-border rounded-3xl p-6 shadow-xl space-y-6">
+    <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-6">
       <div className="flex flex-col md:flex-row items-center gap-4">
         <div className="w-full md:flex-1">
           <Input
@@ -51,7 +51,7 @@ export const ChallengeFilterBar = ({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -61,7 +61,7 @@ export const ChallengeFilterBar = ({
           <select
             value={selectedDifficulty}
             onChange={(e) => setSelectedDifficulty(e.target.value)}
-            className="bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48"
           >
             {difficulties.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>

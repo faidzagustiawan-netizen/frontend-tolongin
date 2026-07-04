@@ -27,8 +27,8 @@ export const EnrollChallengeModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Persetujuan Digital NDA">
       <div className="space-y-6">
-        <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-4 max-h-60 overflow-y-auto text-xs text-gray-300 leading-relaxed">
-          <h4 className="font-bold text-white text-sm">PERJANJIAN KERAHASIAAN INFORMASI (NON-DISCLOSURE AGREEMENT)</h4>
+        <div className="bg-background border border-border rounded-2xl p-6 space-y-4 max-h-60 overflow-y-auto text-xs text-muted-foreground leading-relaxed">
+          <h4 className="font-bold text-foreground text-sm">PERJANJIAN KERAHASIAAN INFORMASI (NON-DISCLOSURE AGREEMENT)</h4>
           <p>Dengan menekan tombol setuju di bawah ini, Anda menyatakan sepakat untuk mematuhi ketentuan kerahasiaan berikut:</p>
           <ol className="list-decimal pl-4 space-y-2">
             <li>Seluruh data sampel, arsitektur sistem, dan API internal yang disediakan oleh <strong>{companyName || 'Perusahaan Mitra'}</strong> bersifat rahasia.</li>
@@ -44,12 +44,12 @@ export const EnrollChallengeModal = ({
           </div>
         )}
 
-        <label className="flex items-start gap-3 cursor-pointer bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+        <label className="flex items-start gap-3 cursor-pointer bg-foreground/5 border border-foreground/10 rounded-xl p-4 hover:bg-foreground/10 transition-colors">
           <input
             type="checkbox"
             checked={ndaAccepted}
             onChange={(e) => setNdaAccepted(e.target.checked)}
-            className="mt-0.5 rounded bg-dark-bg border-dark-border text-emerald-500 focus:ring-emerald-500"
+            className="mt-0.5 rounded bg-background border-border text-emerald-500 focus:ring-emerald-500"
           />
           <span className="text-xs text-gray-200 font-medium leading-relaxed">
             Saya telah membaca, memahami, dan menyetujui seluruh ketentuan Digital NDA di atas.

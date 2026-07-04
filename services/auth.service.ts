@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { UserProfile } from '../types';
 
 export interface LoginPayload {
   email: string;
@@ -36,7 +37,7 @@ export const authService = {
     const { data } = await apiClient.get(`/users/${userId}`);
     return { data };
   },
-  updateProfile: async (payload: any) => {
+  updateProfile: async (payload: Partial<UserProfile>) => {
     const { data } = await apiClient.patch('/users/me/profile', payload);
     return { data };
   },

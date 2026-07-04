@@ -206,8 +206,8 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
-        <div className="h-12 bg-white/5 rounded-xl w-1/3" />
-        <div className="h-60 bg-white/5 rounded-xl w-full" />
+        <div className="h-12 bg-foreground/5 rounded-xl w-1/3" />
+        <div className="h-60 bg-foreground/5 rounded-xl w-full" />
       </div>
     );
   }
@@ -216,8 +216,8 @@ export default function ProfilePage() {
     return (
       <div className="text-center py-32 space-y-4">
         <AlertCircle className="h-12 w-12 text-amber-400 mx-auto" />
-        <h2 className="text-xl font-bold text-white">Sesi Pengguna Tidak Ditemukan</h2>
-        <p className="text-sm text-gray-400">Silakan masuk kembali untuk melihat profil Anda.</p>
+        <h2 className="text-xl font-bold text-foreground">Sesi Pengguna Tidak Ditemukan</h2>
+        <p className="text-sm text-muted-foreground">Silakan masuk kembali untuk melihat profil Anda.</p>
         <Button onClick={() => window.location.href = '/login'} size="sm">Masuk Sekarang</Button>
       </div>
     );
@@ -291,9 +291,9 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl space-y-6">
-            <div className="flex justify-between items-center border-b border-dark-border pb-4">
-              <h3 className="font-display text-xl font-bold text-white">
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
+            <div className="flex justify-between items-center border-b border-border pb-4">
+              <h3 className="font-display text-xl font-bold text-foreground">
                 {isTalent ? 'Informasi Profil Talenta' : 'Informasi Perusahaan Mitra'}
               </h3>
               <Button 

@@ -55,9 +55,9 @@ export default function ChallengesDirectoryPage() {
 
   const difficulties = [
     { id: '', name: 'Semua Level' },
-    { id: 'JUNIOR', name: 'Junior (1-2 Thn)' },
-    { id: 'MEDIOR', name: 'Medior (3-5 Thn)' },
-    { id: 'SENIOR', name: 'Senior (5+ Thn)' },
+    { id: 'BEGINNER', name: 'Beginner (Pemanasan untuk pemula)' },
+    { id: 'INTERMEDIATE', name: 'Intermediate (Tantangan menengah)' },
+    { id: 'ADVANCED', name: 'Advanced (Misi kompleks)' },
   ];
 
   const challenges = data?.data || [];
@@ -68,10 +68,10 @@ export default function ChallengesDirectoryPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4 relative">
-        <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+        <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
           Pilih Tantangan & Buktikan Kinerja Anda
         </h1>
-        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
           Selesaikan studi kasus langsung dari perusahaan mitra terkemuka. Setiap pengumpulan akan dievaluasi seketika oleh AI dan diteruskan ke tim rekruter.
         </p>
 
@@ -108,11 +108,11 @@ export default function ChallengesDirectoryPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-dark-card border border-dark-border rounded-3xl h-80 animate-pulse p-6" />
+            <div key={i} className="bg-card border border-border rounded-3xl h-80 animate-pulse p-6" />
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center py-20 bg-dark-card border border-dark-border rounded-3xl space-y-4">
+        <div className="text-center py-20 bg-card border border-border rounded-3xl space-y-4">
           <p className="text-base text-red-400 font-medium">Gagal memuat daftar studi kasus.</p>
           <Button onClick={() => refetch()} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" /> Coba Lagi
@@ -129,20 +129,20 @@ export default function ChallengesDirectoryPage() {
               summary={challenge.summary}
               category={challenge.category}
               difficulty={challenge.difficulty}
-              type={challenge.type}
-              companyName={challenge.type === 'PUBLIC' ? 'Public Challenge' : challenge.company?.companyName || 'Perusahaan Mitra'}
-              logoUrl={challenge.company?.logoUrl}
-              rewardDescription={challenge.type === 'PUBLIC' ? 'Reward: +50 Tokens & +150 XP' : challenge.rewardDescription}
+              type={challenge.challengeType}
+              companyName={challenge.challengeType === 'PUBLIC' ? (challenge.creator?.fullName || 'Talenta') : (challenge.company?.companyName || 'Perusahaan Mitra')}
+              logoUrl={challenge.challengeType === 'PUBLIC' ? challenge.creator?.avatarUrl : challenge.company?.logoUrl}
+              rewardDescription={challenge.rewardDescription}
               deadlineAt={challenge.deadlineAt}
               trustScore={challenge.company?.trustScore}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-dark-card border border-dark-border rounded-3xl space-y-3 max-w-lg mx-auto">
-          <Briefcase className="h-12 w-12 text-gray-500 mx-auto mb-2" />
-          <p className="text-base text-gray-300 font-semibold">Tidak ada studi kasus yang cocok dengan pencarian Anda.</p>
-          <p className="text-xs text-gray-500 max-w-md mx-auto">
+        <div className="text-center py-20 bg-card border border-border rounded-3xl space-y-3 max-w-lg mx-auto">
+          <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+          <p className="text-base text-muted-foreground font-semibold">Tidak ada studi kasus yang cocok dengan pencarian Anda.</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
             Coba gunakan kata kunci lain atau reset filter pencarian di atas untuk melihat seluruh direktori.
           </p>
         </div>

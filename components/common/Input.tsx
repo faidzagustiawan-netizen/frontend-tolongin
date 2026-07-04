@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 
 const baseInputStyles =
-  'block w-full rounded-lg bg-dark-card border py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200 text-sm';
+  'block w-full rounded-lg bg-card border py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors duration-200 text-sm';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -17,14 +17,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-300 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-muted-foreground mb-1.5">
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && (!props.value || (typeof props.value === 'string' && props.value.trim() === '')) && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <div className="relative rounded-lg shadow-sm">
           {icon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
               {icon}
             </div>
           )}
@@ -34,7 +34,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               baseInputStyles,
               icon ? 'pl-10 pr-4' : 'px-4',
-              error ? 'border-red-500 focus:ring-red-500' : 'border-dark-border',
+              error ? 'border-red-500 focus:ring-red-500' : 'border-border',
               className
             )}
             {...props}
@@ -60,9 +60,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-300 mb-1.5">
+          <label htmlFor={textareaId} className="block text-sm font-medium text-muted-foreground mb-1.5">
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && (!props.value || (typeof props.value === 'string' && props.value.trim() === '')) && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <textarea
@@ -71,7 +71,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             baseInputStyles,
             'px-4',
-            error ? 'border-red-500 focus:ring-red-500' : 'border-dark-border',
+            error ? 'border-red-500 focus:ring-red-500' : 'border-border',
             className
           )}
           {...props}

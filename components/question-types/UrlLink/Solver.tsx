@@ -21,7 +21,7 @@ export default function UrlLinkSolver({ comp, value, onChange }: SolverProps) {
       </div>
       {expectedDomain && (
         <p className="text-xs text-muted flex items-center gap-1">
-          <span className="font-bold text-gray-400">Penting:</span> Pastikan tautan berasal dari domain <span className="text-emerald-400 font-mono bg-emerald-500/10 px-1 rounded">{expectedDomain}</span>
+          <span className="font-bold text-muted-foreground">Penting:</span> Pastikan tautan berasal dari domain <span className="text-emerald-400 font-mono bg-emerald-500/10 px-1 rounded">{expectedDomain}</span>
         </p>
       )}
     </div>

@@ -1,41 +1,18 @@
 @import "tailwindcss";
 
-:root   /* Dark Mode Colors (Deep Indigo & Emerald) */{
-  --color-bg: #0b0f19;
-  --color-card: #111827;
-  --color-border: #1f2937;
-  --color-text-title: #ffffff;
-  --color-text-body: #d1d5db;
-  --color-text-muted: #9ca3af;
-  --color-text-placeholder: #4b5563;
+:root {
+  /* Light Mode Colors (Brand-Aligned Mint) */
+  --color-background: #F4FAF6;
+  --color-card: #FFFFFF;
+  --color-border: #D1E8DA;
+  --color-foreground: #0A3622;
+  --color-muted-foreground: #52705F;
+  --color-primary: #1e7f4d;
+  --color-secondary: #ffffff;
 
   /* Button Primary (Emerald) */
   --btn-primary-bg-default: #1e7f4d;
   --btn-primary-bg-hover: #2aa565;
-
-  /* Button Secondary (Indigo) */
-  --btn-secondary-bg-default: #3b3669;
-  --btn-secondary-bg-hover: #ffffff;
-  --btn-secondary-text-default: #ffffff;
-  --btn-secondary-text-hover: #000000;
-  --btn-secondary-border-default: rgba(255, 255, 255, 0.1);
-  --btn-secondary-border-hover: rgba(255, 255, 255, 0.3);
-}
-
-html:not(.dark) {
-  /* Light Mode Colors (Clean Slate & Bright White) */
-  --color-bg: #f8f9fa;
-  --color-card: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text-title: #0f172a;
-  --color-text-body: #334155;
-  --color-text-muted: #64748b;
-  --color-text-placeholder: #94a3b8;
-
-  /* Button Primary (Emerald) */
-  --btn-primary-bg-default: #1e7f4d;
-  --btn-primary-bg-hover: #2aa565;
-
   /* Button Secondary (Indigo/White) */
   --btn-secondary-bg-default: #ffffff;
   --btn-secondary-bg-hover: #3b3669;
@@ -45,25 +22,48 @@ html:not(.dark) {
   --btn-secondary-border-hover: #3b3669;
 }
 
-@theme {
-  --color-bg: var(--color-bg);
-  --color-card: var(--color-card);
-  --color-border: var(--color-border);
-  --color-title: var(--color-text-title);
-  --color-body: var(--color-text-body);
-  --color-muted: var(--color-text-muted);
+.dark {
+  /* Dark Mode Colors (Deep Indigo & Emerald) */
+  --color-background: #0b0f19;
+  --color-card: #111827;
+  --color-border: #1f2937;
+  --color-foreground: #ffffff;
+  --color-muted-foreground: #9ca3af;
   --color-primary: #1e7f4d;
   --color-secondary: #3b3669;
+
+  /* Button Primary (Emerald) */
+  --btn-primary-bg-default: #1e7f4d;
+  --btn-primary-bg-hover: #2aa565;
+  /* Button Secondary (Indigo) */
+  --btn-secondary-bg-default: #3b3669;
+  --btn-secondary-bg-hover: #ffffff;
+  --btn-secondary-text-default: #ffffff;
+  --btn-secondary-text-hover: #000000;
+  --btn-secondary-border-default: rgba(255, 255, 255, 0.1);
+  --btn-secondary-border-hover: rgba(255, 255, 255, 0.3);
+}
+
+@theme {
+  --color-background: var(--color-background);
+  --color-card: var(--color-card);
+  --color-border: var(--color-border);
+  --color-foreground: var(--color-foreground);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  
   --font-display: var(--font-outfit), sans-serif;
   --font-sans: var(--font-inter), sans-serif;
 }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-sans);
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
 }
 
@@ -89,38 +89,38 @@ html:not(.dark) .bg-emerald-500 .text-white,
 html:not(.dark) .bg-emerald-500 span,
 html:not(.dark) .bg-cyan-500 .text-white,
 html:not(.dark) .bg-cyan-500 span {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 /* Maintain text-transparent for gradient text in light mode */
 html:not(.dark) .text-transparent {
-  color: transparent !important;
+  color: transparent;
 }
 
 /* Shadow enhancements for light mode card depth */
 html:not(.dark) .shadow-2xl,
 html:not(.dark) .shadow-xl {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02), 0 20px 25px -5px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02), 0 20px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 /* Input elements styling for light mode */
 html:not(.dark) input,
 html:not(.dark) select,
 html:not(.dark) textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #e2e8f0 !important;
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #e2e8f0;
 }
 
 html:not(.dark) input::placeholder,
 html:not(.dark) textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #94a3b8;
 }
 
 /* Custom cursor pointer-none overrides for Hero section */
 .hero-no-cursor,
 .hero-no-cursor * {
-  cursor: none !important;
+  cursor: none;
 }
 
 /* CSS View Transitions API for theme toggle ripple effect */
@@ -145,26 +145,9 @@ html:not(.dark) textarea::placeholder {
   animation-play-state: paused;
 }
 
-/* Global Light Mode Overrides for Hardcoded Tailwind Dark Colors */
-html:not(.dark) .bg-dark-bg {
-  background-color: var(--color-bg) !important;
-}
-html:not(.dark) .bg-dark-card {
-  background-color: var(--color-card) !important;
-}
-html:not(.dark) .border-dark-border {
-  border-color: var(--color-border) !important;
-}
-
-/* Light mode text colors */
-html:not(.dark) .text-white {
-  color: var(--color-text-title) !important;
-}
-html:not(.dark) .text-gray-300 {
-  color: var(--color-text-body) !important;
-}
-html:not(.dark) .text-gray-400 {
-  color: var(--color-text-muted) !important;
+/* Maintain text-transparent for gradient text in light mode */
+html:not(.dark) .text-transparent {
+  color: transparent !important;
 }
 
 /* Restore original colors for buttons and colored backgrounds */
@@ -183,14 +166,14 @@ html:not(.dark) .bg-indigo-500.text-white,
 html:not(.dark) .bg-gradient-to-r .text-white,
 html:not(.dark) .bg-gradient-to-r.text-white,
 html:not(.dark) .text-white-keep {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 html:not(.dark) button .text-gray-300,
 html:not(.dark) button.text-gray-300,
 html:not(.dark) button .text-gray-400,
 html:not(.dark) button.text-gray-400 {
-  color: #d1d5db !important;
+  color: #d1d5db;
 }
 /* Custom Modern Scrollbars */
 * {

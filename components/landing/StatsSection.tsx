@@ -7,25 +7,25 @@ const stats = [
     value: '50.000+',
     label: 'Talenta Terverifikasi Biometrik',
     color: 'emerald',
-    valueClass: 'text-white'
+    valueClass: 'text-foreground'
   },
   {
     value: '500+',
     label: 'Perusahaan & Startup Mitra',
     color: 'cyan',
-    valueClass: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400'
+    valueClass: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500'
   },
   {
     value: '99.4%',
     label: 'Akurasi AI Evaluator',
     color: 'teal',
-    valueClass: 'text-white'
+    valueClass: 'text-foreground'
   },
   {
     value: 'Rp 35M+',
     label: 'Total Penawaran Kerja Terjalin',
     color: 'amber',
-    valueClass: 'text-amber-400'
+    valueClass: 'text-amber-500'
   }
 ];
 
@@ -45,7 +45,7 @@ export const StatsSection = () => {
             <h3 className={`font-display text-3xl sm:text-4xl font-extrabold mb-1 relative z-10 ${stat.valueClass}`}>
               {stat.value}
             </h3>
-            <p className="text-xs font-semibold text-gray-400 relative z-10">{stat.label}</p>
+            <p className="text-xs font-semibold text-muted-foreground relative z-10">{stat.label}</p>
           </Card>
         ))}
       </div>

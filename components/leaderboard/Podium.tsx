@@ -13,7 +13,7 @@ export const Podium = ({ topThree }: PodiumProps) => {
   const getRankBadge = (rank: number) => {
     switch (rank) {
       case 1: return 'bg-yellow-400/20 border-yellow-400/50 text-yellow-400 shadow-yellow-400/20';
-      case 2: return 'bg-gray-300/20 border-gray-300/50 text-gray-300 shadow-gray-300/10';
+      case 2: return 'bg-gray-300/20 border-gray-300/50 text-muted-foreground shadow-gray-300/10';
       case 3: return 'bg-[#CD7F32]/20 border-[#CD7F32]/50 text-[#CD7F32] shadow-[#CD7F32]/10';
       default: return '';
     }
@@ -34,22 +34,22 @@ export const Podium = ({ topThree }: PodiumProps) => {
           <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-2xl border flex items-center justify-center font-display font-bold text-lg sm:text-xl absolute -top-4 -right-4 z-20 ${getRankBadge(rank)}`}>
             {rank === 1 ? <Trophy className="h-5 w-5" /> : rank === 2 ? <Medal className="h-5 w-5" /> : <Medal className="h-4 w-4" />}
           </div>
-          <div className={`relative rounded-full border-4 ${rank === 1 ? 'border-yellow-400 h-20 w-20 sm:h-24 sm:w-24' : rank === 2 ? 'border-gray-300 h-16 w-16 sm:h-20 sm:w-20' : 'border-[#CD7F32] h-14 w-14 sm:h-16 sm:w-16'} overflow-hidden shadow-xl z-10 bg-dark-bg flex items-center justify-center`}>
+          <div className={`relative rounded-full border-4 ${rank === 1 ? 'border-yellow-400 h-20 w-20 sm:h-24 sm:w-24' : rank === 2 ? 'border-gray-300 h-16 w-16 sm:h-20 sm:w-20' : 'border-[#CD7F32] h-14 w-14 sm:h-16 sm:w-16'} overflow-hidden shadow-xl z-10 bg-background flex items-center justify-center`}>
             {item.avatarUrl ? (
               <Image src={item.avatarUrl} alt={item.fullName} fill className="object-cover" />
             ) : (
-              <User className="h-8 w-8 text-gray-400" />
+              <User className="h-8 w-8 text-muted-foreground" />
             )}
           </div>
         </div>
 
-        <div className={`w-full max-w-[120px] sm:max-w-[160px] mx-auto rounded-t-2xl border-t border-l border-r border-white/10 ${height} flex flex-col items-center justify-start pt-4 px-2 text-center bg-gradient-to-t from-dark-bg ${rank === 1 ? 'to-yellow-400/20' : rank === 2 ? 'to-gray-400/20' : 'to-[#CD7F32]/20'}`}>
-          <h4 className="font-bold text-white text-xs sm:text-sm truncate w-full">{item.fullName}</h4>
+        <div className={`w-full max-w-[120px] sm:max-w-[160px] mx-auto rounded-t-2xl border-t border-l border-r border-foreground/10 ${height} flex flex-col items-center justify-start pt-4 px-2 text-center bg-gradient-to-t from-dark-bg ${rank === 1 ? 'to-yellow-400/20' : rank === 2 ? 'to-gray-400/20' : 'to-[#CD7F32]/20'}`}>
+          <h4 className="font-bold text-foreground text-xs sm:text-sm truncate w-full">{item.fullName}</h4>
           <div className="flex items-center justify-center gap-1 mt-1 text-xs">
             <Zap className="h-3 w-3 text-amber-400" />
-            <span className="text-gray-300 font-semibold">{item.xp} XP</span>
+            <span className="text-muted-foreground font-semibold">{item.xp} XP</span>
           </div>
-          <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider hidden sm:block">Level {item.level}</p>
+          <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider hidden sm:block">Level {item.level}</p>
         </div>
       </motion.div>
     );

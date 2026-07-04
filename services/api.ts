@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -32,6 +33,10 @@ apiClient.interceptors.response.use(
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login?expired=true';
       }
+    } else if (error.message === 'Network Error') {
+      toast.error('Koneksi terputus. Pastikan perangkat Anda terhubung ke internet.');
+    } else if (error.response?.status >= 500) {
+      toast.error('Server sedang mengalami gangguan. Silakan coba lagi nanti.');
     }
     return Promise.reject(error.response?.data || error);
   },

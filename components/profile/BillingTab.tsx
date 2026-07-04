@@ -23,12 +23,12 @@ export const BillingTab = ({
       <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
         <Crown className="h-4 w-4" /> Manajemen Berlangganan
       </div>
-      <h3 className="font-display text-2xl font-bold text-white">Ringkasan Penggunaan Layanan</h3>
-      <div className="bg-dark-bg border border-dark-border rounded-2xl p-5 flex flex-col gap-4">
+      <h3 className="font-display text-2xl font-bold text-foreground">Ringkasan Penggunaan Layanan</h3>
+      <div className="bg-background border border-border rounded-2xl p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-bold text-white mb-1">Studi Kasus Digunakan</h4>
-            <p className="text-xs text-gray-400">Total studi kasus (Draf & Aktif) yang Anda miliki saat ini.</p>
+            <h4 className="text-sm font-bold text-foreground mb-1">Studi Kasus Digunakan</h4>
+            <p className="text-xs text-muted-foreground">Total studi kasus (Draf & Aktif) yang Anda miliki saat ini.</p>
           </div>
           <span className={`text-sm font-bold px-3 py-1 rounded-full border ${
             myChallenges.length >= (companyProfile.subscriptionTier === 'STARTUP' ? 1 : companyProfile.subscriptionTier === 'KONGLOMERAT' ? 5 : 999) 
@@ -39,14 +39,14 @@ export const BillingTab = ({
           </span>
         </div>
         {myChallenges.length > 0 && (
-          <div className="pt-3 border-t border-dark-border text-xs text-gray-400">
+          <div className="pt-3 border-t border-border text-xs text-muted-foreground">
             <p>Status: {myChallenges.filter((c:any) => c.status === 'PUBLISHED').length} Aktif, {myChallenges.filter((c:any) => c.status === 'DRAFT').length} Draf.</p>
           </div>
         )}
       </div>
       
-      <h3 className="font-display text-2xl font-bold text-white mt-8">Tingkatkan Paket Perusahaan Anda</h3>
-      <p className="text-sm text-gray-400">
+      <h3 className="font-display text-2xl font-bold text-foreground mt-8">Tingkatkan Paket Perusahaan Anda</h3>
+      <p className="text-sm text-muted-foreground">
         Pilih paket langganan yang paling sesuai untuk memaksimalkan efisiensi rekrutmen dan asesmen otomatis AI.
       </p>
 
@@ -58,8 +58,8 @@ export const BillingTab = ({
           return (
             <div
               key={plan.tier}
-              className={`relative bg-dark-card border rounded-3xl p-6 shadow-xl flex flex-col justify-between transition-all ${
-                plan.popular ? 'border-emerald-500/50 shadow-emerald-500/10 bg-gradient-to-b from-emerald-500/[0.05] to-transparent' : 'border-dark-border'
+              className={`relative bg-card border rounded-3xl p-6 shadow-xl flex flex-col justify-between transition-all ${
+                plan.popular ? 'border-emerald-500/50 shadow-emerald-500/10 bg-gradient-to-b from-emerald-500/[0.05] to-transparent' : 'border-border'
               }`}
             >
               {plan.popular && (
@@ -70,16 +70,16 @@ export const BillingTab = ({
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-display text-lg font-bold text-white">{plan.name}</h4>
-                  <p className="text-xs text-gray-400 mt-1">{plan.desc}</p>
+                  <h4 className="font-display text-lg font-bold text-foreground">{plan.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">{plan.desc}</p>
                 </div>
 
                 <div className="pt-2">
-                  <span className="font-display text-2xl font-bold text-white">{plan.price}</span>
-                  <span className="text-xs text-gray-400 font-medium ml-1">{plan.period}</span>
+                  <span className="font-display text-2xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-xs text-muted-foreground font-medium ml-1">{plan.period}</span>
                 </div>
 
-                <ul className="space-y-2.5 pt-4 border-t border-dark-border/80 text-xs text-gray-300">
+                <ul className="space-y-2.5 pt-4 border-t border-border/80 text-xs text-muted-foreground">
                   {plan.features.map((feat: string) => (
                     <li key={feat} className="flex items-center gap-2 font-medium">
                       <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
@@ -91,7 +91,7 @@ export const BillingTab = ({
 
               <div className="pt-8">
                 {isCurrentPlan ? (
-                  <Button className="w-full bg-white/10 text-emerald-400 border border-emerald-500/30 cursor-default shadow-none font-semibold" disabled>
+                  <Button className="w-full bg-foreground/10 text-emerald-400 border border-emerald-500/30 cursor-default shadow-none font-semibold" disabled>
                     Paket Saat Ini Aktif
                   </Button>
                 ) : (

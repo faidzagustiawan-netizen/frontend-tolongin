@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { Section, ComponentData } from '../types';
 
 export interface SectionPayload {
   id?: string;
@@ -7,7 +8,7 @@ export interface SectionPayload {
   order: number;
   timeLimit?: number | null;
   stageType?: 'QUIZ' | 'ASSIGNMENT';
-  components: any[];
+  components: ComponentData[];
 }
 
 export interface CreateChallengePayload {
@@ -16,21 +17,21 @@ export interface CreateChallengePayload {
   summary: string;
   description: string;
   category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
-  difficulty: 'JUNIOR' | 'MEDIOR' | 'SENIOR';
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   datasetUrl?: string;
   mockApiUrl?: string;
   brandGuidelineUrl?: string;
   rewardDescription?: string;
   deadlineAt?: string;
-  gradingRubric?: Record<string, any>;
-  sections?: any[];
+  gradingRubric?: Record<string, unknown>;
+  sections?: Section[];
   status?: 'DRAFT' | 'PUBLISHED';
 }
 
 export interface GenerateAiChallengePayload {
   prompt: string;
   category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
-  difficulty: 'JUNIOR' | 'MEDIOR' | 'SENIOR';
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 }
 
 export interface CreateDiscussionPayload {

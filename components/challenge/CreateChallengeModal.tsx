@@ -23,7 +23,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
-  const [difficulty, setDifficulty] = useState<'JUNIOR' | 'MEDIOR' | 'SENIOR'>('MEDIOR');
+  const [difficulty, setDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('INTERMEDIATE');
   const [durationHours, setDurationHours] = useState<number>(48);
   const [rewardDescription, setRewardDescription] = useState('Rp 5.000.000 + Kesempatan Perekrutan Penuh Waktu');
   const [customReqs, setCustomReqs] = useState<string>('Tautan Repositori GitHub, Berkas Zip Solusi');
@@ -32,7 +32,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
   // AI Generator Form State
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
-  const [aiDifficulty, setAiDifficulty] = useState<'JUNIOR' | 'MEDIOR' | 'SENIOR'>('SENIOR');
+  const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('ADVANCED');
 
   const submitChallenge = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!title || !summary || !description) {
@@ -127,7 +127,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
     >
       <div className="space-y-6">
         {/* Tab Switcher */}
-        <div className="flex items-center p-1 bg-dark-bg border border-dark-border rounded-2xl">
+        <div className="flex items-center p-1 bg-background border border-border rounded-2xl">
           <button
             onClick={() => {
               setSubmitError(null);
@@ -137,7 +137,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-display font-bold text-xs transition-all ${
               createTab === 'MANUAL'
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                : 'text-gray-400 hover:text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <FileText className="h-4 w-4" /> Rilis Manual
@@ -150,10 +150,10 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
               setCreateTab('AI');
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-display font-bold text-xs transition-all ${
-              isStartupTier ? 'opacity-50 cursor-not-allowed bg-dark-bg text-gray-500' :
+              isStartupTier ? 'opacity-50 cursor-not-allowed bg-background text-muted-foreground' :
               createTab === 'AI'
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20'
-                : 'text-gray-400 hover:text-white'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {isStartupTier ? <Lock className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
@@ -197,11 +197,11 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5">Kategori Bidang</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Bidang</label>
                 <select
                   value={category}
                   onChange={(e: any) => setCategory(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="FRONTEND">Frontend Engineering</option>
                   <option value="BACKEND">Backend & API</option>
@@ -213,39 +213,39 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5">Tingkat Kesulitan</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan</label>
                 <select
                   value={difficulty}
                   onChange={(e: any) => setDifficulty(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="JUNIOR">Junior (1-2 Thn)</option>
-                  <option value="MEDIOR">Medior (3-5 Thn)</option>
-                  <option value="SENIOR">Senior (5+ Thn)</option>
+                  <option value="BEGINNER">Beginner (Pemula)</option>
+                  <option value="INTERMEDIATE">Intermediate (Menengah)</option>
+                  <option value="ADVANCED">Advanced (Tingkat Lanjut)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5">Durasi Pengerjaan (Jam)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Durasi Pengerjaan (Jam)</label>
                 <input
                   type="number"
                   min={1}
                   max={168}
                   value={durationHours}
                   onChange={(e) => setDurationHours(Number(e.target.value))}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1.5">Deskripsi Lengkap / Masalah Bisnis (Markdown didukung)</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Deskripsi Lengkap / Masalah Bisnis (Markdown didukung)</label>
               <textarea
                 rows={4}
                 placeholder="### Latar Belakang Bisnis&#10;Perusahaan kami membutuhkan...&#10;&#10;### Objektif Studi Kasus&#10;Peserta diharapkan mampu..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-xl p-4 text-xs text-white leading-relaxed focus:ring-2 focus:ring-emerald-500 font-mono"
+                className="w-full bg-background border border-border rounded-xl p-4 text-xs text-foreground leading-relaxed focus:ring-2 focus:ring-emerald-500 font-mono"
                 required
               />
             </div>
@@ -265,18 +265,18 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
               />
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-4 rounded-xl flex items-center justify-between">
+            <div className="bg-foreground/5 border border-foreground/10 p-4 rounded-xl flex items-center justify-between">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-white flex items-center gap-2 cursor-pointer" onClick={() => setRequireProctoring(!requireProctoring)}>
+                <label className="text-xs font-bold text-foreground flex items-center gap-2 cursor-pointer" onClick={() => setRequireProctoring(!requireProctoring)}>
                   <ShieldCheck className="h-4 w-4 text-emerald-400" /> Wajibkan Pengawasan Ujian (Browser Proctoring & Tab Switch Log)
                 </label>
-                <p className="text-[11px] text-gray-400">Jika aktif, sistem merekam log perpindahan jendela dan mewajibkan verifikasi wajah anti-joki sebelum submisi.</p>
+                <p className="text-[11px] text-muted-foreground">Jika aktif, sistem merekam log perpindahan jendela dan mewajibkan verifikasi wajah anti-joki sebelum submisi.</p>
               </div>
               <input
                 type="checkbox"
                 checked={requireProctoring}
                 onChange={(e) => setRequireProctoring(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500 bg-dark-bg cursor-pointer"
+                className="h-5 w-5 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500 bg-background cursor-pointer"
               />
             </div>
 
@@ -294,30 +294,30 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-300 text-xs leading-relaxed">
               <Zap className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-white block mb-0.5">Prompt-to-Challenge (Generative AI)</strong>
+                <strong className="text-foreground block mb-0.5">Prompt-to-Challenge (Generative AI)</strong>
                 Jelaskan masalah spesifik atau posisi yang ingin Anda rekrut. AI akan merumuskan judul, latar belakang bisnis, rubrik penilaian, dan batasan arsitektural secara otomatis.
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-300 mb-2">Prompt Kebutuhan / Masalah Bisnis</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-2">Prompt Kebutuhan / Masalah Bisnis</label>
               <textarea
                 rows={5}
                 placeholder="Misal: Perusahaan logistik kami mengalami keterlambatan sinkronisasi data pelacakan armada secara real-time. Kami butuh backend engineer senior yang bisa merancang arsitektur event-driven menggunakan Kafka dan Redis di ekosistem Go/NestJS."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-2xl p-4 text-xs text-white leading-relaxed focus:ring-2 focus:ring-amber-500"
+                className="w-full bg-background border border-border rounded-2xl p-4 text-xs text-foreground leading-relaxed focus:ring-2 focus:ring-amber-500"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5">Kategori Keahlian</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Keahlian</label>
                 <select
                   value={aiCategory}
                   onChange={(e: any) => setAiCategory(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="BACKEND">Backend & API</option>
                   <option value="FRONTEND">Frontend Engineering</option>
@@ -329,15 +329,15 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1.5">Tingkat Kesulitan Target</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan Target</label>
                 <select
                   value={aiDifficulty}
                   onChange={(e: any) => setAiDifficulty(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-xs text-white focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
                 >
-                  <option value="SENIOR">Senior (5+ Thn)</option>
-                  <option value="MEDIOR">Medior (3-5 Thn)</option>
-                  <option value="JUNIOR">Junior (1-2 Thn)</option>
+                  <option value="ADVANCED">Advanced (Tingkat Lanjut)</option>
+                  <option value="INTERMEDIATE">Intermediate (Menengah)</option>
+                  <option value="BEGINNER">Beginner (Pemula)</option>
                 </select>
               </div>
             </div>

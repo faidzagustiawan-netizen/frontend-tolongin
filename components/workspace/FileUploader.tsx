@@ -93,7 +93,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
 
   return (
     <div className="w-full space-y-2">
-      <label className="block text-sm font-medium text-gray-300">{label}</label>
+      <label className="block text-sm font-medium text-muted-foreground">{label}</label>
 
       {!file && !uploadedUrl ? (
         <div
@@ -104,7 +104,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
           className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
             isDragging
               ? 'border-emerald-500 bg-emerald-500/10'
-              : 'border-dark-border hover:border-gray-500 bg-dark-card/50 hover:bg-dark-card'
+              : 'border-border hover:border-gray-500 bg-card/50 hover:bg-card'
           }`}
         >
           <input
@@ -114,23 +114,23 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
             onChange={handleFileChange}
             className="hidden"
           />
-          <div className="mx-auto w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-emerald-400 shadow-md">
+          <div className="mx-auto w-12 h-12 rounded-full bg-foreground/5 border border-foreground/10 flex items-center justify-center mb-4 text-emerald-400 shadow-md">
             <Upload className="h-6 w-6" />
           </div>
-          <p className="text-sm font-medium text-white mb-1">Klik untuk mengunggah atau seret dan lepas</p>
-          <p className="text-xs text-gray-500">Maksimal {maxSizeMB}MB ({accept})</p>
+          <p className="text-sm font-medium text-foreground mb-1">Klik untuk mengunggah atau seret dan lepas</p>
+          <p className="text-xs text-muted-foreground">Maksimal {maxSizeMB}MB ({accept})</p>
           {error && <p className="mt-3 text-xs text-red-400 font-semibold">{error}</p>}
         </div>
       ) : isUploading ? (
-        <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-3 truncate">
               <FileText className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-              <span className="text-white font-medium truncate">{file?.name}</span>
+              <span className="text-foreground font-medium truncate">{file?.name}</span>
             </div>
             <span className="text-emerald-400 font-bold">{uploadProgress}%</span>
           </div>
-          <div className="w-full bg-dark-bg rounded-full h-2 overflow-hidden border border-white/10">
+          <div className="w-full bg-background rounded-full h-2 overflow-hidden border border-foreground/10">
             <div
               className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
@@ -138,13 +138,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-dark-card border border-emerald-500/50 rounded-2xl p-5 shadow-xl flex items-center justify-between gap-4">
+        <div className="bg-card border border-emerald-500/50 rounded-2xl p-5 shadow-xl flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 truncate">
             <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 flex-shrink-0 shadow-md">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div className="truncate">
-              <p className="text-sm font-semibold text-white truncate">{file?.name || 'Berkas Terunggah'}</p>
+              <p className="text-sm font-semibold text-foreground truncate">{file?.name || 'Berkas Terunggah'}</p>
               <p className="text-xs text-emerald-400 font-medium mt-0.5">Berhasil diunggah ke Cloudflare R2 / S3</p>
             </div>
           </div>

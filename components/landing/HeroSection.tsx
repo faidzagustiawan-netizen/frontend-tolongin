@@ -89,7 +89,7 @@ export function HeroSection() {
               marginTop: '9px',
               marginLeft: '-7px',
             }}
-            className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full border shadow-lg text-white-keep"
+            className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full border shadow-lg text-foreground-keep"
           >
             You
           </div>
@@ -101,10 +101,10 @@ export function HeroSection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-        className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-white tracking-tight max-w-5xl mx-auto leading-tight"
+        className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-title tracking-tight max-w-5xl mx-auto leading-tight"
       >
         Setiap talenta layak mendapat <br className="hidden sm:block" />
-        <div className="relative inline-block h-[1.2em] overflow-visible w-full mt-2">
+        <div className="relative inline-block min-h-[1.2em] h-auto pb-2 overflow-visible w-full mt-2">
           <AnimatePresence mode="popLayout">
             <motion.span
               key={currentWordIndex}
@@ -131,6 +131,7 @@ export function HeroSection() {
             size="lg"
             onMouseEnter={handleMouseEnter1}
             onMouseLeave={handleMouseLeave1}
+            aria-label="Mulai Eksplorasi Sekarang"
             className="text-base font-bold px-8 py-4 shadow-2xl relative overflow-hidden bg-[var(--btn-primary-bg-default)] text-white border-transparent hover:border-transparent transition-none"
           >
             <span className="relative z-10 flex items-center justify-center pointer-events-none">
@@ -160,6 +161,7 @@ export function HeroSection() {
             size="lg"
             onMouseEnter={handleMouseEnter2}
             onMouseLeave={handleMouseLeave2}
+            aria-label="Bergabung Sebagai Mitra Perusahaan"
             className="text-base font-bold px-8 py-4 relative overflow-hidden bg-[var(--btn-secondary-bg-default)] border border-[var(--btn-secondary-border-default)] hover:border-[var(--btn-secondary-border-hover)] transition-none"
           >
             <span className="relative z-10 flex items-center justify-center pointer-events-none transition-none" style={{ color: ripple2.active ? 'var(--btn-secondary-text-hover)' : 'var(--btn-secondary-text-default)' }}>

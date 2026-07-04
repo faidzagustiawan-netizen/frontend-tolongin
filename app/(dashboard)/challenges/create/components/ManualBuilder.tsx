@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, FileText, CheckCircle, Save, CheckCircle2, ChevronRight, ChevronLeft, Eye } from 'lucide-react';
+import { Settings, FileText, CheckCircle, Save, CheckCircle2, ChevronRight, ChevronLeft, Eye, AlertCircle } from 'lucide-react';
 import { CreateChallengePayload } from '../../../../../services/challenges.service';
 import { Button } from '../../../../../components/common/Button';
 import GeneralForm from './GeneralForm';
@@ -37,8 +37,18 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
     if (!isFirstStep) setActiveTab(tabs[currentTabIndex - 1].id as Tab);
   };
 
+  const isPublished = manualData.status === 'PUBLISHED';
+
   return (
     <div className="flex flex-col gap-6">
+      {isPublished && (
+        <div className="bg-amber-500/10 border border-amber-500/50 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="text-amber-400 text-sm leading-relaxed">
+            <strong>Mode Baca-Saja (Read-Only)</strong>: Studi kasus ini telah dipublikasikan. Anda dapat melihat dan mereview seluruh strukturnya, namun Anda tidak dapat lagi mengubah atau menyimpannya.
+          </div>
+        </div>
+      )}
       {/* Horizontal Stepper Navigation */}
       <div className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-xl w-full">
         <div className="flex items-center justify-between relative">
@@ -99,7 +109,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
               </div>
 
               <div className="bg-bg border border-border rounded-xl p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted block mb-1">Judul:</span>
                     <span className="text-title font-medium">{manualData.title || <span className="text-red-400">Belum diisi</span>}</span>
@@ -121,45 +131,59 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
-                <Button
-                  type="button"
-                  onClick={() => handleManualSubmit('DRAFT')}
-                  isLoading={isSubmitting}
-                  disabled={!manualData.title || !manualData.summary || !manualData.description}
-                  variant="secondary"
-                  className="px-8 py-3 font-bold bg-bg border border-border hover:border-white/20"
-                >
-                  <Save className="h-5 w-5 mr-2" /> Simpan ke Draf
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleManualSubmit('PUBLISHED')}
-                  isLoading={isSubmitting}
-                  disabled={!manualData.title || !manualData.summary || !manualData.description}
-                  className="px-8 py-3 font-bold bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20"
-                >
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Publikasikan Sekarang
-                </Button>
-              </div>
+              {!isPublished && (
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                  <Button
+                    type="button"
+                    onClick={() => handleManualSubmit('DRAFT')}
+                    isLoading={isSubmitting}
+                    disabled={!manualData.title || !manualData.summary || !manualData.description}
+                    variant="secondary"
+                    className="w-full sm:w-auto px-8 py-3 font-bold bg-bg border border-border hover:border-foreground/20"
+                  >
+                    <Save className="h-5 w-5 mr-2" /> Simpan ke Draf
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleManualSubmit('PUBLISHED')}
+                    isLoading={isSubmitting}
+                    disabled={!manualData.title || !manualData.summary || !manualData.description}
+                    className="w-full sm:w-auto px-8 py-3 font-bold bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20"
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-2" /> Publikasikan Sekarang
+                  </Button>
+                </div>
+              )}
+              {isPublished && (
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                  <Button
+                    type="button"
+                    disabled
+                    variant="secondary"
+                    className="w-full sm:w-auto px-8 py-3 font-bold opacity-50 cursor-not-allowed"
+                  >
+                    Tantangan Telah Dipublikasi
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Bottom Navigation Buttons (Next / Prev) */}
         {activeTab !== 'PUBLISH' && (
-          <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
+          <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row gap-4 items-center justify-between">
             <Button
               variant="outline"
               onClick={handleBack}
               disabled={isFirstStep}
-              className={`font-bold px-6 py-2.5 ${isFirstStep ? 'opacity-0 pointer-events-none' : ''}`}
+              className={`w-full sm:w-auto font-bold px-6 py-2.5 ${isFirstStep ? 'hidden sm:block opacity-0 pointer-events-none' : ''}`}
             >
               <ChevronLeft className="w-5 h-5 mr-1" /> Sebelumnya
             </Button>
             <Button
               onClick={handleNext}
-              className="font-bold px-6 py-2.5 bg-white text-black hover:bg-gray-200"
+              className="w-full sm:w-auto font-bold px-6 py-2.5 bg-white text-black hover:bg-gray-200"
             >
               Lanjutkan <ChevronRight className="w-5 h-5 ml-1" />
             </Button>

@@ -101,8 +101,8 @@ export function DateTimePicker({ label, value, onChange, placeholder, required }
               : isSelected 
               ? 'bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/30' 
               : isToday 
-              ? 'bg-black/10 dark:bg-white/10 text-emerald-500 font-bold'
-              : 'text-title hover:bg-black/5 dark:hover:bg-white/5'
+              ? 'bg-black/10 dark:bg-foreground/10 text-emerald-500 font-bold'
+              : 'text-title hover:bg-black/5 dark:hover:bg-foreground/5'
           }`}
         >
           {i}
@@ -155,13 +155,13 @@ export function DateTimePicker({ label, value, onChange, placeholder, required }
             className="absolute z-50 top-full mt-2 left-0 w-72 bg-card border border-border rounded-2xl shadow-2xl p-4 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-4">
-              <button type="button" onClick={(e) => { e.preventDefault(); handlePrevMonth(); }} className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-title transition-colors">
+              <button type="button" onClick={(e) => { e.preventDefault(); handlePrevMonth(); }} className="p-1.5 hover:bg-black/5 dark:hover:bg-foreground/5 rounded-lg text-title transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="font-bold text-sm text-title">
                 {MONTHS[currentMonth]} {currentYear}
               </div>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleNextMonth(); }} className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-title transition-colors">
+              <button type="button" onClick={(e) => { e.preventDefault(); handleNextMonth(); }} className="p-1.5 hover:bg-black/5 dark:hover:bg-foreground/5 rounded-lg text-title transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

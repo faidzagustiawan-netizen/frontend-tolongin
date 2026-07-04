@@ -72,16 +72,16 @@ export const TalentProfileTab = ({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Bio / Tentang Saya</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-2">Bio / Tentang Saya</label>
         {isEditingProfile ? (
           <textarea
-            className="w-full bg-dark-bg border border-dark-border rounded-xl p-4 text-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+            className="w-full bg-background border border-border rounded-xl p-4 text-foreground text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
             rows={4}
             value={editFormData.bio}
             onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
           />
         ) : (
-          <p className="text-xs text-gray-400 leading-relaxed bg-dark-bg border border-dark-border p-4 rounded-xl">
+          <p className="text-xs text-muted-foreground leading-relaxed bg-background border border-border p-4 rounded-xl">
             {talentProfile?.bio || 'Belum ada bio.'}
           </p>
         )}

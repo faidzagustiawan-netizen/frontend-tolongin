@@ -10,8 +10,8 @@ const badgeVariants = cva(
         emerald: 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400',
         cyan: 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400',
         amber: 'bg-amber-500/10 border border-amber-500/30 text-amber-400',
-        gray: 'bg-white/5 border border-white/10 text-gray-300',
-        outline: 'bg-transparent border border-white/10 text-gray-300',
+        gray: 'bg-foreground/5 border border-foreground/10 text-muted-foreground',
+        outline: 'bg-transparent border border-foreground/10 text-muted-foreground',
       },
     },
     defaultVariants: {

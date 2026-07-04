@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { SubmissionResponse } from '../types';
 
 export interface EnrollPayload {
   challengeId: string;
@@ -32,6 +33,10 @@ export const submissionsService = {
   },
   submitSolution: async (payload: SubmitSolutionPayload) => {
     const { data } = await apiClient.post('/workspace/submit', payload);
+    return { data };
+  },
+  saveDraft: async (enrollmentId: string, responses: any) => {
+    const { data } = await apiClient.put(`/workspace/draft/${enrollmentId}`, { draftData: responses });
     return { data };
   },
   getCompanySubmissions: async (challengeId?: string) => {

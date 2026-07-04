@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Camera, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -38,6 +39,7 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
 
   useEffect(() => {
     if (step !== 'DONE') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       startCamera();
     } else {
       stopCamera();
@@ -76,14 +78,14 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
   };
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl max-w-xl mx-auto space-y-6 text-center">
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-xl max-w-xl mx-auto space-y-6 text-center">
       <div>
-        <h3 className="text-lg font-bold text-white mb-1">
+        <h3 className="text-lg font-bold text-foreground mb-1">
           {step === 'SELFIE' && '1. Ambil Foto Wajah (Selfie)'}
           {step === 'ID_CARD' && '2. Ambil Foto Identitas (KTP/Paspor)'}
           {step === 'DONE' && 'Verifikasi AI Berhasil'}
         </h3>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           {step === 'SELFIE' && 'Posisikan wajah Anda di tengah bingkai dan pastikan pencahayaan cukup.'}
           {step === 'ID_CARD' && 'Posisikan KTP/Paspor Anda dengan jelas tanpa pantulan cahaya.'}
           {step === 'DONE' && 'Data biometrik Anda telah dienkripsi dan diverifikasi oleh sistem AI.'}
@@ -91,7 +93,7 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
       </div>
 
       {step !== 'DONE' ? (
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden border border-white/10 shadow-inner flex items-center justify-center">
+        <div className="relative aspect-video bg-black rounded-xl overflow-hidden border border-foreground/10 shadow-inner flex items-center justify-center">
           <video
             ref={videoRef}
             autoPlay
@@ -110,21 +112,21 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
           )}
 
           {!cameraActive && (
-            <div className="absolute inset-0 flex items-center justify-center bg-dark-bg/80 backdrop-blur-sm">
-              <p className="text-xs text-gray-400">Memuat kamera...</p>
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <p className="text-xs text-muted-foreground">Memuat kamera...</p>
             </div>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div className="relative aspect-video rounded-xl overflow-hidden border border-emerald-500/50 shadow-md">
-            <img src={selfiePhoto!} alt="Selfie" className="w-full h-full object-cover transform scale-x-[-1]" />
+            <Image src={selfiePhoto!} alt="Selfie" fill className="object-cover transform scale-x-[-1]" />
             <div className="absolute bottom-2 left-2 bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Wajah
             </div>
           </div>
           <div className="relative aspect-video rounded-xl overflow-hidden border border-cyan-500/50 shadow-md">
-            <img src={idCardPhoto!} alt="ID Card" className="w-full h-full object-cover" />
+            <Image src={idCardPhoto!} alt="ID Card" fill className="object-cover" />
             <div className="absolute bottom-2 left-2 bg-cyan-500/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> KTP
             </div>

@@ -27,7 +27,7 @@ export default function CreateChallengePage() {
   // States for AI Form
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
-  const [aiDifficulty, setAiDifficulty] = useState<'JUNIOR' | 'MEDIOR' | 'SENIOR'>('MEDIOR');
+  const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('INTERMEDIATE');
 
   // States for Manual Form
   const [manualData, setManualData] = useState<CreateChallengePayload>({
@@ -35,7 +35,7 @@ export default function CreateChallengePage() {
     summary: '',
     description: '',
     category: 'FRONTEND',
-    difficulty: 'MEDIOR',
+    difficulty: 'INTERMEDIATE',
     sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
   });
 
@@ -44,9 +44,9 @@ export default function CreateChallengePage() {
       const params = new URLSearchParams(window.location.search);
       const idParam = params.get('id');
       if (idParam) {
-        // Fetch existing draft
-        challengesService.getAll({}).then(res => {
-          const found = (res.data || []).find((c: any) => c.id === idParam);
+        // Fetch existing draft or published challenge
+        challengesService.getOne(idParam).then(res => {
+          const found = res.data;
           if (found) {
             setManualData({
               id: found.id,
@@ -57,6 +57,7 @@ export default function CreateChallengePage() {
               difficulty: found.difficulty,
               sections: found.sections || [],
               gradingRubric: found.gradingRubric,
+              status: found.status,
             });
           }
         }).catch(err => console.error("Gagal mengambil data draf", err));
@@ -100,7 +101,7 @@ export default function CreateChallengePage() {
         summary: generatedChallenge.summary || '',
         description: generatedChallenge.description || '',
         category: generatedChallenge.category || 'FRONTEND',
-        difficulty: generatedChallenge.difficulty || 'JUNIOR',
+        difficulty: generatedChallenge.difficulty || 'BEGINNER',
         sections: generatedChallenge.sections || [],
         gradingRubric: generatedChallenge.gradingRubric,
       });
@@ -152,15 +153,38 @@ export default function CreateChallengePage() {
     }
   };
 
+  const handleGlobalKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'TEXTAREA') return;
+      if (target.tagName === 'BUTTON') return;
+      
+      // Don't intercept if they are inside a modal or portal that isn't child of currentTarget
+      if (!e.currentTarget.contains(target)) return;
+
+      e.preventDefault();
+      const focusableElements = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
+      const elements = Array.from(e.currentTarget.querySelectorAll(focusableElements)) as HTMLElement[];
+      const index = elements.indexOf(target);
+      
+      if (index > -1 && index < elements.length - 1) {
+        elements[index + 1].focus();
+      }
+    }
+  };
+
   if (!user || (user.role !== 'COMPANY' && user.role !== 'TALENT')) {
     return null;
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <div 
+      className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10"
+      onKeyDown={handleGlobalKeyDown}
+    >
       <button 
         onClick={() => router.back()} 
-        className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" /> Kembali
       </button>
@@ -194,13 +218,13 @@ export default function CreateChallengePage() {
 
         {/* Content */}
         <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight leading-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground/90 tracking-tight leading-tight">
             Buat Challenge,
             <br />
             Temukan Talenta Berkualitas
           </h1>
 
-          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
+          <p className="max-w-2xl text-sm text-foreground/90 leading-relaxed">
             Buat tantangan teknis atau bisnis untuk talenta. Anda dapat mendesain
             secara manual atau membiarkan AI generatif kami merancang spesifikasi
             dan rubrik secara otomatis.
@@ -209,8 +233,8 @@ export default function CreateChallengePage() {
 
       </div>
 
-      <div className="flex items-center gap-4 bg-bg p-2 rounded-2xl border border-border w-fit">
-        <div className="relative group">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 bg-bg p-2 rounded-2xl border border-border w-full sm:w-fit">
+        <div className="relative group w-full sm:w-auto">
           <button
             onClick={() => {
               if (user?.profile?.subscriptionTier !== 'STARTUP') {
@@ -218,21 +242,21 @@ export default function CreateChallengePage() {
               }
             }}
             disabled={user?.profile?.subscriptionTier === 'STARTUP'}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'AI' ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]' : 'text-gray-400 hover:text-white'
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
+              activeTab === 'AI' ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]' : 'text-muted-foreground hover:text-foreground'
             } ${user?.profile?.subscriptionTier === 'STARTUP' ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Sparkles className="h-4 w-4" /> AI Auto-Generate
           </button>
           {user?.profile?.subscriptionTier === 'STARTUP' && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-border text-xs text-white font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-border text-xs text-foreground font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Tingkatkan ke Pro untuk Akses AI
             </div>
           )}
         </div>
         <button
             onClick={() => setActiveTab('MANUAL')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
               activeTab === 'MANUAL'
             ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]'
             : 'text-muted hover:text-title hover:bg-card'
@@ -285,11 +309,11 @@ export default function CreateChallengePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Kategori Pekerjaan</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Kategori Pekerjaan</label>
                   <select
                     value={aiCategory}
                     onChange={(e) => setAiCategory(e.target.value as any)}
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="FRONTEND">Frontend Development</option>
                     <option value="BACKEND">Backend Development</option>
@@ -300,15 +324,15 @@ export default function CreateChallengePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Tingkat Kesulitan</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Tingkat Kesulitan</label>
                   <select
                     value={aiDifficulty}
                     onChange={(e) => setAiDifficulty(e.target.value as any)}
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
-                    <option value="JUNIOR">Junior (1-2 Tahun)</option>
-                    <option value="MEDIOR">Medior (3-5 Tahun)</option>
-                    <option value="SENIOR">Senior (5+ Tahun)</option>
+                    <option value="BEGINNER">Beginner (Pemanasan untuk pemula yang baru belajar)</option>
+                    <option value="INTERMEDIATE">Intermediate (Tantangan menengah, butuh pemahaman kuat)</option>
+                    <option value="ADVANCED">Advanced (Misi kompleks untuk penyelesaian masalah tingkat tinggi)</option>
                   </select>
                 </div>
               </div>

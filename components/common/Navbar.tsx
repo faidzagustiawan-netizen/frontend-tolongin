@@ -9,7 +9,7 @@ import { useUserStore } from '../../store/userStore';
 import { notificationsService, NotificationItem } from '../../services/notifications.service';
 import { tokenService } from '../../services/tokenService';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -131,18 +131,20 @@ export const Navbar = () => {
 
   const talentNavLinks = [
     { name: 'Directory', href: '/challenges', icon: Briefcase },
+    { name: 'Perusahaan', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
   const companyNavLinks = [
     { name: 'Review Submisi', href: '/workspace', icon: CheckCheck },
     { name: 'Buat Challenge', href: '/challenges/create', icon: Code2 },
+    { name: 'Direktori Perusahaan', href: '/companies', icon: Building2 },
   ];
 
   const navLinks = user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-dark-bg/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
@@ -169,8 +171,8 @@ export const Navbar = () => {
                       href={link.href}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                         isActive
-                          ? 'bg-white/10 text-white shadow-inner'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-foreground/10 text-white shadow-inner'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                       }`}
                     >
                       <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : ''}`} />
@@ -186,7 +188,7 @@ export const Navbar = () => {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-200 text-gray-300 hover:text-white cursor-pointer"
+              className="p-2.5 rounded-full bg-foreground/5 border border-foreground/10 hover:bg-foreground/10 transition-all duration-200 text-muted-foreground hover:text-foreground cursor-pointer"
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? (
@@ -213,7 +215,7 @@ export const Navbar = () => {
                       setNotifOpen(!notifOpen);
                       if (dropdownOpen) setDropdownOpen(false);
                     }}
-                    className="relative p-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-gray-300 hover:text-white"
+                    className="relative p-2.5 rounded-full bg-foreground/5 border border-foreground/10 hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
                     aria-label="Notifications"
                   >
                     <Bell className="h-5 w-5" />
@@ -231,10 +233,10 @@ export const Navbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-3 w-80 sm:w-96 bg-dark-card border border-dark-border rounded-2xl shadow-2xl py-3 z-50 overflow-hidden"
+                        className="absolute right-0 mt-3 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-2xl py-3 z-50 overflow-hidden"
                       >
-                        <div className="flex items-center justify-between px-4 pb-3 border-b border-dark-border">
-                          <h3 className="font-display font-bold text-white text-sm">Notifikasi</h3>
+                        <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
+                          <h3 className="font-display font-bold text-foreground text-sm">Notifikasi</h3>
                           {unreadCount > 0 && (
                             <button
                               onClick={handleMarkAllAsRead}
@@ -245,30 +247,30 @@ export const Navbar = () => {
                           )}
                         </div>
 
-                        <div className="max-h-80 overflow-y-auto divide-y divide-dark-border custom-scrollbar">
+                        <div className="max-h-80 overflow-y-auto divide-y divide-border custom-scrollbar">
                           {notifications.length > 0 ? (
                             notifications.map((n) => (
                               <div
                                 key={n.id}
                                 onClick={() => handleMarkAsRead(n.id)}
                                 className={`p-4 transition-colors cursor-pointer flex items-start gap-3 ${
-                                  !n.isRead ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-white/5'
+                                  !n.isRead ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-foreground/5'
                                 }`}
                               >
                                 <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!n.isRead ? 'bg-emerald-400 animate-pulse' : 'bg-transparent'}`} />
                                 <div className="space-y-1 flex-1">
                                   <div className="flex items-center justify-between">
-                                    <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-gray-300'}`}>{n.title}</h4>
-                                    <span className="text-[10px] text-gray-500">
+                                    <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-muted-foreground'}`}>{n.title}</h4>
+                                    <span className="text-[10px] text-muted-foreground">
                                       {new Date(n.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>
-                                  <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{n.content}</p>
+                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.content}</p>
                                 </div>
                               </div>
                             ))
                           ) : (
-                            <div className="py-12 text-center text-gray-500 px-4 space-y-2">
+                            <div className="py-12 text-center text-muted-foreground px-4 space-y-2">
                               <Info className="h-8 w-8 mx-auto opacity-50" />
                               <p className="text-xs font-medium">Belum ada notifikasi baru.</p>
                             </div>
@@ -286,13 +288,14 @@ export const Navbar = () => {
                       setDropdownOpen(!dropdownOpen);
                       if (notifOpen) setNotifOpen(false);
                     }}
-                    className="flex items-center gap-3 pl-3 pr-4 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-3 pl-3 pr-4 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 hover:bg-foreground/10 transition-colors"
+                    aria-label="Profile Menu"
                   >
                     <div className="h-7 w-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-xs">
                       {user?.email?.[0].toUpperCase() || 'U'}
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-medium text-white max-w-[120px] truncate">{user?.email}</p>
+                      <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{user?.email}</p>
                       <p className="text-[10px] text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                     </div>
                   </button>
@@ -304,12 +307,12 @@ export const Navbar = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-56 bg-dark-card border border-dark-border rounded-xl shadow-2xl py-1 z-50 overflow-hidden"
+                        className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-2xl py-1 z-50 overflow-hidden"
                       >
                         <Link
                           href="/profile"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                         >
                           <UserIcon className="h-4 w-4 text-emerald-400" />
                           Profil & Verifikasi
@@ -317,7 +320,7 @@ export const Navbar = () => {
                         <Link
                           href="/workspace"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                         >
                           <Briefcase className="h-4 w-4 text-cyan-400" />
                           Dashboard
@@ -326,13 +329,13 @@ export const Navbar = () => {
                           <Link
                             href="/company/billing"
                             onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                           >
                             <CreditCard className="h-4 w-4 text-amber-400" />
                             Langganan & Tagihan
                           </Link>
                         )}
-                        <div className="border-t border-dark-border my-1" />
+                        <div className="border-t border-border my-1" />
                         <button
                           onClick={() => {
                             setDropdownOpen(false);
@@ -365,7 +368,7 @@ export const Navbar = () => {
             {/* Theme Toggle for Mobile */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 cursor-pointer"
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? (
@@ -381,7 +384,8 @@ export const Navbar = () => {
                   setNotifOpen(!notifOpen);
                   if (mobileMenuOpen) setMobileMenuOpen(false);
                 }}
-                className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5"
+                className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                aria-label="Mobile Notifications"
               >
                 <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
@@ -396,7 +400,8 @@ export const Navbar = () => {
                 setMobileMenuOpen(!mobileMenuOpen);
                 if (notifOpen) setNotifOpen(false);
               }}
-              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 focus:outline-none"
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 focus:outline-none"
+              aria-label="Mobile Menu"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -410,7 +415,7 @@ export const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-white/10 bg-dark-bg/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4"
+            className="md:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4"
           >
             {isAuthenticated && (
               <div className="space-y-1">
@@ -424,7 +429,7 @@ export const Navbar = () => {
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium ${
-                        isActive ? 'bg-white/10 text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        isActive ? 'bg-foreground/10 text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                       }`}
                     >
                       <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
@@ -435,7 +440,7 @@ export const Navbar = () => {
               </div>
             )}
 
-            <div className="border-t border-white/10 pt-4">
+            <div className="border-t border-foreground/10 pt-4">
               {isAuthenticated ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-4 py-2">
@@ -443,14 +448,14 @@ export const Navbar = () => {
                       {user?.email?.[0].toUpperCase() || 'U'}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{user?.email}</p>
+                      <p className="text-sm font-medium text-foreground">{user?.email}</p>
                       <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                     </div>
                   </div>
                   <Link
                     href="/profile"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-gray-300 hover:text-white hover:bg-white/5"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   >
                     <UserIcon className="h-5 w-5 text-emerald-400" />
                     Profil & Verifikasi
@@ -458,7 +463,7 @@ export const Navbar = () => {
                   <Link
                     href="/workspace"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-gray-300 hover:text-white hover:bg-white/5"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   >
                     <Briefcase className="h-5 w-5 text-cyan-400" />
                     Dashboard
@@ -467,7 +472,7 @@ export const Navbar = () => {
                     <Link
                       href="/company/billing"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-gray-300 hover:text-white hover:bg-white/5"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                     >
                       <CreditCard className="h-5 w-5 text-amber-400" />
                       Langganan & Tagihan
@@ -506,9 +511,9 @@ export const Navbar = () => {
 
       <AnimatePresence>
         {notifOpen && mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 bg-dark-card px-4 py-4 max-h-80 overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-dark-border">
-              <h3 className="font-display font-bold text-white text-sm">Notifikasi</h3>
+          <div className="md:hidden border-t border-foreground/10 bg-card px-4 py-4 max-h-80 overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
+              <h3 className="font-display font-bold text-foreground text-sm">Notifikasi</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
@@ -523,14 +528,14 @@ export const Navbar = () => {
                 <div
                   key={n.id}
                   onClick={() => handleMarkAsRead(n.id)}
-                  className="py-3 border-b border-dark-border/50 last:border-0"
+                  className="py-3 border-b border-border/50 last:border-0"
                 >
-                  <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-gray-400'}`}>{n.title}</h4>
-                  <p className="text-xs text-gray-400 mt-1">{n.content}</p>
+                  <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-muted-foreground'}`}>{n.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">{n.content}</p>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-500 text-center py-4">Belum ada notifikasi.</p>
+              <p className="text-xs text-muted-foreground text-center py-4">Belum ada notifikasi.</p>
             )}
           </div>
         )}

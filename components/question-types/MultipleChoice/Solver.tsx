@@ -10,7 +10,7 @@ export default function MultipleChoiceSolver({ comp, value, onChange }: SolverPr
           className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
             value === opt.id 
               ? 'bg-cyan-500/10 border-cyan-500/50 text-title' 
-              : 'bg-card border-border text-body hover:border-white/20'
+              : 'bg-card border-border text-body hover:border-foreground/20'
           }`}
         >
           <input 

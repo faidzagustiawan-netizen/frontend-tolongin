@@ -1,0 +1,7 @@
+User-Agent: *
+Allow: /
+Disallow: /workspace/
+Disallow: /company/
+Disallow: /profile/
+
+Sitemap: https://tolongin.co/sitemap.xml

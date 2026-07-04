@@ -1,17 +1,18 @@
 import { create } from 'zustand';
+import { UserProfile } from '../types';
 
 export interface UserData {
   id: string;
   email: string;
   role: 'TALENT' | 'COMPANY' | 'ADMIN';
-  profile?: any;
+  profile?: UserProfile;
 }
 
 interface UserStore {
   user: UserData | null;
   isAuthenticated: boolean;
   setUser: (user: UserData | null) => void;
-  updateUserProfile: (profile: any) => void;
+  updateUserProfile: (profile: UserProfile) => void;
   logout: () => void;
   loadUserFromStorage: () => void;
 }

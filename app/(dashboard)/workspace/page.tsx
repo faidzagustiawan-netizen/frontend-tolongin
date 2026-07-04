@@ -37,8 +37,8 @@ export default function WorkspacePage() {
   if (isTalentLoading || isStatsLoading) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
-        <div className="h-12 bg-white/5 rounded-xl w-1/3" />
-        <div className="h-40 bg-white/5 rounded-xl w-full" />
+        <div className="h-12 bg-foreground/5 rounded-xl w-1/3" />
+        <div className="h-40 bg-foreground/5 rounded-xl w-full" />
       </div>
     );
   }

@@ -53,10 +53,10 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
 
         <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground/90 tracking-tight">
             Dashboard Studi Kasus Aktif
           </h1>
-          <p className="max-w-2xl text-sm text-white/90 opacity-90 leading-relaxed">
+          <p className="max-w-2xl text-sm text-foreground/90 opacity-90 leading-relaxed">
             Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat.
             Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
           </p>
@@ -75,7 +75,7 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
           <Button
             onClick={() => refetchStats()}
             size="sm"
-            className="bg-white/15 text-white/90 border border-white/20 hover:bg-white/20 font-bold flex items-center gap-2"
+            className="bg-white/15 text-foreground/90 border border-foreground/20 hover:bg-white/20 font-bold flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             Muat Ulang
@@ -87,20 +87,20 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-400 uppercase font-semibold">Total Studi Kasus Aktif</p>
-            <h3 className="font-display text-3xl font-extrabold text-white mt-1">{challenges.length}</h3>
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Studi Kasus Aktif</p>
+            <h3 className="font-display text-3xl font-extrabold text-foreground mt-1">{challenges.length}</h3>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shadow-inner">
+          <div className="h-12 w-12 rounded-2xl bg-foreground/5 border border-foreground/10 flex items-center justify-center text-muted-foreground shadow-inner">
             <FileText className="h-6 w-6" />
           </div>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-400 uppercase font-semibold">Total Seluruh Submisi</p>
-            <h3 className="font-display text-3xl font-extrabold text-white mt-1">{totalSubs}</h3>
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Seluruh Submisi</p>
+            <h3 className="font-display text-3xl font-extrabold text-foreground mt-1">{totalSubs}</h3>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 shadow-inner">
+          <div className="h-12 w-12 rounded-2xl bg-foreground/5 border border-foreground/10 flex items-center justify-center text-cyan-400 shadow-inner">
             <Users className="h-6 w-6" />
           </div>
         </div>
@@ -116,14 +116,14 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
         </div>
       </div>
 
-      <div className="bg-dark-card border border-border rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-dark-border flex items-center justify-between bg-white/5">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-border flex items-center justify-between bg-foreground/5">
           <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Cari studi kasus..."
-              className="w-full pl-10 pr-4 py-2.5 bg-dark-bg border border-border rounded-xl text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500/50 transition-colors"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
             />
@@ -135,11 +135,11 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-bg/50 border-b border-border">
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Judul Challenge</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Kandidat</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Antrean Penilaian</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Batas Waktu SLA</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Aksi</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Judul Challenge</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Kandidat</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Antrean Penilaian</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Batas Waktu SLA</th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-border">
@@ -151,20 +151,20 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       key={challenge.id} 
-                      className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      className="hover:bg-foreground/5 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-white max-w-[250px] truncate">{challenge.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">{challenge.category.replace('_', ' ')} • {challenge.difficulty}</p>
+                        <p className="text-sm font-bold text-foreground max-w-[250px] truncate">{challenge.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{challenge.category.replace('_', ' ')} • {challenge.difficulty}</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm font-medium text-white">{challenge.stats.totalSubmissions}</span>
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">{challenge.stats.totalSubmissions}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`flex items-center gap-2 ${challenge.stats.unreviewedCount > 0 ? 'text-amber-400 font-bold' : 'text-gray-400'}`}>
+                        <div className={`flex items-center gap-2 ${challenge.stats.unreviewedCount > 0 ? 'text-amber-400 font-bold' : 'text-muted-foreground'}`}>
                           <FileText className="w-4 h-4" />
                           <span className="text-sm">{challenge.stats.unreviewedCount}</span>
                         </div>
@@ -176,7 +176,7 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                             {sla.text}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-500 italic">Tidak ada antrean</span>
+                          <span className="text-xs text-muted-foreground italic">Tidak ada antrean</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -187,11 +187,18 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                             </Button>
                           </Link>
                         ) : (
-                          <Link href={`/workspace/submissions/challenge/${challenge.id}`}>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400 hover:text-emerald-300">
-                              Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Link href={`/challenges/create?id=${challenge.id}`}>
+                              <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
+                                Lihat Detail
+                              </Button>
+                            </Link>
+                            <Link href={`/workspace/submissions/challenge/${challenge.id}`}>
+                              <Button variant="ghost" size="sm" className="text-emerald-400 hover:text-emerald-300">
+                                Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </Link>
+                          </div>
                         )}
                       </td>
                     </motion.tr>
@@ -201,11 +208,11 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
             </table>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                <FileText className="w-10 h-10 text-gray-500" />
+              <div className="w-20 h-20 rounded-full bg-foreground/5 flex items-center justify-center mb-4">
+                <FileText className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Belum ada Challenge</h3>
-              <p className="text-sm text-gray-400 max-w-md mb-6">Anda belum membuat studi kasus apa pun, atau kata kunci pencarian tidak cocok.</p>
+              <h3 className="text-lg font-bold text-foreground mb-2">Belum ada Challenge</h3>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">Anda belum membuat studi kasus apa pun, atau kata kunci pencarian tidak cocok.</p>
               <Link href="/challenges/create">
                 <Button>Buat Challenge Sekarang</Button>
               </Link>

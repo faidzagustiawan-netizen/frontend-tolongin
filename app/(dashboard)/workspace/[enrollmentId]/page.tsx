@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '../../../../services/submissions.service';
 import { verificationService } from '../../../../services/verification.service';
+import { pistonService } from '../../../../services/piston.service';
 import { useUserStore } from '../../../../store/userStore';
 import { Button } from '../../../../components/common/Button';
 import { Input, Textarea } from '../../../../components/common/Input';
@@ -11,13 +12,14 @@ import { FileUploader } from '../../../../components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { ContinuousProctoring } from '../../../../components/workspace/ContinuousProctoring';
 const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
-const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-dark-bg text-gray-500 animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
+const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
 
 export default function EnrollmentWorkspacePage() {
   const { user, loadUserFromStorage } = useUserStore();
@@ -38,7 +40,15 @@ export default function EnrollmentWorkspacePage() {
   const [timeLeftString, setTimeLeftString] = useState<string>('--:--:--');
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [componentResponses, setComponentResponses] = useState<Record<string, any>>({});
-
+  
+  // Auto-Save State
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State untuk Eksekusi Live Coding
+  const [executionOutput, setExecutionOutput] = useState<Record<string, string>>({});
+  const [isExecuting, setIsExecuting] = useState<Record<string, boolean>>({});
   // Wizard State
   type Step = 'OVERVIEW' | 'FACE_CHECK' | 'QUESTIONS' | 'SUBMITTED';
   const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
@@ -49,9 +59,34 @@ export default function EnrollmentWorkspacePage() {
     setExamQuestionIdx(0);
   }, [activeSectionIndex]);
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        const target = e.target as HTMLElement;
+        const formElements = Array.from(document.querySelectorAll('input, select, textarea')).filter(el => {
+          if (el.tagName === 'BUTTON') return false;
+          if ((el as HTMLInputElement).readOnly || (el as HTMLInputElement).disabled) return false;
+          return true;
+        }) as HTMLElement[];
+        
+        const currentIndex = formElements.indexOf(target);
+        if (currentIndex > -1 && currentIndex < formElements.length - 1) {
+          e.preventDefault();
+          formElements[currentIndex + 1].focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // Proctoring & Anti-Joki State
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
   const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
+  const [showTabWarning, setShowTabWarning] = useState<boolean>(false);
+  const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
+  
   const [faceVerified, setFaceVerified] = useState<boolean | null>(null);
   const [isVerifyingFace, setIsVerifyingFace] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -80,6 +115,29 @@ export default function EnrollmentWorkspacePage() {
   const enrollments = talentData?.data || [];
   const selectedEnrollment = enrollments.find((e: any) => e.id === selectedEnrollmentId);
   const isProctored = selectedEnrollment?.challenge?.gradingRubric?.requireProctoring ?? true;
+  
+  // Ambil pengaturan spesifik dari proctoringSettings (opsional)
+  const proctoringSettings = selectedEnrollment?.challenge?.gradingRubric?.proctoringSettings || {};
+  const requireFaceScan = proctoringSettings.requireFaceScan !== false && isProctored; // Default true jika isProctored
+  const trackTabSwitches = proctoringSettings.trackTabSwitches ?? isProctored;
+  const maxTabSwitches = proctoringSettings.maxTabSwitches || 0;
+  const blockCopyPaste = proctoringSettings.blockCopyPaste || false;
+  const blockRightClick = proctoringSettings.blockRightClick || false;
+  const enforceFullscreen = proctoringSettings.enforceFullscreen || false;
+  const continuousTracking = proctoringSettings.continuousTracking || false;
+
+  // Prevent Navigation & Refresh
+  useEffect(() => {
+    if (currentStep === 'QUESTIONS' && !isSubmitting && !submitSuccess && !isExpired) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [currentStep, isSubmitting, submitSuccess, isExpired]);
 
   // Redirect if not found
   useEffect(() => {
@@ -92,6 +150,44 @@ export default function EnrollmentWorkspacePage() {
       }
     }
   }, [isTalentLoading, selectedEnrollment, router]);
+
+  // Hydration Draft Data (Auto-Load)
+  useEffect(() => {
+    if (selectedEnrollment && !isHydrated) {
+      if (selectedEnrollment.draftData) {
+        setComponentResponses(selectedEnrollment.draftData.componentResponses || {});
+        setCustomInputs(selectedEnrollment.draftData.customInputs || {});
+        setNotes(selectedEnrollment.draftData.notes || '');
+      }
+      setIsHydrated(true);
+    }
+  }, [selectedEnrollment, isHydrated]);
+
+  // Debounced Auto-Save (Server-Side)
+  useEffect(() => {
+    if (!isHydrated || currentStep !== 'QUESTIONS' || isExpired) return;
+
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    
+    setIsSavingDraft(true);
+    draftTimerRef.current = setTimeout(async () => {
+      try {
+        await submissionsService.saveDraft(selectedEnrollmentId, {
+          componentResponses,
+          customInputs,
+          notes
+        });
+      } catch (err) {
+        console.error("Gagal auto-save:", err);
+      } finally {
+        setIsSavingDraft(false);
+      }
+    }, 3000); // Tunggu 3 detik setelah user berhenti mengetik
+
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [componentResponses, customInputs, notes, isHydrated, currentStep, isExpired, selectedEnrollmentId]);
 
   // LMS Timer
   useEffect(() => {
@@ -130,19 +226,42 @@ export default function EnrollmentWorkspacePage() {
 
   // Tab Switching Listener (Proctoring)
   useEffect(() => {
-    if (!selectedEnrollment || !isProctored || isExpired) return;
+    if (!selectedEnrollment || !trackTabSwitches || isExpired || currentStep !== 'QUESTIONS') return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setTabSwitchCount((prev) => prev + 1);
-        const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        setProctoringEvents((list) => [...list, `[${timestamp}] Jendela peramban ditutup / Berpindah ke aplikasi eksternal`]);
+        setTabSwitchCount((prev) => {
+          const newCount = prev + 1;
+          const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          
+          if (maxTabSwitches > 0 && newCount > maxTabSwitches) {
+            setIsLockedOut(true);
+            setProctoringEvents((list) => [...list, `[${timestamp}] Pelanggaran Fatal: Pindah tab melebihi batas maksimal (${maxTabSwitches}).`]);
+          } else {
+            setShowTabWarning(true);
+            setProctoringEvents((list) => [...list, `[${timestamp}] Jendela peramban ditutup / Berpindah ke aplikasi eksternal (Ke-${newCount})`]);
+          }
+          return newCount;
+        });
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [selectedEnrollment, isProctored, isExpired]);
+  }, [selectedEnrollment, trackTabSwitches, isExpired, maxTabSwitches, currentStep]);
+
+  // Enforce Fullscreen
+  useEffect(() => {
+    if (enforceFullscreen && currentStep === 'QUESTIONS' && !isExpired) {
+      const handleFullscreenChange = () => {
+        if (!document.fullscreenElement && !isLockedOut) {
+          setShowTabWarning(true); // Re-use tab warning for fullscreen exit
+        }
+      };
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }
+  }, [enforceFullscreen, currentStep, isExpired, isLockedOut]);
 
   const handleEnterFullscreen = async () => {
     try {
@@ -211,8 +330,8 @@ export default function EnrollmentWorkspacePage() {
   if (isTalentLoading || !selectedEnrollment) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
-        <div className="h-12 bg-white/5 rounded-xl w-1/3" />
-        <div className="h-40 bg-white/5 rounded-xl w-full" />
+        <div className="h-12 bg-foreground/5 rounded-xl w-1/3" />
+        <div className="h-40 bg-foreground/5 rounded-xl w-full" />
       </div>
     );
   }
@@ -234,6 +353,20 @@ export default function EnrollmentWorkspacePage() {
         [field]: value
       }
     }));
+  };
+
+  const handleRunCode = async (componentId: string, language: string) => {
+    setIsExecuting(prev => ({ ...prev, [componentId]: true }));
+    setExecutionOutput(prev => ({ ...prev, [componentId]: 'Executing...' }));
+    try {
+      const code = componentResponses[componentId]?.textValue || '';
+      const output = await pistonService.execute(language, code);
+      setExecutionOutput(prev => ({ ...prev, [componentId]: output }));
+    } catch (err: any) {
+      setExecutionOutput(prev => ({ ...prev, [componentId]: `[Error]\n${err.message}` }));
+    } finally {
+      setIsExecuting(prev => ({ ...prev, [componentId]: false }));
+    }
   };
 
   const handleSubmitSolution = async (e: React.FormEvent) => {
@@ -292,45 +425,45 @@ export default function EnrollmentWorkspacePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <Link href="/workspace" className="inline-flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors text-sm font-semibold">
+      <Link href="/workspace" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
             <Briefcase className="h-4 w-4" /> Ruang Kerja LMS Aktif
           </div>
-          <h1 className="font-display text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="font-display text-3xl font-extrabold text-foreground tracking-tight">
             {selectedEnrollment.challenge.title}
           </h1>
-          <p className="text-sm text-gray-400">Kerjakan studi kasus, unggah solusi, dan lihat evaluasi otomatis AI.</p>
+          <p className="text-sm text-muted-foreground">Kerjakan studi kasus, unggah solusi, dan lihat evaluasi otomatis AI.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border pb-6">
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">{selectedEnrollment.challenge.category} Challenge</span>
-                <h3 className="font-display text-2xl font-bold text-white mt-1">Sesi Pengerjaan</h3>
+                <h3 className="font-display text-2xl font-bold text-foreground mt-1">Sesi Pengerjaan</h3>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border shadow-md transition-all ${
-                  isExpired ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-dark-bg border-dark-border text-emerald-400'
+                  isExpired ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-background border-border text-emerald-400'
                 }`}>
                   {isExpired ? <Lock className="h-4 w-4 flex-shrink-0" /> : <Timer className="h-4 w-4 flex-shrink-0 animate-spin-slow" />}
                   <div className="text-right">
                     <p className="text-xs font-mono font-bold tracking-wider">{timeLeftString}</p>
-                    <p className="text-[9px] text-gray-500 uppercase font-semibold">{isExpired ? 'Waktu Habis' : (selectedEnrollment?.submissions?.length > 0) ? 'Sisa Waktu (Saat Submit)' : 'Sisa Waktu Server'}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase font-semibold">{isExpired ? 'Waktu Habis' : (selectedEnrollment?.submissions?.length > 0) ? 'Sisa Waktu (Saat Submit)' : 'Sisa Waktu Server'}</p>
                   </div>
                 </div>
 
-                <span className="text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-gray-300">
+                <span className="text-xs font-bold uppercase tracking-wider bg-foreground/5 border border-foreground/10 px-3 py-2 rounded-xl text-muted-foreground">
                   {selectedEnrollment.status}
                 </span>
               </div>
@@ -339,16 +472,16 @@ export default function EnrollmentWorkspacePage() {
             {isExpired && currentStep !== 'SUBMITTED' ? (
               <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-8 text-center space-y-4">
                 <Lock className="h-12 w-12 text-red-400 mx-auto" />
-                <h4 className="font-display text-xl font-bold text-white">Waktu Pengerjaan Telah Berakhir</h4>
-                <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
+                <h4 className="font-display text-xl font-bold text-foreground">Waktu Pengerjaan Telah Berakhir</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
                   Batas waktu pengerjaan LMS yang dihitung dari waktu server saat Anda pertama kali mendaftar telah habis. Pengumpulan solusi saat ini telah dikunci.
                 </p>
               </div>
             ) : currentStep === 'OVERVIEW' ? (
               <div className="space-y-6 text-center py-8">
                 <ShieldCheck className="h-16 w-16 text-emerald-400 mx-auto opacity-80" />
-                <h4 className="font-display text-2xl font-bold text-white">Siap Memulai Pengerjaan?</h4>
-                <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+                <h4 className="font-display text-2xl font-bold text-foreground">Siap Memulai Pengerjaan?</h4>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                   Pastikan Anda siap. Saat Anda menekan tombol di bawah, Anda akan masuk ke mode pengerjaan. {isProctored && 'Sistem akan memverifikasi wajah Anda dan mencatat aktivitas peramban secara penuh (Proctoring).'}
                 </p>
                 <Button 
@@ -374,8 +507,8 @@ export default function EnrollmentWorkspacePage() {
                     <div className="flex items-start gap-3.5">
                       <ShieldCheck className="h-6 w-6 text-emerald-400 flex-shrink-0 mt-0.5" />
                       <div className="space-y-2">
-                        <h4 className="font-display font-bold text-white text-sm">🔒 Pengawasan Ujian Aktif (Flexible Proctoring)</h4>
-                        <p className="text-xs text-gray-300 leading-relaxed">
+                        <h4 className="font-display font-bold text-foreground text-sm">🔒 Pengawasan Ujian Aktif (Flexible Proctoring)</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           Pengerjaan di IDE eksternal atau aplikasi desain diizinkan secara penuh. Sistem mencatat penutupan atau perpindahan tab sebanyak <strong className="text-amber-400">{tabSwitchCount} kali</strong> sebagai log transparansi bagi tim rekruter.
                         </p>
                         {kycStatus !== 'VERIFIED' && (
@@ -391,7 +524,7 @@ export default function EnrollmentWorkspacePage() {
                       <div className="flex items-center gap-2.5">
                         <Camera className="h-5 w-5 text-emerald-400 flex-shrink-0" />
                         <div>
-                          <span className="text-xs font-semibold text-white block">Status Wajah Anti-Joki:</span>
+                          <span className="text-xs font-semibold text-foreground block">Status Wajah Anti-Joki:</span>
                           {faceVerified === null ? (
                             <span className="text-xs font-bold text-amber-400 animate-pulse">Belum Dilakukan (Wajib Sebelum Submisi)</span>
                           ) : faceVerified ? (
@@ -446,7 +579,87 @@ export default function EnrollmentWorkspacePage() {
                 )}
               </div>
             ) : currentStep === 'QUESTIONS' ? (
-              <form onSubmit={handleSubmitSolution} className="space-y-6">
+              <form 
+                onSubmit={handleSubmitSolution} 
+                className="space-y-6 relative"
+                onCopy={blockCopyPaste ? (e) => e.preventDefault() : undefined}
+                onPaste={blockCopyPaste ? (e) => e.preventDefault() : undefined}
+                onCut={blockCopyPaste ? (e) => e.preventDefault() : undefined}
+                onContextMenu={blockRightClick ? (e) => e.preventDefault() : undefined}
+              >
+                {/* CONTINUOUS PROCTORING BACKGROUND COMPONENT */}
+                {continuousTracking && !isExpired && (
+                  <ContinuousProctoring 
+                    biometricVector={(user as any)?.profile?.biometricFeatureVector}
+                    onViolation={(msg) => {
+                      const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                      setProctoringEvents((list) => [...list, `[${timestamp}] ${msg}`]);
+                    }}
+                  />
+                )}
+
+                {/* TAB SWITCH / FULLSCREEN WARNING MODAL */}
+                <AnimatePresence>
+                  {showTabWarning && !isLockedOut && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6"
+                    >
+                      <div className="max-w-md w-full bg-red-500/10 border border-red-500/30 rounded-3xl p-8 text-center space-y-6">
+                        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+                          <AlertTriangle className="w-10 h-10 text-red-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-foreground mb-2">Pelanggaran Terdeteksi!</h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Sistem mendeteksi Anda telah meninggalkan halaman ujian (pindah aplikasi/tab) atau keluar dari mode layar penuh. Tindakan ini telah dicatat dalam laporan proctoring Anda.
+                          </p>
+                          {maxTabSwitches > 0 && (
+                            <p className="text-xs font-bold text-red-400 mt-4">
+                              (Peringatan Ke-{tabSwitchCount} dari Maksimal {maxTabSwitches})
+                            </p>
+                          )}
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            setShowTabWarning(false);
+                            if (enforceFullscreen) handleEnterFullscreen();
+                          }}
+                          className="w-full bg-red-600 hover:bg-red-500 text-white font-bold h-12"
+                        >
+                          Saya Mengerti, Kembali ke Ujian
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {isLockedOut && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-6"
+                    >
+                      <div className="max-w-md w-full bg-red-500/20 border-2 border-red-500 rounded-3xl p-8 text-center space-y-6">
+                        <Lock className="w-16 h-16 text-red-500 mx-auto" />
+                        <div>
+                          <h3 className="text-2xl font-bold text-foreground mb-2">Akses Dikunci!</h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Anda telah melanggar batas maksimal perpindahan tab atau aplikasi ({maxTabSwitches} kali). Ujian ini telah dikunci secara otomatis.
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => router.push('/workspace')}
+                          className="w-full bg-white text-red-600 font-bold h-12"
+                        >
+                          Kembali ke Dashboard
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {submitSuccess && (
                   <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
                     <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
@@ -465,14 +678,28 @@ export default function EnrollmentWorkspacePage() {
                 )}
 
                 {/* CHALLENGE DESCRIPTION / INSTRUCTIONS */}
-                <div className="space-y-6 border-b border-dark-border pb-8">
-                  <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-emerald-400" /> Instruksi & Spesifikasi Studi Kasus
-                  </h4>
-                  <div className="prose prose-invert max-w-none text-gray-300 space-y-4 leading-relaxed text-sm bg-dark-bg p-6 rounded-2xl border border-dark-border shadow-inner">
+                <div className="space-y-6 border-b border-border pb-8 relative">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-display font-bold text-foreground text-lg flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-emerald-400" /> Instruksi & Spesifikasi Studi Kasus
+                    </h4>
+                    {/* INDIKATOR AUTO-SAVE */}
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                      {isSavingDraft ? (
+                        <span className="text-muted-foreground flex items-center gap-2">
+                          <Timer className="w-3 h-3 animate-spin-slow" /> Menyimpan draf...
+                        </span>
+                      ) : (
+                        <span className="text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Tersimpan di awan
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="prose prose-invert max-w-none text-muted-foreground space-y-4 leading-relaxed text-sm bg-background p-6 rounded-2xl border border-border shadow-inner">
                     {selectedEnrollment.challenge.description.split('\n\n').map((paragraph: string, i: number) => {
                       if (paragraph.startsWith('### ')) {
-                        return <h4 key={i} className="text-base font-bold text-white mt-4 mb-2">{paragraph.replace('### ', '')}</h4>;
+                        return <h4 key={i} className="text-base font-bold text-foreground mt-4 mb-2">{paragraph.replace('### ', '')}</h4>;
                       }
                       if (paragraph.startsWith('- ')) {
                         return (
@@ -490,8 +717,8 @@ export default function EnrollmentWorkspacePage() {
 
                 {/* DYNAMIC SECTIONS RENDERING */}
                 {sections.length > 0 && (
-                  <div className="space-y-6 border-t border-dark-border pt-8">
-                    <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                  <div className="space-y-6 border-t border-border pt-8">
+                    <h4 className="font-display font-bold text-foreground text-lg flex items-center gap-2">
                       <FileText className="w-5 h-5 text-emerald-400" /> Lembar Ujian
                     </h4>
 
@@ -505,7 +732,7 @@ export default function EnrollmentWorkspacePage() {
                             className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${
                               activeSectionIndex === idx 
                                 ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                                : 'bg-dark-bg border-dark-border text-gray-400 hover:text-white hover:bg-white/5'
+                                : 'bg-background border-border text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                             }`}
                           >
                             {sec.title}
@@ -515,219 +742,233 @@ export default function EnrollmentWorkspacePage() {
                     )}
                     
                     <div className="space-y-6">
-                      {sections[activeSectionIndex]?.stageType === 'QUIZ' ? (
-                        <div className="flex flex-col sm:flex-row gap-6">
-                          <div className="flex-1 flex flex-col bg-dark-card border border-dark-border rounded-2xl overflow-hidden shadow-inner">
-                            <div className="p-6 border-b border-dark-border flex items-center justify-between">
-                              <div>
-                                <h2 className="font-bold text-xl text-white">Soal No. {examQuestionIdx + 1}</h2>
-                                <p className="text-sm text-gray-400 mt-1">Pilih satu jawaban yang paling tepat.</p>
-                              </div>
-                            </div>
-                            
-                            <div className="p-8 flex-1">
-                              {sections[activeSectionIndex]?.components?.[examQuestionIdx] ? (() => {
-                                const currentComp = sections[activeSectionIndex].components[examQuestionIdx];
-                                return (
-                                  <div className="max-w-3xl">
-                                    <p className="text-lg text-white mb-8 leading-relaxed whitespace-pre-wrap">{currentComp.question}</p>
-                                    
-                                    <div className="space-y-4">
-                                      {(currentComp.options || []).map((opt: any, optIdx: number) => (
-                                        <label 
-                                          key={optIdx} 
-                                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                                            componentResponses[currentComp.id]?.textValue === opt.id 
-                                              ? 'bg-cyan-500/10 border-cyan-500/50 text-white' 
-                                              : 'bg-dark-bg/50 border-dark-border text-gray-300 hover:border-white/20'
-                                          }`}
-                                        >
-                                          <input 
-                                            type="radio" 
-                                            name={`q-${examQuestionIdx}`} 
-                                            className="mt-1 w-5 h-5 text-cyan-500 focus:ring-cyan-500 bg-dark-bg" 
-                                            checked={componentResponses[currentComp.id]?.textValue === opt.id}
-                                            onChange={() => handleComponentChange(currentComp.id, opt.id, 'textValue')}
-                                          />
-                                          <span className="flex-1 text-base">{opt.text}</span>
-                                        </label>
-                                      ))}
-                                    </div>
-                                  </div>
-                                );
-                              })() : (
-                                <p className="text-gray-500">Soal tidak ditemukan.</p>
-                              )}
-                            </div>
-
-                            <div className="p-6 border-t border-dark-border bg-[#111] flex items-center justify-between">
-                              <button 
-                                type="button"
-                                disabled={examQuestionIdx === 0}
-                                onClick={() => setExamQuestionIdx(Math.max(0, examQuestionIdx - 1))}
-                                className="px-6 py-2.5 rounded-xl font-bold text-sm bg-dark-bg border border-dark-border text-white hover:bg-white/5 disabled:opacity-50 flex items-center gap-2"
-                              >
-                                <ArrowLeft className="w-4 h-4" /> Sebelumnya
-                              </button>
-                              
-                              <button 
-                                type="button"
-                                disabled={examQuestionIdx === (sections[activeSectionIndex]?.components?.length || 1) - 1}
-                                onClick={() => setExamQuestionIdx(Math.min((sections[activeSectionIndex]?.components?.length || 1) - 1, examQuestionIdx + 1))}
-                                className="px-6 py-2.5 rounded-xl font-bold text-sm bg-cyan-500 hover:bg-cyan-600 text-black disabled:opacity-50 flex items-center gap-2"
-                              >
-                                Selanjutnya <ArrowLeft className="w-4 h-4 rotate-180" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="w-full sm:w-72 bg-dark-card border border-dark-border rounded-2xl p-6 flex flex-col">
-                            <h3 className="font-bold text-white mb-4">Navigasi Soal</h3>
-                            <div className="grid grid-cols-5 gap-2 overflow-y-auto custom-scrollbar flex-1 content-start">
-                              {sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => {
-                                const isAnswered = !!componentResponses[comp.id]?.textValue;
-                                const isActive = examQuestionIdx === idx;
-                                return (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => setExamQuestionIdx(idx)}
-                                    className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${
-                                      isActive 
-                                        ? 'bg-cyan-500 text-black border-2 border-white' 
-                                        : isAnswered 
-                                          ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400' 
-                                          : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-white/5'
-                                    }`}
-                                  >
-                                    {idx + 1}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div className="mt-6 pt-4 border-t border-dark-border space-y-2 text-xs text-gray-400">
-                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-cyan-500/20 border border-cyan-500/30"></div> Sudah Dijawab</div>
-                              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-dark-bg border border-dark-border"></div> Belum Dijawab</div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => (
-                        <div key={comp.id} className="bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner space-y-4">
-                          <div className="flex justify-between items-start gap-4 mb-4 border-b border-dark-border/50 pb-4">
-                            <h5 className="font-bold text-white text-base leading-relaxed">
-                              {idx + 1}. {comp.question}
-                            </h5>
-                            <span className="text-xs bg-dark-card border border-dark-border px-2 py-1 rounded text-emerald-400 whitespace-nowrap font-semibold shadow-sm">
-                              {comp.points} Poin
-                            </span>
-                          </div>
-                          {comp.description && (
-                            <p className="text-sm text-gray-400 mb-4 bg-black/20 p-4 rounded-xl border border-white/5">{comp.description}</p>
-                          )}
-
-                          {comp.type === 'MULTIPLE_CHOICE' && comp.options && (
-                            <div className="space-y-3">
-                              {comp.options.map((opt: any, optIdx: number) => (
-                                <label key={optIdx} className="flex items-center gap-3 p-3 rounded-xl border border-dark-border hover:border-emerald-500/50 cursor-pointer transition-colors bg-dark-card">
-                                  <input
-                                    type="radio"
-                                    name={`comp-${comp.id}`}
-                                    value={opt.id}
-                                    onChange={() => handleComponentChange(comp.id, opt.id, 'textValue')}
-                                    checked={componentResponses[comp.id]?.textValue === opt.id}
-                                    className="w-4 h-4 text-emerald-500 bg-dark-bg border-gray-600 focus:ring-emerald-500"
-                                  />
-                                  <span className="text-sm text-gray-200">{opt.text}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-
-                          {comp.type === 'ESSAY' && (
-                            <Textarea
-                              placeholder="Ketik jawaban Anda di sini..."
-                              value={componentResponses[comp.id]?.textValue || ''}
-                              onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
-                              rows={5}
-                            />
-                          )}
-
-                          {comp.type === 'URL_LINK' && (
+                      <div className="flex flex-col xl:flex-row gap-6">
+                        <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-inner">
+                          <div className="p-6 border-b border-border flex items-center justify-between">
                             <div>
-                              <label className="block text-sm font-medium text-gray-400 mb-2">Masukkan Tautan (URL)</label>
-                              <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl overflow-hidden focus-within:border-cyan-500 transition-colors">
-                                <div className="px-4 py-3 bg-[#1a1a1a] border-r border-dark-border text-gray-500">
-                                  https://
-                                </div>
-                                <input 
-                                  type="url" 
-                                  value={componentResponses[comp.id]?.textValue || ''}
-                                  onChange={(e) => handleComponentChange(comp.id, e.target.value, 'textValue')}
-                                  className="flex-1 bg-transparent px-4 py-3 text-white placeholder-gray-600 focus:outline-none"
-                                  placeholder="contoh: github.com/username/repo"
-                                />
-                              </div>
+                              <h2 className="font-bold text-xl text-foreground">Soal No. {examQuestionIdx + 1}</h2>
+                              <p className="text-sm text-muted-foreground mt-1">Selesaikan tugas sesuai dengan format yang diminta.</p>
                             </div>
-                          )}
+                            {sections[activeSectionIndex]?.components?.[examQuestionIdx]?.points && (
+                              <span className="text-xs bg-background border border-emerald-500/30 px-3 py-1.5 rounded-lg text-emerald-400 whitespace-nowrap font-bold shadow-sm">
+                                {sections[activeSectionIndex].components[examQuestionIdx].points} Poin
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="p-6 sm:p-8 flex-1 overflow-x-hidden">
+                            {sections[activeSectionIndex]?.components?.[examQuestionIdx] ? (() => {
+                              const currentComp = sections[activeSectionIndex].components[examQuestionIdx];
+                              return (
+                                <div className="max-w-4xl w-full">
+                                  <p className="text-lg text-foreground mb-6 leading-relaxed whitespace-pre-wrap">{currentComp.question}</p>
+                                  {currentComp.description && (
+                                    <p className="text-sm text-muted-foreground mb-8 bg-black/20 p-4 rounded-xl border border-white/5">{currentComp.description}</p>
+                                  )}
+                                  
+                                  <div className="space-y-4">
+                                    {currentComp.type === 'MULTIPLE_CHOICE' && currentComp.options && (
+                                      <div className="space-y-3">
+                                        {(currentComp.options || []).map((opt: any, optIdx: number) => (
+                                          <label 
+                                            key={optIdx} 
+                                            className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                                              componentResponses[currentComp.id]?.textValue === opt.id 
+                                                ? 'bg-cyan-500/10 border-cyan-500/50 text-white' 
+                                                : 'bg-background/50 border-border text-muted-foreground hover:border-foreground/20'
+                                            }`}
+                                          >
+                                            <input 
+                                              type="radio" 
+                                              name={`q-${examQuestionIdx}`} 
+                                              className="mt-1 w-5 h-5 text-cyan-500 focus:ring-cyan-500 bg-background" 
+                                              checked={componentResponses[currentComp.id]?.textValue === opt.id}
+                                              onChange={() => handleComponentChange(currentComp.id, opt.id, 'textValue')}
+                                            />
+                                            <span className="flex-1 text-base">{opt.text}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    )}
 
-                          {comp.type === 'FILE_UPLOAD' && (
-                            <FileUploader
-                              onUploadComplete={(url) => handleComponentChange(comp.id, url, 'fileUrl')}
-                              maxSizeMB={10}
-                            />
-                          )}
+                                    {currentComp.type === 'ESSAY' && (
+                                      <Textarea
+                                        placeholder="Ketik jawaban Anda di sini..."
+                                        value={componentResponses[currentComp.id]?.textValue || ''}
+                                        onChange={(e) => handleComponentChange(currentComp.id, e.target.value, 'textValue')}
+                                        rows={8}
+                                      />
+                                    )}
 
-                          {comp.type === 'VIDEO_RECORDING' && (
-                            <div className="space-y-4">
-                              <p className="text-xs text-amber-400 mb-2 font-medium">Perekaman Video Langsung</p>
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  const isRecording = componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan';
-                                  handleComponentChange(comp.id, isRecording ? '' : 'Rekaman Berhasil Disimpan', 'textValue');
-                                }}
-                                className={`w-full py-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-dark-bg border-dark-border text-gray-400 hover:bg-white/5 hover:border-cyan-500/50'}`}
-                              >
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                                  <Camera className="w-5 h-5 text-white" />
+                                    {currentComp.type === 'URL_LINK' && (
+                                      <div>
+                                        <label className="block text-sm font-medium text-muted-foreground mb-2">Masukkan Tautan (URL)</label>
+                                        <div className="flex items-center bg-background border border-border rounded-xl overflow-hidden focus-within:border-cyan-500 transition-colors">
+                                          <div className="px-4 py-3 bg-[#1a1a1a] border-r border-border text-muted-foreground">
+                                            https://
+                                          </div>
+                                          <input 
+                                            type="url" 
+                                            value={componentResponses[currentComp.id]?.textValue || ''}
+                                            onChange={(e) => handleComponentChange(currentComp.id, e.target.value, 'textValue')}
+                                            className="flex-1 bg-transparent px-4 py-3 text-foreground placeholder-gray-600 focus:outline-none w-full min-w-0"
+                                            placeholder="contoh: github.com/username/repo"
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {currentComp.type === 'FILE_UPLOAD' && (
+                                      <div className="bg-background p-6 rounded-2xl border border-border">
+                                        <FileUploader
+                                          onUploadComplete={(url) => handleComponentChange(currentComp.id, url, 'fileUrl')}
+                                          maxSizeMB={25}
+                                        />
+                                        {componentResponses[currentComp.id]?.fileUrl && (
+                                          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                                            <span className="text-emerald-400 text-sm font-medium truncate pr-4">Berkas berhasil diunggah</span>
+                                            <a href={componentResponses[currentComp.id].fileUrl} target="_blank" rel="noreferrer" className="text-xs bg-emerald-500 text-black px-3 py-1.5 rounded-lg font-bold shrink-0 hover:bg-emerald-400">Lihat Berkas</a>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {currentComp.type === 'VIDEO_RECORDING' && (
+                                      <div className="space-y-4">
+                                        <button 
+                                          type="button"
+                                          onClick={() => {
+                                            const isRecording = componentResponses[currentComp.id]?.textValue === 'Rekaman Berhasil Disimpan';
+                                            handleComponentChange(currentComp.id, isRecording ? '' : 'Rekaman Berhasil Disimpan', 'textValue');
+                                          }}
+                                          className={`w-full py-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-colors ${componentResponses[currentComp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-background border-border text-muted-foreground hover:bg-foreground/5 hover:border-cyan-500/50'}`}
+                                        >
+                                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${componentResponses[currentComp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                                            <Camera className="w-5 h-5 text-foreground" />
+                                          </div>
+                                          <div className="text-center">
+                                            <span className="block font-bold text-lg mb-1">{componentResponses[currentComp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'Rekaman Selesai Disimpan' : 'Klik untuk Mulai Merekam'}</span>
+                                            <span className="text-sm opacity-70">Maksimal durasi 5 menit</span>
+                                          </div>
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {currentComp.type === 'LIVE_CODING' && (
+                                      <div className="rounded-xl overflow-hidden border border-border shadow-2xl flex flex-col min-w-0">
+                                        <div className="bg-card px-4 py-3 border-b border-border flex flex-wrap gap-3 justify-between items-center">
+                                          <div className="flex items-center gap-3">
+                                            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                                              Main.{currentComp.metadata?.language || 'js'}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="w-3 h-3" /> Live Editor</span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRunCode(currentComp.id, currentComp.metadata?.language || 'javascript')}
+                                            disabled={isExecuting[currentComp.id]}
+                                            className="flex items-center gap-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-muted-foreground px-4 py-2 rounded-lg transition-colors shadow-lg shadow-emerald-500/20 shrink-0"
+                                          >
+                                            <Play className="w-4 h-4 fill-current" /> 
+                                            {isExecuting[currentComp.id] ? 'Running...' : 'Run Code'}
+                                          </button>
+                                        </div>
+                                        <div className="w-full">
+                                          <Editor
+                                            height="400px"
+                                            language={currentComp.metadata?.language || 'javascript'}
+                                            theme="vs-dark"
+                                            value={componentResponses[currentComp.id]?.textValue || ''}
+                                            onChange={(value) => handleComponentChange(currentComp.id, value, 'textValue')}
+                                            options={{
+                                              minimap: { enabled: false },
+                                              fontSize: 14,
+                                              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                              scrollBeyondLastLine: false,
+                                              smoothScrolling: true,
+                                              cursorBlinking: "smooth",
+                                              cursorSmoothCaretAnimation: "on",
+                                              formatOnPaste: true,
+                                              wordWrap: "on"
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="bg-[#1e1e1e] border-t border-border flex flex-col">
+                                          <div className="bg-black/40 px-4 py-2 flex items-center justify-between border-b border-border">
+                                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Terminal Output</span>
+                                          </div>
+                                          <div className="p-4 h-32 overflow-y-auto font-mono text-xs custom-scrollbar">
+                                            {executionOutput[currentComp.id] ? (
+                                              <pre className={executionOutput[currentComp.id].startsWith('[Error]') || executionOutput[currentComp.id].startsWith('[Compile Error]') ? 'text-red-400 whitespace-pre-wrap' : 'text-muted-foreground whitespace-pre-wrap'}>
+                                                {executionOutput[currentComp.id]}
+                                              </pre>
+                                            ) : (
+                                              <span className="text-gray-600 italic">Klik 'Run Code' untuk melihat hasil eksekusi...</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                  </div>
                                 </div>
-                                <div className="text-center">
-                                  <span className="block font-bold text-lg mb-1">{componentResponses[comp.id]?.textValue === 'Rekaman Berhasil Disimpan' ? 'Rekaman Selesai' : 'Klik untuk Mulai Merekam'}</span>
-                                  <span className="text-sm opacity-70">Maksimal durasi 5 menit</span>
-                                </div>
-                              </button>
-                            </div>
-                          )}
+                              );
+                            })() : (
+                              <p className="text-muted-foreground">Soal tidak ditemukan.</p>
+                            )}
+                          </div>
 
-                          {comp.type === 'LIVE_CODING' && (
-                            <div className="rounded-xl overflow-hidden border border-dark-border shadow-2xl">
-                              <div className="bg-dark-card px-4 py-2 border-b border-dark-border flex justify-between items-center">
-                                <span className="text-xs font-mono text-emerald-400">Main.{comp.metadata?.language || 'js'}</span>
-                                <span className="text-xs text-gray-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Live Editor Mode</span>
-                              </div>
-                              <Editor
-                                height="400px"
-                                language={comp.metadata?.language || 'javascript'}
-                                theme="vs-dark"
-                                value={componentResponses[comp.id]?.textValue || ''}
-                                onChange={(value) => handleComponentChange(comp.id, value, 'textValue')}
-                                options={{
-                                  minimap: { enabled: false },
-                                  fontSize: 14,
-                                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                                  scrollBeyondLastLine: false,
-                                  smoothScrolling: true,
-                                  cursorBlinking: "smooth",
-                                  cursorSmoothCaretAnimation: "on",
-                                  formatOnPaste: true
-                                }}
-                              />
-                            </div>
-                          )}
+                          <div className="p-4 sm:p-6 border-t border-border bg-[#111] flex flex-wrap gap-4 items-center justify-between">
+                            <button 
+                              type="button"
+                              disabled={examQuestionIdx === 0}
+                              onClick={() => setExamQuestionIdx(Math.max(0, examQuestionIdx - 1))}
+                              className="px-6 py-2.5 rounded-xl font-bold text-sm bg-background border border-border text-foreground hover:bg-foreground/5 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              <ArrowLeft className="w-4 h-4" /> Sebelumnya
+                            </button>
+                            
+                            <button 
+                              type="button"
+                              disabled={examQuestionIdx === (sections[activeSectionIndex]?.components?.length || 1) - 1}
+                              onClick={() => setExamQuestionIdx(Math.min((sections[activeSectionIndex]?.components?.length || 1) - 1, examQuestionIdx + 1))}
+                              className="px-6 py-2.5 rounded-xl font-bold text-sm bg-cyan-500 hover:bg-cyan-600 text-black disabled:opacity-50 flex items-center gap-2"
+                            >
+                              Selanjutnya <ArrowLeft className="w-4 h-4 rotate-180" />
+                            </button>
+                          </div>
                         </div>
-                      ))
-                      )}
+
+                        <div className="w-full xl:w-80 bg-card border border-border rounded-2xl p-6 flex flex-col shrink-0">
+                          <h3 className="font-bold text-foreground mb-4">Navigasi Soal</h3>
+                          <div className="grid grid-cols-5 xl:grid-cols-4 gap-2 overflow-y-auto custom-scrollbar flex-1 content-start">
+                            {sections[activeSectionIndex]?.components?.map((comp: any, idx: number) => {
+                              const isAnswered = !!componentResponses[comp.id]?.textValue || !!componentResponses[comp.id]?.fileUrl;
+                              const isActive = examQuestionIdx === idx;
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setExamQuestionIdx(idx)}
+                                  className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${
+                                    isActive 
+                                      ? 'bg-cyan-500 text-black border-2 border-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
+                                      : isAnswered 
+                                        ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400' 
+                                        : 'bg-background border border-border text-muted-foreground hover:bg-foreground/5'
+                                  }`}
+                                >
+                                  {idx + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-6 pt-4 border-t border-border space-y-3 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-cyan-500/20 border border-cyan-500/30"></div> Sudah Dijawab</div>
+                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-background border border-border"></div> Belum Dijawab</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* NAVIGASI ANTAR SEKSI */}
@@ -738,7 +979,7 @@ export default function EnrollmentWorkspacePage() {
                            variant="secondary" 
                            onClick={() => setActiveSectionIndex(Math.max(0, activeSectionIndex - 1))} 
                            disabled={activeSectionIndex === 0}
-                           className="bg-dark-bg border-dark-border"
+                           className="bg-background border-border"
                          >
                            <ArrowLeft className="w-4 h-4 mr-2" /> Seksi Sebelumnya
                          </Button>
@@ -747,7 +988,7 @@ export default function EnrollmentWorkspacePage() {
                            variant="secondary" 
                            onClick={() => setActiveSectionIndex(Math.min(sections.length - 1, activeSectionIndex + 1))} 
                            disabled={activeSectionIndex === sections.length - 1}
-                           className="bg-dark-bg border-dark-border"
+                           className="bg-background border-border"
                          >
                            Seksi Selanjutnya <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                          </Button>
@@ -757,8 +998,8 @@ export default function EnrollmentWorkspacePage() {
                 )}
 
                 {/* LEGACY FIELDS (Dapat dikosongkan jika sudah menggunakan dynamic components) */}
-                <div className="space-y-8 pt-8 border-t border-dark-border">
-                  <h4 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                <div className="space-y-8 pt-8 border-t border-border">
+                  <h4 className="font-display font-bold text-foreground text-lg flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-emerald-400" /> Informasi Pengumpulan Tambahan
                   </h4>
                   
@@ -771,14 +1012,14 @@ export default function EnrollmentWorkspacePage() {
                   </div>
 
                   {customOutputs.length > 0 && (
-                    <div className="space-y-6 bg-dark-bg border border-dark-border rounded-2xl p-6 shadow-inner">
-                      <div className="flex items-center gap-2 border-b border-dark-border pb-3">
+                    <div className="space-y-6 bg-background border border-border rounded-2xl p-6 shadow-inner">
+                      <div className="flex items-center gap-2 border-b border-border pb-3">
                         <FileText className="h-5 w-5 text-emerald-400" />
-                        <h4 className="font-display font-bold text-white text-base">Persyaratan Output Khusus (Legacy)</h4>
+                        <h4 className="font-display font-bold text-foreground text-base">Persyaratan Output Khusus (Legacy)</h4>
                       </div>
-                      <p className="text-xs text-gray-400">Perusahaan menerapkan rubrik pengumpulan spesifik untuk studi kasus ini. Lengkapi tautan di bawah:</p>
+                      <p className="text-xs text-muted-foreground">Perusahaan menerapkan rubrik pengumpulan spesifik untuk studi kasus ini. Lengkapi tautan di bawah:</p>
 
-                      <div className="space-y-4 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {customOutputs.map((out) => (
                           <Input
                             key={out.id}
@@ -829,31 +1070,31 @@ export default function EnrollmentWorkspacePage() {
               </form>
             ) : currentStep === 'SUBMITTED' ? (
               <div className="space-y-6">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+                <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-6 flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-white mb-1">Status Kiriman: {latestSubmission.status}</h4>
-                    <p className="text-xs text-gray-400">Dikirim pada {new Date(latestSubmission.createdAt).toLocaleDateString('id-ID')}</p>
+                    <h4 className="text-sm font-bold text-foreground mb-1">Status Kiriman: {latestSubmission.status}</h4>
+                    <p className="text-xs text-muted-foreground">Dikirim pada {new Date(latestSubmission.createdAt).toLocaleDateString('id-ID')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-display font-extrabold text-emerald-400">{latestSubmission.finalScore || latestSubmission.aiScore}/100</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Skor Akhir</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Skor Akhir</p>
                   </div>
                 </div>
 
                 {latestSubmission.notes && (
-                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3 font-mono">
-                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-dark-border pb-2">
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-3 font-mono">
+                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-border pb-2">
                       <FileText className="h-4 w-4" /> Dokumen & Catatan Pengumpulan Solusi
                     </h5>
-                    <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap space-y-2 pt-2">
+                    <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap space-y-2 pt-2">
                       {latestSubmission.notes}
                     </div>
                   </div>
                 )}
 
                 {latestSubmission.componentResponses && latestSubmission.componentResponses.length > 0 && (
-                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-4">
-                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 border-b border-dark-border pb-2">
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-4">
+                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 border-b border-border pb-2">
                       <FileText className="h-4 w-4" /> Jawaban Komponen Spesifik
                     </h5>
                     <div className="space-y-4 pt-2">
@@ -861,19 +1102,19 @@ export default function EnrollmentWorkspacePage() {
                         <div key={idx} className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-2">
                           <p className="text-xs font-bold text-emerald-400">{res.component?.question || 'Tugas / Pertanyaan'}</p>
                           {res.component?.type === 'LIVE_CODING' ? (
-                            <pre className="text-xs text-gray-300 bg-black/50 p-3 rounded-lg overflow-x-auto font-mono border border-white/10">
+                            <pre className="text-xs text-muted-foreground bg-black/50 p-3 rounded-lg overflow-x-auto font-mono border border-foreground/10">
                               {res.textValue}
                             </pre>
                           ) : res.component?.type === 'MULTIPLE_CHOICE' ? (
-                            <p className="text-sm text-gray-300">
-                              Pilihan Anda: <span className="font-semibold text-white">{res.component?.options?.find((o: any) => o.id === res.textValue)?.text || res.textValue}</span>
+                            <p className="text-sm text-muted-foreground">
+                              Pilihan Anda: <span className="font-semibold text-foreground">{res.component?.options?.find((o: any) => o.id === res.textValue)?.text || res.textValue}</span>
                             </p>
                           ) : res.fileUrl ? (
                             <a href={res.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-cyan-400 hover:underline flex items-center gap-1">
                               Lihat Berkas Lampiran
                             </a>
                           ) : (
-                            <div className="text-sm text-gray-300 whitespace-pre-wrap">{res.textValue || 'Tidak ada jawaban diberikan.'}</div>
+                            <div className="text-sm text-muted-foreground whitespace-pre-wrap">{res.textValue || 'Tidak ada jawaban diberikan.'}</div>
                           )}
                         </div>
                       ))}
@@ -882,8 +1123,8 @@ export default function EnrollmentWorkspacePage() {
                 )}
 
                 {(latestSubmission.repositoryUrl || latestSubmission.liveDemoUrl || latestSubmission.figmaUrl || latestSubmission.solutionFilesUrl) && (
-                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3 font-mono">
-                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-dark-border pb-2">
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-3 font-mono">
+                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-border pb-2">
                       <ExternalLink className="h-4 w-4" /> Tautan Terlampir
                     </h5>
                     <ul className="text-xs space-y-2">
@@ -896,20 +1137,20 @@ export default function EnrollmentWorkspacePage() {
                 )}
 
                 {latestSubmission.aiCorrectionSummary && (
-                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3">
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-3">
                     <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
                       <Award className="h-4 w-4" /> Rangkuman Koreksi Otomatis AI
                     </h5>
-                    <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{latestSubmission.aiCorrectionSummary}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{latestSubmission.aiCorrectionSummary}</p>
                   </div>
                 )}
 
                 {latestSubmission.reviewerFeedback && (
-                  <div className="bg-dark-bg border border-dark-border rounded-2xl p-6 space-y-3">
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-3">
                     <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                       <Award className="h-4 w-4" /> Ulasan Final Rekruter
                     </h5>
-                    <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{latestSubmission.reviewerFeedback}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{latestSubmission.reviewerFeedback}</p>
                   </div>
                 )}
               </div>
@@ -918,23 +1159,23 @@ export default function EnrollmentWorkspacePage() {
         </div>
 
         <div className="space-y-8">
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl space-y-6">
-            <h3 className="font-display text-xl font-bold text-white border-b border-dark-border pb-4">Informasi Pengerjaan LMS</h3>
-            <div className="space-y-4 text-xs text-gray-300">
-              <div className="flex justify-between py-2 border-b border-dark-border/60">
-                <span className="text-gray-500">Waktu Mulai (Server)</span>
-                <span className="font-bold text-white text-right">{new Date(selectedEnrollment.startedAt).toLocaleString('id-ID')}</span>
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
+            <h3 className="font-display text-xl font-bold text-foreground border-b border-border pb-4">Informasi Pengerjaan LMS</h3>
+            <div className="space-y-4 text-xs text-muted-foreground">
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Waktu Mulai (Server)</span>
+                <span className="font-bold text-foreground text-right">{new Date(selectedEnrollment.startedAt).toLocaleString('id-ID')}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-dark-border/60">
-                <span className="text-gray-500">Batas Waktu</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Batas Waktu</span>
                 <span className="font-bold text-red-400 text-right">{selectedEnrollment.challenge?.gradingRubric?.durationHours || 72} Jam</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-dark-border/60">
-                <span className="text-gray-500">Mode Proctoring</span>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-muted-foreground">Mode Proctoring</span>
                 <span className="font-bold text-amber-400 text-right">{isProctored ? 'Aktif (Biometrik Wajib)' : 'Tidak Aktif'}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-gray-500">Evaluasi AI</span>
+                <span className="text-muted-foreground">Evaluasi AI</span>
                 <span className="font-bold text-emerald-400 text-right">Instant Feedback</span>
               </div>
             </div>

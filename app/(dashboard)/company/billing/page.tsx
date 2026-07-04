@@ -6,6 +6,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { subscriptionsService } from '../../../../services/subscriptions.service';
 import { CheckCircle2, Zap, Shield, Crown, CreditCard, ArrowRight, Loader2, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Script from 'next/script';
 
 const plans = [
   {
@@ -102,8 +103,8 @@ export default function BillingPage() {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center space-y-4">
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white">Langganan & Tagihan</h1>
-        <p className="text-gray-400 text-sm max-w-2xl mx-auto">
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">Langganan & Tagihan</h1>
+        <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
           Tingkatkan kapabilitas rekrutmen Anda. Akses AI Generative, buka kuota tantangan yang lebih banyak, dan pastikan proses rekrutmen berjalan lancar tanpa hambatan.
         </p>
       </div>
@@ -119,8 +120,8 @@ export default function BillingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className={`relative bg-dark-card border rounded-3xl p-8 flex flex-col ${
-                isPro ? 'border-emerald-500/50 shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]' : 'border-dark-border'
+              className={`relative bg-card border rounded-3xl p-8 flex flex-col ${
+                isPro ? 'border-emerald-500/50 shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]' : 'border-border'
               }`}
             >
               {isPro && (
@@ -131,18 +132,18 @@ export default function BillingPage() {
               
               <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-2">
-                  {plan.tier === 'STARTUP' && <Shield className="h-5 w-5 text-gray-400" />}
+                  {plan.tier === 'STARTUP' && <Shield className="h-5 w-5 text-muted-foreground" />}
                   {plan.tier === 'KONGLOMERAT' && <Zap className="h-5 w-5 text-emerald-400 fill-emerald-400/20" />}
                   {plan.tier === 'CUSTOM' && <Crown className="h-5 w-5 text-amber-400 fill-amber-400/20" />}
-                  <h3 className="font-display font-bold text-lg text-white">{plan.name}</h3>
+                  <h3 className="font-display font-bold text-lg text-foreground">{plan.name}</h3>
                 </div>
-                <div className="text-3xl font-extrabold text-white">{plan.price}</div>
-                <p className="text-sm text-gray-400">{plan.description}</p>
+                <div className="text-3xl font-extrabold text-foreground">{plan.price}</div>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
               </div>
 
               <div className="flex-1 space-y-4 mb-8">
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Fitur Utama</p>
-                <ul className="space-y-3 text-sm text-gray-400">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fitur Utama</p>
+                <ul className="space-y-3 text-sm text-muted-foreground">
                   {plan.features.map((feat, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
@@ -157,12 +158,12 @@ export default function BillingPage() {
                 disabled={isCurrent || (isLoading && plan.tier !== 'CUSTOM')}
                 className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                   isCurrent
-                    ? 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/5'
+                    ? 'bg-foreground/5 text-muted-foreground cursor-not-allowed border border-white/5'
                     : isPro
                     ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25'
                     : plan.tier === 'CUSTOM'
-                    ? 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
-                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                    ? 'bg-foreground/10 text-white hover:bg-white/20 border border-foreground/10'
+                    : 'bg-foreground/10 text-white hover:bg-white/20 border border-foreground/10'
                 }`}
               >
                 {isLoading && !isCurrent && plan.tier !== 'CUSTOM' ? (
@@ -183,6 +184,11 @@ export default function BillingPage() {
           );
         })}
       </div>
+      <Script
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 'dummy_client_key'}
+        strategy="lazyOnload"
+      />
     </div>
   );
 }

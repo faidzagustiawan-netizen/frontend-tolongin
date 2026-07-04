@@ -8,25 +8,25 @@ const testimonialsRow1 = [
     quote: "Platform ini sangat membantu kami dalam menemukan talenta IT terbaik dengan verifikasi yang terjamin.",
     name: "Budi Santoso",
     role: "HRD PT. TELKOMSEL",
-    image: "https://i.pravatar.cc/150?u=budi",
+    avatar: "https://i.pravatar.cc/150?u=budi",
   },
   {
     quote: "Saya berhasil mendapatkan pekerjaan impian saya berkat studi kasus yang menantang dan relevan di sini.",
     name: "Siti Aminah",
     role: "UI/UX Designer",
-    image: "https://i.pravatar.cc/150?u=siti",
+    avatar: "https://i.pravatar.cc/150?u=siti",
   },
   {
     quote: "Sistem penilaian AI-nya luar biasa akurat. Sangat menghemat waktu screening CV dan portofolio kandidat.",
     name: "Andi Wijaya",
     role: "CTO TechIndo",
-    image: "https://i.pravatar.cc/150?u=andi",
+    avatar: "https://i.pravatar.cc/150?u=andi",
   },
   {
     quote: "Gamifikasi dan leaderboard membuat proses belajar dan mengerjakan tes menjadi lebih seru dan kompetitif.",
     name: "Rina Marlina",
     role: "Product Manager",
-    image: "https://i.pravatar.cc/150?u=rina",
+    avatar: "https://i.pravatar.cc/150?u=rina",
   },
 ];
 
@@ -35,37 +35,37 @@ const testimonialsRow2 = [
     quote: "Inovasi biometrik wajah memberikan rasa aman bagi perusahaan bahwa kandidat yang mengerjakan tes adalah orang yang tepat.",
     name: "Hendrik Kusuma",
     role: "VP of Engineering Gojek",
-    image: "https://i.pravatar.cc/150?u=hendrik",
+    avatar: "https://i.pravatar.cc/150?u=hendrik",
   },
   {
     quote: "Platform terbaik untuk membangun portofolio. Saya bisa memamerkan skill coding saya langsung ke perusahaan.",
     name: "Dewi Lestari",
     role: "Frontend Developer",
-    image: "https://i.pravatar.cc/150?u=dewi",
+    avatar: "https://i.pravatar.cc/150?u=dewi",
   },
   {
     quote: "Koreksi otomatis dengan analisis AST dan Big-O sangat membantu dalam melihat seberapa efisien kode yang ditulis kandidat.",
     name: "Fajar Nugroho",
     role: "Senior Software Engineer",
-    image: "https://i.pravatar.cc/150?u=fajar",
+    avatar: "https://i.pravatar.cc/150?u=fajar",
   },
   {
     quote: "Kami dapat melihat wawasan mendalam tentang potensi setiap talenta. Platform ini merevolusi cara kami merekrut.",
     name: "Alya Rahma",
     role: "Industry Analyst",
-    image: "https://i.pravatar.cc/150?u=alya",
+    avatar: "https://i.pravatar.cc/150?u=alya",
   },
 ];
 
-const TestimonialCard = ({ testimonial }: { testimonial: any }) => (
-  <div className="flex-shrink-0 w-[350px] sm:w-[400px] p-6 rounded-2xl bg-card border border-border shadow-xl hover:border-primary/50 transition-colors mx-3 flex flex-col justify-between h-full">
+const TestimonialCard = ({ testimonial }: { testimonial: { name: string; quote: string; role: string; avatar: string; } }) => (
+  <div className="flex-shrink-0 w-[280px] sm:w-[350px] lg:w-[400px] p-6 rounded-2xl bg-card border border-border shadow-xl hover:border-primary/50 transition-colors mx-3 flex flex-col justify-between h-full">
     <p className="text-body text-sm sm:text-base leading-relaxed mb-6">
       "{testimonial.quote}"
     </p>
     <div className="flex items-center gap-4 mt-auto">
       <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-border">
         <Image
-          src={testimonial.image}
+          src={testimonial.avatar}
           alt={testimonial.name}
           fill
           className="object-cover"

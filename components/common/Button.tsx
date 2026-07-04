@@ -9,9 +9,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20 focus:ring-emerald-500',
-        secondary: 'bg-dark-card border border-dark-border hover:bg-dark-border text-white focus:ring-gray-500',
+        secondary: 'bg-card border border-border hover:bg-dark-border text-white focus:ring-gray-500',
         outline: 'border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 focus:ring-emerald-500',
-        ghost: 'hover:bg-white/5 text-gray-300 hover:text-white focus:ring-gray-500',
+        ghost: 'hover:bg-foreground/5 text-muted-foreground hover:text-foreground focus:ring-gray-500',
         danger: 'bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 focus:ring-red-500',
       },
       size: {

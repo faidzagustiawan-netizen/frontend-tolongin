@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { ShieldCheck, AlertCircle, User, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
+import Link from 'next/link';
 
 const FaceScanner = dynamic(() => import('../workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 
@@ -49,11 +50,11 @@ export const LivenessKycTab = ({
   isVerifyingKyb,
 }: LivenessKycTabProps) => {
   return (
-    <div className="bg-dark-card border border-dark-border rounded-3xl p-8 shadow-xl space-y-6">
+    <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
       <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
         <ShieldCheck className="h-4 w-4" /> Keamanan & Validasi
       </div>
-      <h3 className="font-display text-xl font-bold text-white">Status Verifikasi Identitas</h3>
+      <h3 className="font-display text-xl font-bold text-foreground">Status Verifikasi Identitas</h3>
 
       {isTalent ? (
         <div className="space-y-6">
@@ -66,10 +67,10 @@ export const LivenessKycTab = ({
               </div>
             </div>
           )}
-          <div className="bg-dark-bg border border-dark-border rounded-2xl p-5 flex items-center justify-between">
+          <div className="bg-background border border-border rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-bold text-white mb-1">AI Liveness Check</h4>
-              <p className="text-xs text-gray-400">Verifikasi wajah mandiri (Tanpa KTP)</p>
+              <h4 className="text-sm font-bold text-foreground mb-1">AI Liveness Check</h4>
+              <p className="text-xs text-muted-foreground">Verifikasi wajah mandiri (Tanpa KTP)</p>
             </div>
             <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
               talentProfile?.faceVerificationStatus === 'VERIFIED'
@@ -81,14 +82,16 @@ export const LivenessKycTab = ({
           </div>
 
           {talentProfile?.faceVerificationStatus !== 'VERIFIED' && !showLivenessCam && (
-            <Button onClick={() => setShowLivenessCam(true)} className="w-full shadow-xl">
-              Mulai Verifikasi Wajah AI
-            </Button>
+            <Link href="/profile/kyc" className="block w-full">
+              <Button className="w-full shadow-xl">
+                Mulai Verifikasi Identitas (KYC & Liveness)
+              </Button>
+            </Link>
           )}
 
           {talentProfile?.faceVerificationStatus === 'VERIFIED' && (
             <div className="space-y-4 pt-2">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
+              <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
                 <div className="relative h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex-shrink-0 shadow-md">
                   {talentProfile.avatarUrl ? (
                     <Image src={talentProfile.avatarUrl} alt="Verified Biometric" fill sizes="64px" className="object-cover transform scale-x-[-1]" />
@@ -98,7 +101,7 @@ export const LivenessKycTab = ({
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah Terdaftar (Lokal)</span>
-                  <p className="text-xs text-gray-300 leading-relaxed">Topologi wajah Anda telah direkam sebagai descriptor numerik. Ini akan digunakan secara otomatis sebelum mengumpulkan studi kasus.</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Topologi wajah Anda telah direkam sebagai descriptor numerik. Ini akan digunakan secara otomatis sebelum mengumpulkan studi kasus.</p>
                 </div>
               </div>
 
@@ -122,7 +125,7 @@ export const LivenessKycTab = ({
           )}
 
           {showTestFaceCam && (
-            <div className="pt-4 border-t border-dark-border space-y-6">
+            <div className="pt-4 border-t border-border space-y-6">
               <FaceScanner 
                 onCaptureComplete={handleFaceTestComplete} 
                 onCancel={() => setShowTestFaceCam(false)}
@@ -133,7 +136,7 @@ export const LivenessKycTab = ({
           )}
 
           {showLivenessCam && (
-            <div className="pt-4 border-t border-dark-border space-y-6">
+            <div className="pt-4 border-t border-border space-y-6">
               <FaceScanner 
                 onCaptureComplete={handleFaceCaptureComplete} 
                 onCancel={() => setShowLivenessCam(false)}
@@ -145,10 +148,10 @@ export const LivenessKycTab = ({
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-dark-bg border border-dark-border rounded-2xl p-5 flex items-center justify-between">
+          <div className="bg-background border border-border rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-bold text-white mb-1">Legalitas Bisnis (KYB)</h4>
-              <p className="text-xs text-gray-400">Verifikasi NIB / NPWP Perusahaan</p>
+              <h4 className="text-sm font-bold text-foreground mb-1">Legalitas Bisnis (KYB)</h4>
+              <p className="text-xs text-muted-foreground">Verifikasi NIB / NPWP Perusahaan</p>
             </div>
             <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
               companyProfile?.kybStatus === 'VERIFIED'
@@ -162,7 +165,7 @@ export const LivenessKycTab = ({
           </div>
 
           {companyProfile?.kybStatus !== 'VERIFIED' && companyProfile?.kybStatus !== 'PENDING' && (
-            <form onSubmit={handleKybSubmit} className="space-y-4 pt-4 border-t border-dark-border">
+            <form onSubmit={handleKybSubmit} className="space-y-4 pt-4 border-t border-border">
               <Input
                 label="Nama Entitas Hukum Resmi"
                 type="text"

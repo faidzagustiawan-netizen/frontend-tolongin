@@ -21,6 +21,28 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
   const [isFaceDetected, setIsFaceDetected] = useState(false);
   const detectionInterval = useRef<NodeJS.Timeout | null>(null);
 
+  const stopVideo = React.useCallback(() => {
+    if (detectionInterval.current) clearInterval(detectionInterval.current);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+    }
+  }, []);
+
+  const startVideo = React.useCallback(() => {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal mengakses webcam:", err);
+        setError("Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin kamera.");
+      });
+  }, []);
+
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -41,20 +63,7 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
     return () => {
       stopVideo();
     };
-  }, []);
-
-  const startVideo = () => {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      })
-      .catch((err) => {
-        console.error("Gagal mengakses webcam:", err);
-        setError("Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin kamera.");
-      });
-  };
+  }, [stopVideo, startVideo]);
 
   useEffect(() => {
     if (modelsLoaded && videoRef.current) {
@@ -73,15 +82,6 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
       if (detectionInterval.current) clearInterval(detectionInterval.current);
     };
   }, [modelsLoaded]);
-
-  const stopVideo = () => {
-    if (detectionInterval.current) clearInterval(detectionInterval.current);
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-    }
-  };
 
   const handleCapture = async () => {
     if (!videoRef.current || !modelsLoaded) return;
@@ -132,17 +132,17 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
   };
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
+        <h3 className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
           <Camera className="w-5 h-5 text-emerald-400" /> {title}
         </h3>
-        <p className="text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{description}</p>
       </div>
 
-      <div className="relative mx-auto w-full max-w-sm rounded-2xl overflow-hidden border-2 border-dark-border bg-black aspect-square flex items-center justify-center">
+      <div className="relative mx-auto w-full max-w-sm rounded-2xl overflow-hidden border-2 border-border bg-black aspect-square flex items-center justify-center">
         {!modelsLoaded && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-dark-bg/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-background/80 backdrop-blur-sm">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-3" />
             <p className="text-sm text-emerald-400 font-medium animate-pulse">Memuat model AI...</p>
           </div>

@@ -46,7 +46,7 @@ export default function VideoRecordingSolver({ comp, value, onChange }: SolverPr
           }`}>
             {isRecording ? <Mic className="w-8 h-8" /> : <Video className="w-8 h-8" />}
           </div>
-          <h4 className="text-white font-bold mb-1">
+          <h4 className="text-foreground font-bold mb-1">
             {isRecording ? 'Sedang Merekam...' : 'Siap Merekam'}
           </h4>
           <p className="text-xs text-muted mb-6 max-w-xs">

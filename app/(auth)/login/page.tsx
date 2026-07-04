@@ -62,10 +62,10 @@ function LoginContent() {
               priority
             />
           </Link>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
             Selamat Datang Kembali
           </h2>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Masuk ke akun Anda untuk melanjutkan pembuktian kinerja atau merekrut talenta.
           </p>
         </div>
@@ -107,7 +107,7 @@ function LoginContent() {
           />
 
           <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
               <input type="checkbox" className="rounded bg-bg border-border text-emerald-500 focus:ring-emerald-500" />
               <span>Ingat saya</span>
             </label>
@@ -127,12 +127,12 @@ function LoginContent() {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-4 text-gray-500 font-semibold tracking-wider">Atau</span>
+            <span className="bg-card px-4 text-muted-foreground font-semibold tracking-wider">Atau</span>
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center space-y-2">
-          <p className="text-xs text-gray-400">Belum memiliki akun di Tolongin.co?</p>
+        <div className="bg-foreground/5 border border-foreground/10 rounded-xl p-4 text-center space-y-2">
+          <p className="text-xs text-muted-foreground">Belum memiliki akun di Tolongin.co?</p>
           <div className="flex items-center justify-center gap-4 text-xs font-semibold">
             <Link href="/register?role=TALENT" className="text-emerald-400 hover:text-emerald-300">
               Daftar Talenta
@@ -150,7 +150,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-[80vh] flex items-center justify-center"><p className="text-sm text-gray-400">Memuat halaman...</p></div>}>
+    <Suspense fallback={<div className="min-h-[80vh] flex items-center justify-center"><p className="text-sm text-muted-foreground">Memuat halaman...</p></div>}>
       <LoginContent />
     </Suspense>
   );

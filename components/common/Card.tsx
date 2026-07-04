@@ -7,13 +7,13 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-dark-card border-dark-border shadow-2xl',
-        glass: 'bg-dark-card/60 border-dark-border backdrop-blur-md shadow-2xl',
-        gradient: 'bg-gradient-to-r from-dark-card via-emerald-950/30 to-cyan-950/30 border-dark-border shadow-2xl',
-        outline: 'bg-transparent border-dark-border',
+        default: 'bg-card border-border shadow-2xl',
+        glass: 'bg-card/60 border-border backdrop-blur-md shadow-2xl',
+        gradient: 'bg-gradient-to-r from-dark-card via-emerald-950/30 to-cyan-950/30 border-border shadow-2xl',
+        outline: 'bg-transparent border-border',
       },
       interactive: {
-        true: 'group hover:bg-dark-card/80',
+        true: 'group hover:bg-card/80',
         false: '',
       },
       hoverEffect: {

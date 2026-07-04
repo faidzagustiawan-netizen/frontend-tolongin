@@ -61,7 +61,7 @@ export default function FileUploadSolver({ comp, value, onChange }: SolverProps)
       ) : (
         <div 
           className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-colors ${
-            dragActive ? 'border-cyan-500 bg-cyan-500/5' : 'border-border bg-bg hover:bg-white/5 hover:border-white/20'
+            dragActive ? 'border-cyan-500 bg-cyan-500/5' : 'border-border bg-bg hover:bg-foreground/5 hover:border-foreground/20'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}

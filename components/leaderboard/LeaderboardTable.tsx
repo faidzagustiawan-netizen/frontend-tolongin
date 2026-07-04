@@ -23,9 +23,9 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
   const getRankBadge = (rank: number) => {
     switch (rank) {
       case 1: return 'bg-yellow-400/20 border-yellow-400/50 text-yellow-400 shadow-yellow-400/20 shadow-lg scale-110 z-10';
-      case 2: return 'bg-gray-300/20 border-gray-300/50 text-gray-300 shadow-gray-300/10 scale-105';
+      case 2: return 'bg-gray-300/20 border-gray-300/50 text-muted-foreground shadow-gray-300/10 scale-105';
       case 3: return 'bg-[#CD7F32]/20 border-[#CD7F32]/50 text-[#CD7F32] shadow-[#CD7F32]/10 scale-105';
-      default: return 'bg-white/5 border-white/10 text-gray-400';
+      default: return 'bg-foreground/5 border-foreground/10 text-muted-foreground';
     }
   };
 
@@ -45,8 +45,8 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className={`bg-dark-card border-2 hover:border-white/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden ${
-                isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-dark-border'
+              className={`bg-card border-2 hover:border-foreground/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden ${
+                isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-border'
               }`}
             >
               {isCurrentUser && (
@@ -59,24 +59,24 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                  <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-foreground/5 border border-foreground/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                     {talent.avatarUrl ? (
                       <Image src={talent.avatarUrl} alt={talent.fullName} fill sizes="64px" className="object-cover" />
                     ) : (
-                      <User className="relative z-10 h-6 w-6 text-gray-400" />
+                      <User className="relative z-10 h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className={`text-base sm:text-lg font-bold ${isCurrentUser ? 'text-emerald-400' : 'text-white'}`}>
+                      <h4 className={`text-base sm:text-lg font-bold ${isCurrentUser ? 'text-emerald-500' : 'text-foreground'}`}>
                         {talent.fullName} {isCurrentUser && '(Anda)'}
                       </h4>
                       {talent.faceVerificationStatus === 'VERIFIED' && (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {talent.mockRegion || 'Global'}</span>
                       <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold tracking-wider ${rankInfo.bg} ${rankInfo.border} ${rankInfo.color}`}>
                         {rankInfo.name}
@@ -86,18 +86,18 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
                 </div>
               </div>
 
-              <div className="flex items-center justify-center sm:justify-end gap-4 sm:gap-8 bg-dark-bg sm:bg-transparent border border-dark-border sm:border-none rounded-xl p-4 sm:p-0 w-full sm:w-auto">
+              <div className="flex items-center justify-center sm:justify-end gap-4 sm:gap-8 bg-background sm:bg-transparent border border-border sm:border-none rounded-xl p-4 sm:p-0 w-full sm:w-auto">
                 <div className="text-center">
                   <p className="text-2xl font-display font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">{talent.level || 1}</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Level</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Level</p>
                 </div>
                 <div className="w-px h-8 bg-dark-border hidden sm:block" />
                 <div className="text-center">
-                  <p className="text-2xl font-display font-extrabold text-white flex items-center justify-center gap-1">
+                  <p className="text-2xl font-display font-extrabold text-foreground flex items-center justify-center gap-1">
                     <Zap className="h-5 w-5 text-amber-400 flex-shrink-0" />
                     {talent.xp || 0}
                   </p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Experience</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Experience</p>
                 </div>
               </div>
             </motion.div>

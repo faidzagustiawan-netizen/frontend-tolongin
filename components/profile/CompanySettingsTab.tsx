@@ -54,16 +54,16 @@ export const CompanySettingsTab = ({
         disabled
       />
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Deskripsi Perusahaan</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-2">Deskripsi Perusahaan</label>
         {isEditingProfile ? (
           <textarea
-            className="w-full bg-dark-bg border border-dark-border rounded-xl p-4 text-white text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+            className="w-full bg-background border border-border rounded-xl p-4 text-foreground text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
             rows={4}
             value={editFormData.description}
             onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
           />
         ) : (
-          <p className="text-xs text-gray-400 leading-relaxed bg-dark-bg border border-dark-border p-4 rounded-xl">
+          <p className="text-xs text-muted-foreground leading-relaxed bg-background border border-border p-4 rounded-xl">
             {companyProfile?.description || 'Belum ada deskripsi perusahaan.'}
           </p>
         )}
