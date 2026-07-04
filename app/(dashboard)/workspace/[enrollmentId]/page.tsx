@@ -289,27 +289,20 @@ export default function EnrollmentWorkspacePage() {
     setIsVerifyingFace(false);
   };
 
-  const handleFaceVerification = async (scannedDescriptor: number[]) => {
+  const handleFaceVerification = async (scannedDescriptor: number[], imageDataUrl?: string) => {
     setWebcamOpen(false);
     setIsVerifyingFace(true);
 
     try {
-      const storedVector = (user as any)?.profile?.biometricFeatureVector;
-      
-      if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
+      if (!imageDataUrl) {
         setFaceVerified(false);
-        alert('Anda belum mendaftarkan wajah di halaman Profil. Harap daftarkan wajah (Scan Wajah) terlebih dahulu.');
+        alert('Gagal mengambil gambar wajah dari kamera.');
         return;
       }
 
-      const desc1 = new Float32Array(scannedDescriptor);
-      // Since prisma returns it as JSON array, we can map it to Float32Array
-      const desc2 = new Float32Array(storedVector as number[]);
-      const faceapi = await import('@vladmandic/face-api');
-      const distance = faceapi.euclideanDistance(desc1, desc2);
+      const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
 
-      // 0.6 is a standard threshold for face-api.js model
-      if (distance < 0.6) {
+      if (result.verified) {
         setFaceVerified(true);
         setTimeout(() => {
            handleEnterFullscreen();
@@ -317,11 +310,11 @@ export default function EnrollmentWorkspacePage() {
         }, 1500); // give time to show success message
       } else {
         setFaceVerified(false);
-        alert(`Wajah tidak cocok dengan profil terdaftar (Distance: ${distance.toFixed(2)}). Pastikan Anda adalah peserta yang sah.`);
+        alert(`${result.message}`);
       }
     } catch (err: any) {
       setFaceVerified(false);
-      alert('Terjadi kesalahan saat memverifikasi wajah.');
+      alert(err.response?.data?.message || err.message || 'Terjadi kesalahan saat memverifikasi wajah.');
     } finally {
       setIsVerifyingFace(false);
     }
@@ -997,71 +990,7 @@ export default function EnrollmentWorkspacePage() {
                   </div>
                 )}
 
-                {/* LEGACY FIELDS (Dapat dikosongkan jika sudah menggunakan dynamic components) */}
-                <div className="space-y-8 pt-8 border-t border-border">
-                  <h4 className="font-display font-bold text-foreground text-lg flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-emerald-400" /> Informasi Pengumpulan Tambahan
-                  </h4>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-200">Berkas / Aset Solusi Tambahan (Opsional)</label>
-                    <FileUploader
-                      onUploadComplete={(url) => setSolutionFilesUrl(url)}
-                      maxSizeMB={25}
-                    />
-                  </div>
 
-                  {customOutputs.length > 0 && (
-                    <div className="space-y-6 bg-background border border-border rounded-2xl p-6 shadow-inner">
-                      <div className="flex items-center gap-2 border-b border-border pb-3">
-                        <FileText className="h-5 w-5 text-emerald-400" />
-                        <h4 className="font-display font-bold text-foreground text-base">Persyaratan Output Khusus (Legacy)</h4>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Perusahaan menerapkan rubrik pengumpulan spesifik untuk studi kasus ini. Lengkapi tautan di bawah:</p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {customOutputs.map((out) => (
-                          <Input
-                            key={out.id}
-                            label={`${out.label} ${out.required ? '*' : '(Opsional)'}`}
-                            type="url"
-                            placeholder={out.placeholder}
-                            required={out.required}
-                            value={customInputs[out.id] || ''}
-                            onChange={(e) => setCustomInputs({ ...customInputs, [out.id]: e.target.value })}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input
-                      label="Tautan Repositori (GitHub/GitLab) - Opsional"
-                      type="url"
-                      placeholder="https://github.com/username/repo"
-                      value={repositoryUrl}
-                      onChange={(e) => setRepositoryUrl(e.target.value)}
-                      icon={<GitBranch className="h-5 w-5" />}
-                    />
-                    <Input
-                      label="Tautan Demo Langsung (Vercel/Netlify) - Opsional"
-                      type="url"
-                      placeholder="https://my-project.vercel.app"
-                      value={liveDemoUrl}
-                      onChange={(e) => setLiveDemoUrl(e.target.value)}
-                      icon={<Globe className="h-5 w-5" />}
-                    />
-                  </div>
-
-                  <Textarea
-                    label="Catatan Eksekutif Tambahan"
-                    placeholder="Catatan tambahan di luar format komponen di atas..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                  />
-                </div>
 
                 <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full shadow-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 text-base mt-8">
                   <Send className="h-5 w-5 mr-2" />

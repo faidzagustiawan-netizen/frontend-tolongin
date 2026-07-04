@@ -21,6 +21,11 @@ export const verificationService = {
     return response.data;
   },
   
+  verifyExecution: async (data: { livePhotoUrl: string }): Promise<any> => {
+    const response = await apiClient.post('/verification/verify-execution', data);
+    return response.data;
+  },
+  
   verifyKyb: async (data: any): Promise<any> => {
     const response = await apiClient.post('/verification/kyb', data);
     return response.data;

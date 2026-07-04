@@ -5,6 +5,7 @@ export interface NotificationItem {
   title: string;
   content: string;
   isRead: boolean;
+  linkUrl?: string;
   createdAt: string;
 }
 

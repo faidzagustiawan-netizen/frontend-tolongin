@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { LeaderboardFilterBar } from '../../components/leaderboard/LeaderboardFilterBar';
 import { Podium } from '../../components/leaderboard/Podium';
 import { LeaderboardTable } from '../../components/leaderboard/LeaderboardTable';
+import { FadeIn, StaggerContainer, StaggerItem } from '../../components/animations';
 
 const RANKS = [
   { minLevel: 1, maxLevel: 1, name: 'Bronze', color: 'text-[#CD7F32]', border: 'border-[#CD7F32]/50', bg: 'bg-[#CD7F32]/10' },
@@ -39,21 +40,23 @@ export default function LeaderboardPage() {
     return RANKS.find(r => level >= r.minLevel && level <= r.maxLevel) || RANKS[0];
   };
 
-  // Mocking filtering since backend doesn't have region and precise roles
   const filteredLeaderboard = rawLeaderboard.filter((talent: any) => {
-    if (selectedCategory === 'All Roles') return true;
-    const skills = (talent.skills || []).join(' ').toLowerCase();
-    if (selectedCategory === 'Frontend') return skills.includes('react') || skills.includes('next') || skills.includes('frontend');
-    if (selectedCategory === 'Backend') return skills.includes('node') || skills.includes('nest') || skills.includes('backend') || skills.includes('go') || skills.includes('postgres');
-    if (selectedCategory === 'UI/UX') return skills.includes('figma') || skills.includes('design') || skills.includes('ui');
-    if (selectedCategory === 'Data Science') return skills.includes('python') || skills.includes('data') || skills.includes('ai') || skills.includes('llm');
+    // Kategori/Role filtering
+    if (selectedCategory !== 'All Roles') {
+      if (talent.roleCategory !== selectedCategory) {
+        // Fallback: If roleCategory doesn't match precisely, you can still check skills or just reject
+        return false;
+      }
+    }
+    
+    // Region filtering
+    if (selectedRegion !== 'Global' && selectedRegion !== 'Indonesia') {
+      if (talent.location !== selectedRegion) {
+        return false;
+      }
+    }
+    
     return true;
-  }).map((talent: any, index: number) => ({
-    ...talent,
-    mockRegion: index % 3 === 0 ? 'Jakarta' : index % 3 === 1 ? 'Bandung' : 'Yogyakarta'
-  })).filter((talent: any) => {
-    if (selectedRegion === 'Global' || selectedRegion === 'Indonesia') return true;
-    return talent.mockRegion === selectedRegion;
   });
 
   const topThree = filteredLeaderboard.slice(0, 3);
@@ -62,9 +65,8 @@ export default function LeaderboardPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <FadeIn
+          y={10}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 backdrop-blur-md"
         >
           <Trophy className="h-4 w-4 text-emerald-400" />

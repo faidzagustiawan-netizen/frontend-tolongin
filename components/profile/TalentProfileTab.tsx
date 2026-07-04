@@ -48,6 +48,39 @@ export const TalentProfileTab = ({
           disabled={!isEditingProfile}
         />
       </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Input
+          label="Domisili (Location)"
+          placeholder="Cth: Jakarta, Bandung, dll."
+          defaultValue={talentProfile?.location}
+          value={isEditingProfile ? editFormData.location : undefined}
+          onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+          disabled={!isEditingProfile}
+        />
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Kategori Peran Utama</label>
+          {isEditingProfile ? (
+            <select
+              className="w-full h-11 bg-background border border-border rounded-xl px-4 text-foreground text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors appearance-none"
+              value={editFormData.roleCategory || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, roleCategory: e.target.value })}
+            >
+              <option value="">Pilih Kategori...</option>
+              <option value="Frontend">Frontend</option>
+              <option value="Backend">Backend</option>
+              <option value="Fullstack">Fullstack</option>
+              <option value="UI/UX">UI/UX</option>
+              <option value="Data Science">Data Science</option>
+              <option value="Mobile">Mobile Developer</option>
+              <option value="Product Manager">Product Manager</option>
+            </select>
+          ) : (
+            <div className="w-full h-11 bg-background border border-border rounded-xl px-4 text-sm flex items-center opacity-70">
+              {talentProfile?.roleCategory || '-'}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Input
           label="URL GitHub"

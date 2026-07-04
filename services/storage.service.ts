@@ -9,18 +9,15 @@ export const storageService = {
     return { data };
   },
   uploadFileToR2: async (file: File): Promise<string> => {
-    // 1. Dapatkan presigned URL dari backend
-    const { data: presignedData } = await storageService.getPresignedUrl(file.name, file.type);
-    const { presignedUrl, fileUrl } = presignedData;
+    const formData = new FormData();
+    formData.append('file', file);
 
-    // 2. Lakukan PUT request langsung ke Cloudflare R2 / AWS S3
-    await axios.put(presignedUrl, file, {
+    const { data } = await apiClient.post('/storage/upload', formData, {
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': 'multipart/form-data',
       },
     });
 
-    // 3. Kembalikan tautan publik untuk disimpan ke database
-    return fileUrl;
+    return data.fileUrl;
   },
 };

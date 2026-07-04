@@ -44,7 +44,7 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              transition={{ duration: 0.2, delay: index * 0.05, ease: 'easeOut' }}
               className={`bg-card border-2 hover:border-foreground/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden ${
                 isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-border'
               }`}
@@ -77,7 +77,7 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
                     </div>
                     
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {talent.mockRegion || 'Global'}</span>
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {talent.location || 'Global'}</span>
                       <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-bold tracking-wider ${rankInfo.bg} ${rankInfo.border} ${rankInfo.color}`}>
                         {rankInfo.name}
                       </span>

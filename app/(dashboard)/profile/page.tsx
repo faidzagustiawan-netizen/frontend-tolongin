@@ -108,28 +108,24 @@ export default function ProfilePage() {
     }
   };
 
-  const handleFaceTestComplete = async (descriptor: number[]) => {
+  const handleFaceTestComplete = async (descriptor: number[], imageDataUrl?: string) => {
     try {
-       const storedVector = talentProfile?.biometricFeatureVector;
-       if (!storedVector || !Array.isArray(storedVector) || storedVector.length === 0) {
-         alert('Belum ada data wajah terdaftar.');
+       if (!imageDataUrl) {
+         alert('Gagal mengambil gambar wajah');
          setShowTestFaceCam(false);
          return;
        }
-       const desc1 = new Float32Array(descriptor);
-       const desc2 = new Float32Array(storedVector as number[]);
-       const faceapi = await import('@vladmandic/face-api');
-       const distance = faceapi.euclideanDistance(desc1, desc2);
-       if (distance < 0.6) {
+       const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
+       if (result.verified) {
          setTestFaceResult(true);
-         alert('Berhasil! Wajah Anda cocok dengan profil (Tingkat Kemiripan: ' + ((1 - distance) * 100).toFixed(1) + '%)');
+         alert(result.message);
        } else {
          setTestFaceResult(false);
-         alert('Gagal! Wajah tidak cocok dengan profil terdaftar (Tingkat Kemiripan: ' + ((1 - distance) * 100).toFixed(1) + '%)');
+         alert(result.message);
        }
        setShowTestFaceCam(false);
-    } catch (err) {
-       alert('Gagal melakukan tes wajah');
+    } catch (err: any) {
+       alert(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
        setShowTestFaceCam(false);
     }
   };

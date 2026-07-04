@@ -4,8 +4,12 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../../components/common/Button';
 import { verificationService } from '../../../../services/verification.service';
-import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Cropper from 'react-easy-crop';
+import dynamic from 'next/dynamic';
+
+const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 
 type KycStep = 'KTP' | 'LIVENESS' | 'SUCCESS';
 
@@ -17,12 +21,65 @@ export default function KycVerificationPage() {
   // State for KTP
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
   const [ktpFileError, setKtpFileError] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<string> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return '';
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return canvas.toDataURL('image/jpeg');
+  };
+
+  const handleKtpContinue = async () => {
+    if (ktpPreview && croppedAreaPixels) {
+      setIsProcessing(true);
+      try {
+        const croppedImage = await getCroppedImg(ktpPreview, croppedAreaPixels);
+        setKtpPreview(croppedImage); // Save the cropped image
+        setStep('LIVENESS');
+      } catch (e) {
+        toast.error('Gagal memotong gambar');
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      setStep('LIVENESS');
+    }
+  };
 
   // State for Liveness
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [selfieImg, setSelfieImg] = useState<string | null>(null);
   const [livenessInstruction, setLivenessInstruction] = useState('Posisikan wajah Anda tepat di dalam bingkai oval');
   
   // Results
@@ -50,88 +107,33 @@ export default function KycVerificationPage() {
     reader.readAsDataURL(file);
   };
 
-  useEffect(() => {
-    if (step === 'LIVENESS' && !selfieImg) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => stopCamera();
-  }, [step, selfieImg]);
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 320, facingMode: "user" }
-      });
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-    } catch (err) {
-      toast.error('Gagal mengakses kamera. Harap izinkan akses kamera di browser Anda.');
-    }
-  };
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
-
-  const captureSelfieAndVerify = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || !ktpPreview) return;
-    
-    // Simulate active liveness check UI
-    setLivenessInstruction('Tahan posisi Anda... memindai biometrik');
+  const captureSelfieAndVerify = useCallback(async (imageSrc: string) => {
     setIsProcessing(true);
-    
-    setTimeout(async () => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas) return;
+    setLivenessInstruction('Memverifikasi kecocokan wajah...');
 
-      const context = canvas.getContext('2d');
-      if (context) {
-        // Draw video frame to canvas
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.translate(canvas.width, 0);
-        context.scale(-1, 1);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageSrc = canvas.toDataURL('image/jpeg');
-        setSelfieImg(imageSrc);
-        stopCamera();
-        
-        setLivenessInstruction('Memverifikasi kecocokan wajah...');
+    try {
+      const result = await verificationService.verifyFace({
+        idCardPhotoUrl: ktpPreview!,
+        selfiePhotoUrl: imageSrc
+      });
 
-      try {
-        const result = await verificationService.verifyFace({
-          idCardPhotoUrl: ktpPreview,
-          selfiePhotoUrl: imageSrc
-        });
-
-        setVerificationResult(result);
-        
-        if (result.isMatch && result.isKtpValid) {
-          toast.success('Identitas berhasil diverifikasi!');
-          setStep('SUCCESS');
-        } else {
-          toast.error(result.reason || 'Verifikasi gagal. Silakan coba lagi.');
-          setSelfieImg(null); // Reset to retry
-          setLivenessInstruction('Silakan coba posisikan wajah Anda kembali');
-        }
-      } catch (err: any) {
-        toast.error(err.message || 'Terjadi kesalahan sistem');
-        setSelfieImg(null);
-        setLivenessInstruction('Terjadi kesalahan jaringan, silakan coba lagi');
-      } finally {
-        setIsProcessing(false);
+      setVerificationResult(result);
+      
+      if (result.isMatch && result.isKtpValid) {
+        toast.success('Identitas berhasil diverifikasi!');
+        setStep('SUCCESS');
+      } else {
+        toast.error(result.reason || 'Verifikasi gagal. Silakan coba lagi.');
+        setLivenessInstruction('Silakan coba posisikan wajah Anda kembali');
       }
-      }
-    }); // UI delay for "scanning" effect
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan sistem');
+      setLivenessInstruction('Terjadi kesalahan jaringan, silakan coba lagi');
+    } finally {
+      setIsProcessing(false);
+    }
   }, [ktpPreview]);
 
   return (
@@ -188,19 +190,66 @@ export default function KycVerificationPage() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleKtpUpload} />
                 </label>
               ) : (
-                <div className="space-y-4">
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 bg-black/5 flex items-center justify-center min-h-[250px]">
-                    <img src={ktpPreview} alt="Preview KTP" className="max-h-[300px] object-contain relative z-10" />
+                <div className="space-y-6">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg mb-4 text-center">
+                    <p className="text-emerald-400 text-sm font-medium">
+                      Gunakan jari atau kursor Anda untuk <b>menggeser</b> gambar, dan gunakan slider di bawah untuk <b>memperbesar (zoom)</b> KTP agar pas di dalam bingkai hijau.
+                    </p>
+                  </div>
+                  
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 bg-black/5 min-h-[350px]">
+                    <Cropper
+                      image={ktpPreview}
+                      crop={crop}
+                      zoom={zoom}
+                      aspect={85.6 / 53.98} // Standard ID card ratio
+                      onCropChange={setCrop}
+                      onCropComplete={onCropComplete}
+                      onZoomChange={setZoom}
+                      style={{
+                        containerStyle: { borderRadius: '1rem' },
+                        cropAreaStyle: { border: '2px dashed rgba(16, 185, 129, 0.8)', background: 'rgba(16, 185, 129, 0.05)' }
+                      }}
+                    />
                     
-                    {/* GUIDELINE OVERLAY */}
-                    <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-                       <div className="w-[85%] h-[70%] border-2 border-emerald-500/70 border-dashed rounded-lg bg-emerald-500/10 backdrop-blur-[1px]"></div>
+                    {/* Placeholder Siluet KTP */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10 opacity-40">
+                      <div className="relative" style={{ width: '100%', maxWidth: '400px', aspectRatio: '85.6 / 53.98' }}>
+                         {/* Bayangan Foto KTP (Kiri) */}
+                         <div className="absolute left-[8%] top-[25%] w-[22%] h-[50%] border-2 border-dashed border-emerald-400 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-emerald-400/50" />
+                         </div>
+                         {/* Bayangan Teks (Kanan) */}
+                         <div className="absolute right-[8%] top-[25%] w-[55%] h-[50%] space-y-2">
+                            <div className="w-full h-2 bg-emerald-400/20 rounded-full"></div>
+                            <div className="w-[80%] h-2 bg-emerald-400/20 rounded-full"></div>
+                            <div className="w-[90%] h-2 bg-emerald-400/20 rounded-full"></div>
+                            <div className="w-[60%] h-2 bg-emerald-400/20 rounded-full"></div>
+                         </div>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex gap-3 justify-end">
-                    <Button variant="outline" onClick={() => setKtpPreview(null)}>Unggah Ulang</Button>
-                    <Button onClick={() => setStep('LIVENESS')}>
+                  <div className="flex items-center gap-4 bg-background border border-border p-3 rounded-xl shadow-sm">
+                    <ZoomOut className="h-5 w-5 text-muted-foreground" />
+                    <input
+                      type="range"
+                      value={zoom}
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      aria-labelledby="Zoom"
+                      onChange={(e) => {
+                        setZoom(Number(e.target.value))
+                      }}
+                      className="w-full accent-emerald-500"
+                    />
+                    <ZoomIn className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button variant="outline" onClick={() => { setKtpPreview(null); setZoom(1); }}>Unggah Ulang</Button>
+                    <Button onClick={handleKtpContinue} isLoading={isProcessing}>
                       Lanjutkan ke Kamera
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -215,56 +264,19 @@ export default function KycVerificationPage() {
           {/* STEP 2: LIVENESS */}
           {step === 'LIVENESS' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="text-center space-y-1">
-                 <h3 className="text-lg font-bold text-foreground">Pemindaian Wajah Anti-Spoofing</h3>
-                 <p className="text-sm text-muted-foreground">{livenessInstruction}</p>
-               </div>
-
-               <div className="relative mx-auto w-[320px] h-[320px] rounded-full overflow-hidden border-4 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] bg-black">
-                 {selfieImg ? (
-                   <img src={selfieImg} alt="Selfie" className="w-full h-full object-cover transform scale-x-[-1]" />
-                 ) : (
-                   <video
-                     ref={videoRef}
-                     autoPlay
-                     playsInline
-                     muted
-                     className="w-full h-full object-cover transform scale-x-[-1]"
+               <div className="flex justify-center">
+                 <div className="w-full max-w-md">
+                   <FaceScanner 
+                     title="Pemindaian Wajah Anti-Spoofing" 
+                     description={livenessInstruction} 
+                     onCaptureComplete={(descriptor, imageDataUrl) => {
+                       if (imageDataUrl) {
+                         captureSelfieAndVerify(imageDataUrl);
+                       }
+                     }} 
                    />
-                 )}
-                 <canvas ref={canvasRef} className="hidden" />
-                 
-                 {/* MASKING OVAL */}
-                 <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-                    <div className="w-[60%] h-[75%] border-[3px] border-white/50 rounded-[100%] shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
                  </div>
-
-                 {/* SCANNING LINE ANIMATION */}
-                 {isProcessing && (
-                   <div className="absolute top-0 left-0 w-full h-[4px] bg-emerald-400 shadow-[0_0_15px_#34d399] z-20 animate-[scan_2s_ease-in-out_infinite]" />
-                 )}
                </div>
-
-               <div className="flex justify-center pt-4">
-                 <Button 
-                   size="lg" 
-                   onClick={captureSelfieAndVerify} 
-                   isLoading={isProcessing}
-                   disabled={isProcessing || selfieImg !== null}
-                   className="w-[200px]"
-                 >
-                   {isProcessing ? 'Memindai...' : 'Ambil Pemindaian'}
-                 </Button>
-               </div>
-               
-               <style dangerouslySetInnerHTML={{__html: `
-                 @keyframes scan {
-                   0% { top: 0%; opacity: 0; }
-                   10% { opacity: 1; }
-                   90% { opacity: 1; }
-                   100% { top: 100%; opacity: 0; }
-                 }
-               `}} />
             </div>
           )}
 

@@ -18,7 +18,7 @@ interface LivenessKycTabProps {
   showTestFaceCam: boolean;
   setShowTestFaceCam: (val: boolean) => void;
   handleFaceCaptureComplete: (descriptor: number[], imageDataUrl?: string) => Promise<void>;
-  handleFaceTestComplete: (descriptor: number[]) => Promise<void>;
+  handleFaceTestComplete: (descriptor: number[], imageDataUrl?: string) => Promise<void>;
   handleKybSubmit: (e: React.FormEvent) => Promise<void>;
   kybEntityName: string;
   setKybEntityName: (val: string) => void;

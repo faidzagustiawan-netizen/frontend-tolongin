@@ -72,12 +72,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       setUploadedUrl(publicUrl);
       onUploadComplete(publicUrl);
     } catch (err: any) {
-      console.warn('Gagal terhubung ke Cloudflare R2, menggunakan fallback storage aman:', err);
-      // Fallback ke penyimpanan cadangan jika kunci R2 di dev belum diatur
-      const mockUrl = `https://storage.tolongin.co/submissions/${Date.now()}_${selectedFile.name}`;
-      setUploadProgress(100);
-      setUploadedUrl(mockUrl);
-      onUploadComplete(mockUrl);
+      console.error('Gagal terhubung ke Cloudflare R2:', err);
+      setError('Gagal mengunggah file. Silakan coba lagi.');
+      setUploadProgress(0);
     } finally {
       setIsUploading(false);
     }

@@ -8,6 +8,7 @@ import { ChallengeCard } from '../../components/challenge/ChallengeCard';
 import { Button } from '../../components/common/Button';
 import { Briefcase, RefreshCw, Plus, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { StaggerContainer, StaggerItem } from '../../components/animations';
 
 import { CreateChallengeModal } from '../../components/challenge/CreateChallengeModal';
 import { ChallengeFilterBar } from '../../components/challenge/ChallengeFilterBar';
@@ -119,25 +120,26 @@ export default function ChallengesDirectoryPage() {
           </Button>
         </div>
       ) : challenges.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {challenges.map((challenge: any) => (
-            <ChallengeCard
-              key={challenge.id}
-              id={challenge.id}
-              slug={challenge.slug}
-              title={challenge.title}
-              summary={challenge.summary}
-              category={challenge.category}
-              difficulty={challenge.difficulty}
-              type={challenge.challengeType}
-              companyName={challenge.challengeType === 'PUBLIC' ? (challenge.creator?.fullName || 'Talenta') : (challenge.company?.companyName || 'Perusahaan Mitra')}
-              logoUrl={challenge.challengeType === 'PUBLIC' ? challenge.creator?.avatarUrl : challenge.company?.logoUrl}
-              rewardDescription={challenge.rewardDescription}
-              deadlineAt={challenge.deadlineAt}
-              trustScore={challenge.company?.trustScore}
-            />
+            <StaggerItem key={challenge.id}>
+              <ChallengeCard
+                id={challenge.id}
+                slug={challenge.slug}
+                title={challenge.title}
+                summary={challenge.summary}
+                category={challenge.category}
+                difficulty={challenge.difficulty}
+                type={challenge.challengeType}
+                companyName={challenge.challengeType === 'PUBLIC' ? (challenge.creator?.fullName || 'Talenta') : (challenge.company?.companyName || 'Perusahaan Mitra')}
+                logoUrl={challenge.challengeType === 'PUBLIC' ? challenge.creator?.avatarUrl : challenge.company?.logoUrl}
+                rewardDescription={challenge.rewardDescription}
+                deadlineAt={challenge.deadlineAt}
+                trustScore={challenge.company?.trustScore}
+              />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       ) : (
         <div className="text-center py-20 bg-card border border-border rounded-3xl space-y-3 max-w-lg mx-auto">
           <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-2" />

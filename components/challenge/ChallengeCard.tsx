@@ -69,7 +69,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
   return (
     <motion.div
-      whileHover={{ y: -6 }}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
       className={`bg-card border ${isCompleted ? 'border-border/50 opacity-80' : 'border-border hover:border-emerald-500/50'} rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 transition-all flex flex-col justify-between h-full group`}
     >

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
+import { StaggerContainer, StaggerItem } from '../animations';
 
 export function HeroSection() {
   const [isHoveringHero, setIsHoveringHero] = useState(false);
@@ -67,42 +68,16 @@ export function HeroSection() {
             transform: 'translate(-2px, -2px)',
           }}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            style={{ display: 'block', flexShrink: 0 }}
-          >
-            <path
-              d="M2,2 L18,6 Q9,9 6,18 Z"
-              fill="black"
-              stroke="white"
-              strokeWidth="1.5"
-              strokeLinejoin="miter"
-            />
+          <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'block', flexShrink: 0 }}>
+            <path d="M2,2 L18,6 Q9,9 6,18 Z" fill="black" stroke="white" strokeWidth="1.5" strokeLinejoin="miter" />
           </svg>
-          <div
-            style={{
-              backgroundColor: '#000000',
-              color: '#ffffff',
-              borderColor: 'rgba(255, 255, 255, 0.2)',
-              marginTop: '9px',
-              marginLeft: '-7px',
-            }}
-            className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full border shadow-lg text-foreground-keep"
-          >
-            You
-          </div>
+          <div style={{ backgroundColor: '#000000', color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.2)', marginTop: '9px', marginLeft: '-7px' }} className="text-[11.5px] font-bold px-2.5 py-1.5 rounded-full border shadow-lg text-foreground-keep">You</div>
         </motion.div>
       )}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-emerald-500/20 via-teal-500/15 to-cyan-500/20 rounded-full blur-[140px] pointer-events-none -z-10" />
 
-      <motion.h1
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-        className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-title tracking-tight max-w-5xl mx-auto leading-tight"
-      >
+      <StaggerContainer className="w-full">
+        <StaggerItem className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-title tracking-tight max-w-5xl mx-auto leading-tight">
         Setiap talenta layak mendapat <br className="hidden sm:block" />
         <div className="relative inline-block min-h-[1.2em] h-auto pb-2 overflow-visible w-full mt-2">
           <AnimatePresence mode="popLayout">
@@ -118,14 +93,9 @@ export function HeroSection() {
             </motion.span>
           </AnimatePresence>
         </div>
-      </motion.h1>
+        </StaggerItem>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
-        className="mt-10 flex flex-wrap items-center justify-center gap-4"
-      >
+        <StaggerItem className="mt-10 flex flex-wrap items-center justify-center gap-4">
         <Link href="/login">
           <Button
             size="lg"
@@ -184,7 +154,8 @@ export function HeroSection() {
             />
           </Button>
         </Link>
-      </motion.div>
+        </StaggerItem>
+      </StaggerContainer>
     </section>
   );
 };

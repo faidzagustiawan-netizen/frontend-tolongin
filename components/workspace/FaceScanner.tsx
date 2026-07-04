@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import * as faceapi from '@vladmandic/face-api';
 import { Camera, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -14,27 +13,27 @@ interface FaceScannerProps {
 
 export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian Wajah", description = "Arahkan wajah Anda ke kamera dan pastikan pencahayaan cukup." }: FaceScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [isFaceDetected, setIsFaceDetected] = useState(false);
-  const detectionInterval = useRef<NodeJS.Timeout | null>(null);
+  const [selfieImg, setSelfieImg] = useState<string | null>(null);
 
   const stopVideo = React.useCallback(() => {
-    if (detectionInterval.current) clearInterval(detectionInterval.current);
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
     }
-  }, []);
+  }, [stream]);
 
   const startVideo = React.useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
+    navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 320, facingMode: "user" } })
+      .then((mediaStream) => {
+        setStream(mediaStream);
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = mediaStream;
         }
       })
       .catch((err) => {
@@ -44,91 +43,52 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
   }, []);
 
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-        ]);
-        setModelsLoaded(true);
-        startVideo();
-      } catch (err) {
-        console.error("Gagal memuat model face-api:", err);
-        setError("Gagal memuat model pendeteksi wajah. Pastikan folder /models tersedia.");
-      }
-    };
-    loadModels();
-
+    startVideo();
     return () => {
       stopVideo();
     };
-  }, [stopVideo, startVideo]);
+  }, []); // Only run once on mount
 
+  // Cleanup on unmount separately to ensure stream is latest
   useEffect(() => {
-    if (modelsLoaded && videoRef.current) {
-      detectionInterval.current = setInterval(async () => {
-        if (videoRef.current && videoRef.current.readyState === 4) {
-          try {
-            const detection = await faceapi.detectSingleFace(videoRef.current);
-            setIsFaceDetected(!!detection);
-          } catch (e) {
-            setIsFaceDetected(false);
-          }
-        }
-      }, 500);
-    }
-    return () => {
-      if (detectionInterval.current) clearInterval(detectionInterval.current);
-    };
-  }, [modelsLoaded]);
+    return () => stopVideo();
+  }, [stopVideo]);
 
   const handleCapture = async () => {
-    if (!videoRef.current || !modelsLoaded) return;
+    if (!videoRef.current || !canvasRef.current) return;
+    
     setIsCapturing(true);
     setError(null);
     setSuccess(null);
 
-    try {
-      const detection = await faceapi.detectSingleFace(videoRef.current)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+    // Simulate active liveness check delay
+    setTimeout(() => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
 
-      if (!detection) {
-        setError("Wajah tidak terdeteksi. Harap pastikan wajah Anda terlihat jelas oleh kamera.");
-      } else {
-        const descriptorArray = Array.from(detection.descriptor);
+      const context = canvas.getContext('2d');
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Capture frame as Data URL
-        let imageDataUrl = undefined;
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            // Because video is mirrored in UI, we mirror it in canvas
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-            imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          }
-        } catch (e) {
-          console.error('Failed to capture image frame', e);
-        }
-
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setSelfieImg(imageDataUrl);
         setSuccess("Wajah berhasil dipindai!");
+        
         setTimeout(() => {
           stopVideo();
-          onCaptureComplete(descriptorArray, imageDataUrl);
+          // We pass an empty array for descriptor since we no longer use local face-api
+          onCaptureComplete([], imageDataUrl);
         }, 1000);
+      } else {
+         setError("Gagal memindai wajah (Canvas context error).");
+         setIsCapturing(false);
       }
-    } catch (err) {
-      console.error("Error saat memindai wajah:", err);
-      setError("Terjadi kesalahan saat memindai wajah.");
-    } finally {
-      setIsCapturing(false);
-    }
+    }, 1500); // 1.5s scanning effect
   };
 
   return (
@@ -140,32 +100,38 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
         <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{description}</p>
       </div>
 
-      <div className="relative mx-auto w-full max-w-sm rounded-2xl overflow-hidden border-2 border-border bg-black aspect-square flex items-center justify-center">
-        {!modelsLoaded && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-background/80 backdrop-blur-sm">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-3" />
-            <p className="text-sm text-emerald-400 font-medium animate-pulse">Memuat model AI...</p>
-          </div>
+      <div className="relative mx-auto w-[240px] h-[240px] md:w-[320px] md:h-[320px] rounded-full overflow-hidden border-4 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] bg-black">
+        {selfieImg ? (
+           <img src={selfieImg} alt="Selfie" className="w-full h-full object-cover transform scale-x-[-1]" />
+        ) : (
+           <video 
+             ref={videoRef} 
+             autoPlay 
+             muted 
+             playsInline
+             className="w-full h-full object-cover transform scale-x-[-1]"
+           />
         )}
+        <canvas ref={canvasRef} className="hidden" />
 
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          muted 
-          playsInline
-          className={`w-full h-full object-cover transform scale-x-[-1] transition-opacity duration-500 ${modelsLoaded ? 'opacity-100' : 'opacity-0'}`}
-        />
+        {/* MASKING OVAL */}
+        <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+           <div className="w-[60%] h-[75%] border-[3px] border-white/50 rounded-[100%] shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+        </div>
 
-        {/* Framing Overlay */}
-        <div className={`absolute inset-0 border-[6px] rounded-2xl pointer-events-none z-10 m-8 transition-colors duration-300 ${
-          isFaceDetected ? 'border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-        }`}></div>
-        
+        {/* SCANNING LINE ANIMATION */}
         {isCapturing && (
-          <div className="absolute inset-0 bg-emerald-500/20 z-20 flex items-center justify-center backdrop-blur-sm">
-            <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
-          </div>
+          <div className="absolute top-0 left-0 w-full h-[4px] bg-emerald-400 shadow-[0_0_15px_#34d399] z-20 animate-[scan_2s_ease-in-out_infinite]" />
         )}
+        
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+          }
+        `}} />
       </div>
 
       {error && (
@@ -184,12 +150,12 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
 
       <div className="mt-8 flex gap-4">
         {onCancel && (
-          <Button variant="outline" onClick={() => { stopVideo(); onCancel(); }} className="flex-1" disabled={isCapturing}>
+          <Button variant="outline" onClick={() => { stopVideo(); onCancel(); }} className="flex-1" disabled={isCapturing || !!success}>
             Batal
           </Button>
         )}
-        <Button onClick={handleCapture} isLoading={isCapturing} disabled={!modelsLoaded || !!success || !isFaceDetected} className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
-          Pindai Wajah Sekarang
+        <Button onClick={handleCapture} isLoading={isCapturing} disabled={!!success || !!error} className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+          {isCapturing ? 'Memindai...' : 'Ambil Pemindaian'}
         </Button>
       </div>
     </div>

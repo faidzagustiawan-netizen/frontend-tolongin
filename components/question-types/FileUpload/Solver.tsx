@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { SolverProps } from '../types';
 import { UploadCloud, FileText } from 'lucide-react';
 
+import { storageService } from '../../../services/storage.service';
+
 export default function FileUploadSolver({ comp, value, onChange }: SolverProps) {
   const [dragActive, setDragActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -31,10 +35,19 @@ export default function FileUploadSolver({ comp, value, onChange }: SolverProps)
     }
   };
 
-  const handleFile = (file: File) => {
-    // In a real implementation, you'd upload this file to a server/storage
-    // and store the URL. Here we just store the file name for the mock UI.
-    onChange({ name: file.name, size: file.size, type: file.type });
+  const handleFile = async (file: File) => {
+    // Validasi ukuran & tipe bisa ditambahkan di sini berdasarkan comp.metadata
+    setIsUploading(true);
+    setError(null);
+    try {
+      const publicUrl = await storageService.uploadFileToR2(file);
+      onChange({ name: file.name, size: file.size, type: file.type, url: publicUrl });
+    } catch (err) {
+      console.error("Gagal mengunggah file:", err);
+      setError("Gagal mengunggah file. Silakan coba lagi.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const allowedExts = comp.metadata?.allowedExtensions || 'semua format';
@@ -42,6 +55,12 @@ export default function FileUploadSolver({ comp, value, onChange }: SolverProps)
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl">
+          {error}
+        </div>
+      )}
+
       {value ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3 text-emerald-400">
@@ -73,15 +92,18 @@ export default function FileUploadSolver({ comp, value, onChange }: SolverProps)
             id={`file-upload-${comp.type}`}
             className="hidden"
             onChange={handleChange}
+            disabled={isUploading}
           />
-          <label htmlFor={`file-upload-${comp.type}`} className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
-            <UploadCloud className={`w-10 h-10 mb-4 ${dragActive ? 'text-cyan-400' : 'text-muted'}`} />
+          <label htmlFor={`file-upload-${comp.type}`} className={`flex flex-col items-center justify-center w-full h-full ${isUploading ? 'cursor-wait opacity-50' : 'cursor-pointer'}`}>
+            <UploadCloud className={`w-10 h-10 mb-4 ${dragActive ? 'text-cyan-400' : 'text-muted'} ${isUploading ? 'animate-bounce text-cyan-400' : ''}`} />
             <p className="text-sm text-title mb-1">
-              <span className="text-cyan-400 font-bold">Klik untuk unggah</span> atau seret file ke sini
+              {isUploading ? <span className="text-cyan-400 font-bold">Mengunggah file...</span> : <><span className="text-cyan-400 font-bold">Klik untuk unggah</span> atau seret file ke sini</>}
             </p>
-            <p className="text-xs text-muted mb-4">
-              Format didukung: {allowedExts} (Maks. {maxSize})
-            </p>
+            {!isUploading && (
+              <p className="text-xs text-muted mb-4">
+                Format didukung: {allowedExts} (Maks. {maxSize})
+              </p>
+            )}
           </label>
         </div>
       )}

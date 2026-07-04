@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '../../store/userStore';
 import { notificationsService, NotificationItem } from '../../services/notifications.service';
 import { tokenService } from '../../services/tokenService';
+import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
 import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -98,8 +99,27 @@ export const Navbar = () => {
     queryKey: ['notifications', user?.id],
     queryFn: () => notificationsService.getMyNotifications(),
     enabled: isAuthenticated && !!user?.id,
-    refetchInterval: 15000,
   });
+
+  const { socket } = useSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleNewNotification = (notification: any) => {
+      // Invalidate query to trigger immediate refetch
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+      
+      // We can also show a quick toast here if we want, but updating the counter is enough
+    };
+
+    socket.on('new_notification', handleNewNotification);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket, user, queryClient]);
 
   const { data: tokenData, refetch: refetchTokens } = useQuery({
     queryKey: ['tokens', user?.id],
@@ -249,11 +269,18 @@ export const Navbar = () => {
 
                         <div className="max-h-80 overflow-y-auto divide-y divide-border custom-scrollbar">
                           {notifications.length > 0 ? (
-                            notifications.map((n) => (
-                              <div
-                                key={n.id}
-                                onClick={() => handleMarkAsRead(n.id)}
-                                className={`p-4 transition-colors cursor-pointer flex items-start gap-3 ${
+                            <>
+                              {notifications.slice(0, 5).map((n) => (
+                                <div
+                                  key={n.id}
+                                  onClick={() => {
+                                    handleMarkAsRead(n.id);
+                                    if (n.linkUrl) {
+                                      setNotifOpen(false);
+                                      router.push(n.linkUrl);
+                                    }
+                                  }}
+                                  className={`p-4 transition-colors cursor-pointer flex items-start gap-3 ${
                                   !n.isRead ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-foreground/5'
                                 }`}
                               >
@@ -268,7 +295,17 @@ export const Navbar = () => {
                                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.content}</p>
                                 </div>
                               </div>
-                            ))
+                              ))}
+                              <div className="p-3 bg-card border-t border-border text-center sticky bottom-0">
+                                <Link
+                                  href="/notifications"
+                                  onClick={() => setNotifOpen(false)}
+                                  className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                                >
+                                  Lihat Semua Notifikasi
+                                </Link>
+                              </div>
+                            </>
                           ) : (
                             <div className="py-12 text-center text-muted-foreground px-4 space-y-2">
                               <Info className="h-8 w-8 mx-auto opacity-50" />

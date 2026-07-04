@@ -23,7 +23,14 @@ export async function generateMetadata(
         title: `${challenge.title} | Tolongin.co`,
         description: challenge.summary,
         url: `https://tolongin.co/challenges/${slug}`,
-        images: challenge.brandGuidelineUrl ? [{ url: challenge.brandGuidelineUrl }] : [],
+        images: [
+          {
+            url: `https://tolongin.co/api/og?title=${encodeURIComponent(challenge.title)}&subtitle=${encodeURIComponent(challenge.company?.companyProfile?.companyName || 'Hiring Challenge')}&type=Challenge`,
+            width: 1200,
+            height: 630,
+            alt: challenge.title,
+          }
+        ],
         type: 'website',
       },
     };

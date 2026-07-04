@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import * as faceapi from '@vladmandic/face-api';
 import { CameraOff, UserX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { verificationService } from '../../services/verification.service';
 
 interface ContinuousProctoringProps {
   biometricVector: number[] | null;
@@ -11,13 +11,14 @@ interface ContinuousProctoringProps {
   intervalMs?: number;
 }
 
-export function ContinuousProctoring({ biometricVector, onViolation, intervalMs = 5000 }: ContinuousProctoringProps) {
+export function ContinuousProctoring({ biometricVector, onViolation, intervalMs = 30000 }: ContinuousProctoringProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   
   const detectionInterval = useRef<NodeJS.Timeout | null>(null);
   const missingFaceCounter = useRef<number>(0);
+  const [isReady, setIsReady] = useState(false);
 
   const stopVideo = React.useCallback(() => {
     if (detectionInterval.current) clearInterval(detectionInterval.current);
@@ -29,10 +30,11 @@ export function ContinuousProctoring({ biometricVector, onViolation, intervalMs 
   }, []);
 
   const startVideo = React.useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 320, facingMode: "user" }, audio: false })
       .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          setIsReady(true);
         }
       })
       .catch((err) => {
@@ -42,58 +44,50 @@ export function ContinuousProctoring({ biometricVector, onViolation, intervalMs 
   }, [onViolation]);
 
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-        ]);
-        setModelsLoaded(true);
-        startVideo();
-      } catch (err) {
-        console.error("Gagal memuat model face-api untuk background proctoring:", err);
-      }
-    };
-    loadModels();
-
+    startVideo();
     return () => {
       stopVideo();
     };
   }, [startVideo, stopVideo]);
 
   useEffect(() => {
-    if (modelsLoaded && videoRef.current) {
+    if (isReady && videoRef.current && canvasRef.current) {
       detectionInterval.current = setInterval(async () => {
         if (videoRef.current && videoRef.current.readyState === 4) {
           try {
-            const detection = await faceapi.detectSingleFace(videoRef.current)
-              .withFaceLandmarks()
-              .withFaceDescriptor();
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const context = canvas.getContext('2d');
+            if (!context) return;
 
-            if (!detection) {
-              missingFaceCounter.current += 1;
-              if (missingFaceCounter.current >= 2) {
-                setWarningMessage("Wajah tidak terdeteksi di kamera! Harap kembali ke depan layar.");
-                onViolation("Wajah tidak terdeteksi di kamera.");
-              }
-            } else {
-              missingFaceCounter.current = 0; // Reset
-              
-              if (biometricVector && biometricVector.length > 0) {
-                const desc1 = new Float32Array(Array.from(detection.descriptor));
-                const desc2 = new Float32Array(biometricVector);
-                const distance = faceapi.euclideanDistance(desc1, desc2);
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
-                if (distance > 0.6) {
-                  setWarningMessage("Peringatan: Wajah yang terdeteksi tidak cocok dengan peserta terdaftar!");
-                  onViolation(`Terdeteksi wajah asing (Distance: ${distance.toFixed(2)}).`);
+            // Using Backend Verification
+            const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
+            
+            if (!result.verified) {
+                // If it's 0 or very low, it might mean no face detected by backend
+                if (result.matchScore < 10) {
+                    missingFaceCounter.current += 1;
+                    if (missingFaceCounter.current >= 2) {
+                        setWarningMessage("Wajah tidak terdeteksi di kamera! Harap kembali ke depan layar.");
+                        onViolation("Wajah tidak terdeteksi di kamera.");
+                    }
                 } else {
-                  setWarningMessage(null);
+                    missingFaceCounter.current = 0; // Reset
+                    setWarningMessage("Peringatan: Wajah yang terdeteksi tidak cocok dengan peserta terdaftar!");
+                    onViolation(`Terdeteksi wajah asing (Score: ${result.matchScore}).`);
                 }
-              } else {
+            } else {
+                missingFaceCounter.current = 0; // Reset
                 setWarningMessage(null);
-              }
             }
           } catch (e) {
             console.error("Error during continuous face detection", e);
@@ -104,7 +98,7 @@ export function ContinuousProctoring({ biometricVector, onViolation, intervalMs 
     return () => {
       if (detectionInterval.current) clearInterval(detectionInterval.current);
     };
-  }, [modelsLoaded, biometricVector, intervalMs, onViolation]);
+  }, [isReady, intervalMs, onViolation]);
 
   return (
     <>
@@ -115,6 +109,7 @@ export function ContinuousProctoring({ biometricVector, onViolation, intervalMs 
         playsInline
         className="w-1 h-1 opacity-0 absolute pointer-events-none"
       />
+      <canvas ref={canvasRef} className="hidden" />
       <AnimatePresence>
         {warningMessage && (
           <motion.div
