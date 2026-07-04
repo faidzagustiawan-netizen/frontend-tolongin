@@ -71,7 +71,7 @@ export default function LeaderboardPage() {
         >
           <Trophy className="h-4 w-4 text-emerald-400" />
           <span className="text-xs font-semibold text-gray-200">Global Tech Talent Ranking</span>
-        </motion.div>
+        </FadeIn>
         <h1 className="font-display text-4xl sm:text-6xl font-extrabold text-foreground tracking-tight">
           Arena <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Peringkat</span> Talenta
         </h1>

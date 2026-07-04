@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../contexts/AuthContext';
-import { api } from '../../../utils/api';
+import { useUserStore } from '../../../store/userStore';
 import { ShieldAlert, Users, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export default function AdminDashboardPage() {
-  const { user, token } = useAuth();
+  const { user } = useUserStore();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([]);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
     if (!user) return;
@@ -22,12 +24,17 @@ export default function AdminDashboardPage() {
 
     const fetchData = async () => {
       try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const statsRes = await api.get('/admin/stats', { headers });
-        setStats(statsRes.data);
+        const headers = { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+        const statsRes = await fetch(`${API_URL}/api/v1/admin/stats`, { headers });
+        const statsData = await statsRes.json();
+        setStats(statsData);
         
-        const companiesRes = await api.get('/admin/companies/pending', { headers });
-        setPendingCompanies(companiesRes.data);
+        const companiesRes = await fetch(`${API_URL}/api/v1/admin/companies/pending`, { headers });
+        const companiesData = await companiesRes.json();
+        setPendingCompanies(companiesData);
       } catch (err) {
         console.error('Failed to fetch admin data', err);
       }
@@ -38,8 +45,15 @@ export default function AdminDashboardPage() {
 
   const handleVerify = async (companyId: string, status: 'VERIFIED' | 'FAILED') => {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      await api.post(`/admin/companies/${companyId}/verify`, { status }, { headers });
+      const headers = { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      await fetch(`${API_URL}/api/v1/admin/companies/${companyId}/verify`, { 
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ status })
+      });
       setPendingCompanies(prev => prev.filter(c => c.id !== companyId));
     } catch (err) {
       alert('Gagal memverifikasi perusahaan');
