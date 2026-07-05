@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '../../../store/userStore';
 import { challengesService } from '../../../services/challenges.service';
@@ -111,21 +112,32 @@ export default function ProfilePage() {
   const handleFaceTestComplete = async (descriptor: number[], imageDataUrl?: string) => {
     try {
        if (!imageDataUrl) {
-         alert('Gagal mengambil gambar wajah');
+         toast.error('Gagal mengambil gambar wajah');
          setShowTestFaceCam(false);
          return;
        }
-       const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
-       if (result.verified) {
-         setTestFaceResult(true);
-         alert(result.message);
-       } else {
-         setTestFaceResult(false);
-         alert(result.message);
+       // Munculkan toast info bahwa sedang diproses
+       const loadingToast = toast.loading('Memverifikasi kecocokan wajah dengan model AI...');
+       
+       try {
+         const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
+         toast.dismiss(loadingToast);
+         
+         if (result.verified) {
+           setTestFaceResult(true);
+           toast.success(result.message);
+         } else {
+           setTestFaceResult(false);
+           toast.error(result.message);
+         }
+       } catch (err: any) {
+         toast.dismiss(loadingToast);
+         toast.error(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
        }
+       
        setShowTestFaceCam(false);
     } catch (err: any) {
-       alert(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
+       toast.error(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
        setShowTestFaceCam(false);
     }
   };

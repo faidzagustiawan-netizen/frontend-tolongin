@@ -23,7 +23,8 @@ export const verificationService = {
   },
   
   verifyExecution: async (data: { livePhotoUrl: string }): Promise<any> => {
-    const response = await apiClient.post('/verification/verify-execution', data);
+    // Timeout diperpanjang hingga 60 detik karena AI lokal DeepFace butuh waktu untuk load model TensorFlow
+    const response = await apiClient.post('/verification/verify-execution', data, { timeout: 60000 });
     return response.data;
   },
   
