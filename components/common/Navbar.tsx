@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -111,7 +112,14 @@ export const Navbar = () => {
       // Invalidate query to trigger immediate refetch
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
       
-      // We can also show a quick toast here if we want, but updating the counter is enough
+      // Show toast for the notification
+      if (notification?.title?.toLowerCase().includes('berhasil')) {
+        toast.success(notification.title || 'Ada notifikasi baru');
+      } else if (notification?.title?.toLowerCase().includes('gagal') || notification?.title?.toLowerCase().includes('ditolak')) {
+        toast.error(notification.title || 'Ada notifikasi baru');
+      } else {
+        toast(notification?.title || 'Ada notifikasi baru', { icon: 'ℹ️' });
+      }
     };
 
     socket.on('new_notification', handleNewNotification);

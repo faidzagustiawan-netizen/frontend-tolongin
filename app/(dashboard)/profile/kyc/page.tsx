@@ -121,7 +121,10 @@ export default function KycVerificationPage() {
 
       setVerificationResult(result);
       
-      if (result.isMatch && result.isKtpValid) {
+      if (result.status === 'PROCESSING') {
+        toast(result.message || 'Verifikasi AI sedang berjalan di latar belakang. Anda akan mendapat notifikasi saat selesai.', { icon: 'ℹ️' });
+        setStep('SUCCESS'); // Atau Anda bisa membuat step khusus 'PROCESSING' jika ada
+      } else if (result.isMatch && result.isKtpValid) {
         toast.success('Identitas berhasil diverifikasi!');
         setStep('SUCCESS');
       } else {

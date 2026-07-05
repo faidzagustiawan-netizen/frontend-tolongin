@@ -6,6 +6,7 @@ export interface VerifyFaceData {
 }
 
 export interface VerificationResponse {
+  status?: string;
   message?: string;
   isKtpValid?: boolean;
   isMatch?: boolean;
