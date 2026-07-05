@@ -48,11 +48,37 @@ export const CompanySettingsTab = ({
           disabled={!isEditingProfile}
         />
       </div>
-      <Input
-        label="Paket Langganan Aktif Saat Ini"
-        defaultValue={companyProfile?.subscriptionTier}
-        disabled
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Input
+          label="Lokasi / Domisili Kantor"
+          defaultValue={companyProfile?.location}
+          value={isEditingProfile ? editFormData.location : undefined}
+          onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+          disabled={!isEditingProfile}
+        />
+        <Input
+          label="URL LinkedIn"
+          defaultValue={companyProfile?.linkedinUrl}
+          value={isEditingProfile ? editFormData.linkedinUrl : undefined}
+          onChange={(e) => setEditFormData({ ...editFormData, linkedinUrl: e.target.value })}
+          disabled={!isEditingProfile}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Input
+          label="URL Logo Perusahaan (Publik)"
+          placeholder="https://..."
+          defaultValue={companyProfile?.logoUrl}
+          value={isEditingProfile ? editFormData.logoUrl : undefined}
+          onChange={(e) => setEditFormData({ ...editFormData, logoUrl: e.target.value })}
+          disabled={!isEditingProfile}
+        />
+        <Input
+          label="Paket Langganan Aktif Saat Ini"
+          defaultValue={companyProfile?.subscriptionTier}
+          disabled
+        />
+      </div>
       <div>
         <label className="block text-sm font-medium text-muted-foreground mb-2">Deskripsi Perusahaan</label>
         {isEditingProfile ? (
