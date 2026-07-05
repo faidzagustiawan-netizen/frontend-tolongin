@@ -8,6 +8,7 @@ import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, A
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import dynamic from 'next/dynamic';
+import { useQueryClient } from '@tanstack/react-query';
 
 const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 
@@ -15,6 +16,7 @@ type KycStep = 'KTP' | 'LIVENESS' | 'SUCCESS';
 
 export default function KycVerificationPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<KycStep>('KTP');
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -123,9 +125,11 @@ export default function KycVerificationPage() {
       
       if (result.status === 'PROCESSING') {
         toast(result.message || 'Verifikasi AI sedang berjalan di latar belakang. Anda akan mendapat notifikasi saat selesai.', { icon: 'ℹ️' });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
         setStep('SUCCESS'); // Atau Anda bisa membuat step khusus 'PROCESSING' jika ada
       } else if (result.isMatch && result.isKtpValid) {
         toast.success('Identitas berhasil diverifikasi!');
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
         setStep('SUCCESS');
       } else {
         toast.error(result.reason || 'Verifikasi gagal. Silakan coba lagi.');
