@@ -96,8 +96,8 @@ export const LivenessKycTab = ({
                   <ShieldCheck className="h-8 w-8 text-emerald-400" />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah Terenkripsi (AES-256)</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Data biometrik dan KTP Anda dilindungi dengan enkripsi level perbankan. Staf dan administrator tidak dapat melihat atau membaca data wajah Anda secara langsung.</p>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Foto Identitas Privat (Terenkripsi AES-256)</span>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Ini adalah wajah biometrik asli Anda yang diambil saat pencocokan KTP. Data ini bersifat **Sangat Rahasia**, diamankan dengan enkripsi level perbankan, dan **hanya** digunakan oleh mesin untuk ujian (Liveness). Foto profil Publik Anda dapat diatur terpisah di tab Profil.</p>
                 </div>
               </div>
 

@@ -31,6 +31,19 @@ export const TalentProfileTab = ({
           onChange={(e) => setEditFormData({ ...editFormData, headline: e.target.value })}
           disabled={!isEditingProfile}
         />
+        <div className="md:col-span-2">
+          <Input
+            label="Foto Profil Publik (URL Gambar Bebas)"
+            placeholder="https://contoh.com/foto-saya.jpg"
+            defaultValue={talentProfile?.avatarUrl}
+            value={isEditingProfile ? editFormData.avatarUrl : undefined}
+            onChange={(e) => setEditFormData({ ...editFormData, avatarUrl: e.target.value })}
+            disabled={!isEditingProfile}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1 ml-1">
+            Ini adalah foto publik yang dilihat semua orang. Anda bebas mengubahnya. Foto ini **tidak akan** mengubah atau memengaruhi wajah identitas asli (KTP) yang terkunci di sistem keamanan kami.
+          </p>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
