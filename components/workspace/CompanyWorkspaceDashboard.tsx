@@ -63,22 +63,33 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
         </div>
 
         <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
-          <Link href="/challenges/create">
-            <Button
-              size="sm"
-              className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
-            >
-              <Briefcase className="h-4 w-4" />
-              Buat Studi Kasus Baru
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/challenges/create">
+              <Button
+                size="sm"
+                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+              >
+                <Briefcase className="h-4 w-4" />
+                Buat Studi Kasus Baru
+              </Button>
+            </Link>
+            <Link href="/workspace/team">
+              <Button
+                size="sm"
+                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Kelola Tim
+              </Button>
+            </Link>
+          </div>
           <Button
             onClick={() => refetchStats()}
             size="sm"
             className="bg-white/15 text-foreground/90 border border-foreground/20 hover:bg-white/20 font-bold flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
-            Muat Ulang
+            Refresh Data
           </Button>
         </div>
       </div>

@@ -33,6 +33,17 @@ export const authService = {
     }
     return data;
   },
+  registerTeam: async (payload: RegisterPayload, inviteCode: string) => {
+    const { data } = await apiClient.post('/auth/register-team', {
+      ...payload,
+      inviteCode,
+    });
+    if (data.accessToken) {
+      localStorage.setItem('access_token', data.accessToken);
+      localStorage.setItem('user_data', JSON.stringify(data.user));
+    }
+    return data;
+  },
   getProfile: async (userId: string) => {
     const { data } = await apiClient.get(`/users/${userId}`);
     return { data };

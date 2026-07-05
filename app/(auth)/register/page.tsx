@@ -16,6 +16,8 @@ const registerSchema = z.object({
   email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
   password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
   role: z.enum(['TALENT', 'COMPANY']),
+  isJoinTeam: z.boolean().optional(),
+  inviteCode: z.string().optional(),
   fullName: z.string().optional(),
   companyName: z.string().optional(),
   industry: z.string().optional(),
@@ -29,19 +31,36 @@ const registerSchema = z.object({
     });
   }
   if (data.role === 'COMPANY') {
-    if (!data.companyName) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Nama perusahaan wajib diisi',
-        path: ['companyName'],
-      });
-    }
-    if (!data.industry) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Bidang industri wajib diisi',
-        path: ['industry'],
-      });
+    if (data.isJoinTeam) {
+      if (!data.inviteCode) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Kode undangan wajib diisi untuk bergabung dengan tim',
+          path: ['inviteCode'],
+        });
+      }
+      if (!data.fullName) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Nama lengkap wajib diisi',
+          path: ['fullName'],
+        });
+      }
+    } else {
+      if (!data.companyName) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Nama perusahaan wajib diisi',
+          path: ['companyName'],
+        });
+      }
+      if (!data.industry) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Bidang industri wajib diisi',
+          path: ['industry'],
+        });
+      }
     }
   }
 });
@@ -56,6 +75,7 @@ function RegisterContent() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'TALENT' | 'COMPANY'>(initialRole);
   const [selectedTier, setSelectedTier] = useState<'STARTUP' | 'KONGLOMERAT' | 'CUSTOM'>('STARTUP');
+  const [isJoinTeam, setIsJoinTeam] = useState(false);
 
   const {
     register,
@@ -67,6 +87,7 @@ function RegisterContent() {
     defaultValues: {
       role: initialRole,
       subscriptionTier: 'STARTUP',
+      isJoinTeam: false,
     },
   });
 
@@ -78,13 +99,23 @@ function RegisterContent() {
     setValue('subscriptionTier', selectedTier);
   }, [selectedTier, setValue]);
 
+  useEffect(() => {
+    setValue('isJoinTeam', isJoinTeam);
+  }, [isJoinTeam, setValue]);
+
   const onSubmit = async (values: RegisterFormValues) => {
     setAuthError(null);
     try {
-      const data = await authService.register(values);
+      let data;
+      if (values.role === 'COMPANY' && values.isJoinTeam && values.inviteCode) {
+        data = await authService.registerTeam(values, values.inviteCode);
+      } else {
+        data = await authService.register(values);
+      }
+      
       if (data?.user) {
         setUser(data.user);
-        router.push(data.user.role === 'COMPANY' ? '/challenges' : '/profile');
+        router.push(data.user.role === 'COMPANY' ? '/workspace' : '/profile');
       }
     } catch (err: any) {
       setAuthError(err.message || 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.');
@@ -177,53 +208,89 @@ function RegisterContent() {
               {...register('fullName')}
             />
           ) : (
-            <>
-              <Input
-                label="Nama Perusahaan"
-                type="text"
-                placeholder="PT GoTo Gojek Tokopedia Tbk"
-                icon={<Building2 className="h-5 w-5" />}
-                error={errors.companyName?.message}
-                {...register('companyName')}
-              />
-
-              <Input
-                label="Bidang Industri"
-                type="text"
-                placeholder="E-Commerce & Financial Technology"
-                icon={<Briefcase className="h-5 w-5" />}
-                error={errors.industry?.message}
-                {...register('industry')}
-              />
-
-              <div className="space-y-2 pt-2">
-                <label className="block text-sm font-medium text-muted-foreground">Pilih Paket Langganan</label>
-                <div className="grid grid-cols-1 gap-3">
-                  {tiers.map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => setSelectedTier(t.id as any)}
-                      className={`border rounded-xl p-4 cursor-pointer transition-all flex items-center justify-between ${
-                        selectedTier === t.id
-                          ? 'border-emerald-500 bg-emerald-500/10 shadow-md'
-                          : 'border-border bg-card/50 hover:bg-card'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-foreground">{t.name}</h4>
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-foreground/5 border border-foreground/10 px-2 py-0.5 rounded-full text-emerald-400">
-                            {t.price}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
-                      </div>
-                      {selectedTier === t.id && <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />}
-                    </div>
-                  ))}
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isJoinTeam"
+                  checked={isJoinTeam}
+                  onChange={(e) => setIsJoinTeam(e.target.checked)}
+                  className="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                />
+                <label htmlFor="isJoinTeam" className="text-sm font-medium text-gray-700">
+                  Saya memiliki kode undangan dari perusahaan (Join Team)
+                </label>
               </div>
-            </>
+
+              {isJoinTeam ? (
+                <>
+                  <Input
+                    label="Nama Lengkap"
+                    type="text"
+                    placeholder="Budi Raharjo"
+                    icon={<User className="h-5 w-5" />}
+                    error={errors.fullName?.message}
+                    {...register('fullName')}
+                  />
+                  <Input
+                    label="Kode Undangan"
+                    type="text"
+                    placeholder="Masukkan kode unik dari tim Anda"
+                    icon={<Lock className="h-5 w-5" />}
+                    error={errors.inviteCode?.message}
+                    {...register('inviteCode')}
+                  />
+                </>
+              ) : (
+                <>
+                  <Input
+                    label="Nama Perusahaan"
+                    type="text"
+                    placeholder="PT GoTo Gojek Tokopedia Tbk"
+                    icon={<Building2 className="h-5 w-5" />}
+                    error={errors.companyName?.message}
+                    {...register('companyName')}
+                  />
+
+                  <Input
+                    label="Bidang Industri"
+                    type="text"
+                    placeholder="E-Commerce & Financial Technology"
+                    icon={<Briefcase className="h-5 w-5" />}
+                    error={errors.industry?.message}
+                    {...register('industry')}
+                  />
+
+                  <div className="space-y-2 pt-2">
+                    <label className="block text-sm font-medium text-muted-foreground">Pilih Paket Langganan</label>
+                    <div className="grid grid-cols-1 gap-3">
+                      {tiers.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => setSelectedTier(t.id as any)}
+                          className={`border rounded-xl p-4 cursor-pointer transition-all flex items-center justify-between ${
+                            selectedTier === t.id
+                              ? 'border-emerald-500 bg-emerald-500/10 shadow-md'
+                              : 'border-border bg-card/50 hover:bg-card'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-foreground">{t.name}</h4>
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-foreground/5 border border-foreground/10 px-2 py-0.5 rounded-full text-emerald-400">
+                                {t.price}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
+                          </div>
+                          {selectedTier === t.id && <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
           <Button type="submit" isLoading={isSubmitting} className="w-full shadow-xl py-2.5 mt-4">

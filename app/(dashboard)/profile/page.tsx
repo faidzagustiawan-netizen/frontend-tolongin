@@ -60,22 +60,23 @@ export default function ProfilePage() {
   });
 
   const profile = profileData?.data;
+  const actualCompanyProfile = profile?.companyProfile || profile?.teamMemberships?.[0]?.company;
   const verificationStatus = verificationStatusData?.data;
   const subStatus = subStatusData?.data;
 
   const { data: myChallengesData } = useQuery({
     queryKey: ['my-challenges', user?.id],
-    queryFn: () => challengesService.getAll({ companyId: profile?.companyProfile?.id, includeDrafts: true }),
-    enabled: !!user?.id && user?.role === 'COMPANY' && !!profile?.companyProfile?.id,
+    queryFn: () => challengesService.getAll({ companyId: actualCompanyProfile?.id, includeDrafts: true }),
+    enabled: !!user?.id && user?.role === 'COMPANY' && !!actualCompanyProfile?.id,
   });
   const myChallenges = myChallengesData?.data || [];
 
   useEffect(() => {
     if (profileData?.data) {
-      const p = profileData.data.talentProfile || profileData.data.companyProfile;
+      const p = profileData.data.talentProfile || actualCompanyProfile;
       if (p) updateUserProfile(p);
     }
-  }, [profileData?.data, updateUserProfile]);
+  }, [profileData?.data, actualCompanyProfile, updateUserProfile]);
 
   const handleFaceCaptureComplete = async (descriptor: number[], imageDataUrl?: string) => {
     setVerificationError(null);
@@ -233,7 +234,7 @@ export default function ProfilePage() {
 
   const isTalent = user.role === 'TALENT';
   const talentProfile = profile.talentProfile;
-  const companyProfile = profile.companyProfile;
+  const companyProfile = actualCompanyProfile;
 
   const subscriptionPlans = [
     {

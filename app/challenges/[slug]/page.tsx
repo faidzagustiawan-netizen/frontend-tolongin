@@ -25,7 +25,7 @@ export async function generateMetadata(
         url: `https://tolongin.co/challenges/${slug}`,
         images: [
           {
-            url: `https://tolongin.co/api/og?title=${encodeURIComponent(challenge.title)}&subtitle=${encodeURIComponent(challenge.company?.companyProfile?.companyName || 'Hiring Challenge')}&type=Challenge`,
+            url: `https://tolongin.co/api/og?title=${encodeURIComponent(challenge.title)}&subtitle=${encodeURIComponent(challenge.company?.companyName || 'Hiring Challenge')}&type=Challenge`,
             width: 1200,
             height: 630,
             alt: challenge.title,
