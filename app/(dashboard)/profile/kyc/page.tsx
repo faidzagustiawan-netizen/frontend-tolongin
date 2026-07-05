@@ -283,17 +283,32 @@ export default function KycVerificationPage() {
             </div>
           )}
 
-          {/* STEP 3: SUCCESS */}
+          {/* STEP 3: SUCCESS OR PROCESSING */}
           {step === 'SUCCESS' && (
             <div className="text-center space-y-6 py-8 animate-in zoom-in-95 duration-500">
-              <div className="mx-auto w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold font-display text-foreground">Identitas Terverifikasi!</h3>
-                <p className="text-muted-foreground">KTP dan wajah Anda telah lolos uji biometrik Tolongin. Lencana *Verified* telah ditambahkan ke profil Anda.</p>
-              </div>
+              {verificationResult?.status === 'PROCESSING' ? (
+                <>
+                  <div className="mx-auto w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold font-display text-foreground">Sedang Diproses (AI Latar Belakang)</h3>
+                    <p className="text-muted-foreground">KTP dan foto wajah Anda sedang diverifikasi oleh AI DeepFace secara ketat. Hal ini memakan waktu beberapa saat.<br/>Anda bebas menutup halaman ini, kami akan mengirimkan notifikasi saat selesai.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold font-display text-foreground">Identitas Terverifikasi!</h3>
+                    <p className="text-muted-foreground">KTP dan wajah Anda telah lolos uji biometrik Tolongin. Lencana *Verified* telah ditambahkan ke profil Anda.</p>
+                  </div>
+                </>
+              )}
 
               {verificationResult?.ktpName && (
                 <div className="bg-foreground/5 rounded-xl p-4 inline-block text-left min-w-[250px] border border-border mt-4">
