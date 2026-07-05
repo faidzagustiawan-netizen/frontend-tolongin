@@ -92,16 +92,12 @@ export const LivenessKycTab = ({
           {talentProfile?.faceVerificationStatus === 'VERIFIED' && (
             <div className="space-y-4 pt-2">
               <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
-                <div className="relative h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex-shrink-0 shadow-md">
-                  {talentProfile.avatarUrl ? (
-                    <Image src={talentProfile.avatarUrl} alt="Verified Biometric" fill sizes="64px" className="object-cover transform scale-x-[-1]" />
-                  ) : (
-                    <User className="relative z-10 h-8 w-8 text-emerald-400 mx-auto my-4" />
-                  )}
+                <div className="relative h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex flex-col items-center justify-center shadow-md">
+                  <ShieldCheck className="h-8 w-8 text-emerald-400" />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah Terdaftar (Lokal)</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Topologi wajah Anda telah direkam sebagai descriptor numerik. Ini akan digunakan secara otomatis sebelum mengumpulkan studi kasus.</p>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold inline-block">Wajah Terenkripsi (AES-256)</span>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Data biometrik dan KTP Anda dilindungi dengan enkripsi level perbankan. Staf dan administrator tidak dapat melihat atau membaca data wajah Anda secara langsung.</p>
                 </div>
               </div>
 
