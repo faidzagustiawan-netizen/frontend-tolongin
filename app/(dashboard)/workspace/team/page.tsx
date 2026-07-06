@@ -143,14 +143,14 @@ export default function TeamWorkspacePage() {
             <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Kode Undangan Tim</p>
             <div className="flex items-center gap-2">
               <code className="font-mono font-bold text-lg text-foreground px-2 py-0.5 bg-background rounded border border-border">
-                {inviteCode}
+                {String(inviteCode)}
               </code>
               <Button size="sm" variant="outline" className="h-8 px-3" onClick={copyToClipboard}>
                 {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
               </Button>
               <Button 
                 size="sm" 
-                variant="default" 
+                variant="primary" 
                 className="h-8 px-3 bg-emerald-500 hover:bg-emerald-600 text-white border-none"
                 isLoading={generateCodeMutation.isPending}
                 onClick={() => generateCodeMutation.mutate()}
