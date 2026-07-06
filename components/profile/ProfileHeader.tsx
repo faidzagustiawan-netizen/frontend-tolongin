@@ -15,13 +15,29 @@ export const ProfileHeader = ({ user, isTalent, talentProfile, companyProfile }:
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="flex items-center gap-6 relative z-10">
-        <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-foreground/5 border border-foreground/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xl">
-          {isTalent && talentProfile?.avatarUrl ? (
-            <Image src={talentProfile.avatarUrl} alt={talentProfile.fullName} fill sizes="112px" className="object-cover" />
-          ) : !isTalent && companyProfile?.logoUrl ? (
-            <Image src={companyProfile.logoUrl} alt={companyProfile.companyName} fill sizes="112px" className="object-cover" />
-          ) : (
-            <User className="relative z-10 h-12 w-12 text-muted-foreground" />
+        <div className="flex items-center gap-4">
+          {/* Foto Publik */}
+          <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-foreground/5 border border-foreground/10 flex flex-col items-center justify-center overflow-hidden flex-shrink-0 shadow-2xl group">
+            {isTalent && talentProfile?.avatarUrl ? (
+              <Image src={talentProfile.avatarUrl} alt={talentProfile.fullName || 'User'} fill sizes="112px" className="object-cover" />
+            ) : !isTalent && companyProfile?.logoUrl ? (
+              <Image src={companyProfile.logoUrl} alt={companyProfile.companyName || 'Company'} fill sizes="112px" className="object-cover" />
+            ) : (
+              <User className="relative z-10 h-12 w-12 text-muted-foreground" />
+            )}
+            <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] font-bold uppercase text-center py-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+              Publik
+            </div>
+          </div>
+
+          {/* Foto Privat (Hanya muncul jika encryptedPrivateFace ada dan user adalah owner) */}
+          {isTalent && talentProfile?.encryptedPrivateFace && (
+            <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-black border-2 border-emerald-500/50 flex flex-col items-center justify-center overflow-hidden flex-shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <Image src={talentProfile.encryptedPrivateFace} alt="Foto Privat" fill sizes="112px" className="object-cover opacity-80" />
+              <div className="absolute bottom-0 inset-x-0 bg-emerald-900/90 text-emerald-300 text-[10px] font-bold uppercase flex items-center justify-center gap-1 py-1 z-20">
+                <ShieldCheck className="h-3 w-3" /> Privat
+              </div>
+            </div>
           )}
         </div>
 

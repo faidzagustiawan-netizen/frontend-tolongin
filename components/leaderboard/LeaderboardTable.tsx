@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Medal, MapPin, Zap, User, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface RankInfo {
   minLevel: number;
@@ -38,17 +39,17 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
           const isCurrentUser = currentUserEmail && currentUserEmail === talent.user?.email;
 
           return (
-            <motion.div
-              key={talent.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2, delay: index * 0.05, ease: 'easeOut' }}
-              className={`bg-card border-2 hover:border-foreground/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden ${
-                isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-border'
-              }`}
-            >
+            <Link key={talent.id} href={`/talents/${talent.userId}`} className="block">
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2, delay: index * 0.05, ease: 'easeOut' }}
+                className={`bg-card border-2 hover:border-foreground/20 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 transition-all relative overflow-hidden group hover:scale-[1.01] ${
+                  isCurrentUser ? 'border-emerald-500/50 shadow-emerald-500/10' : 'border-border'
+                }`}
+              >
               {isCurrentUser && (
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-cyan-500" />
               )}
@@ -100,7 +101,8 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Experience</p>
                 </div>
               </div>
-            </motion.div>
+              </motion.div>
+            </Link>
           );
         })}
       </AnimatePresence>

@@ -158,18 +158,25 @@ export const Navbar = () => {
   };
 
   const talentNavLinks = [
-    { name: 'Directory', href: '/challenges', icon: Briefcase },
-    { name: 'Perusahaan', href: '/companies', icon: Building2 },
+    { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
+    { name: 'Perusahaan Mitra', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+    { name: 'Workspace Ku', href: '/workspace', icon: CheckCheck },
   ];
 
   const companyNavLinks = [
-    { name: 'Review Submisi', href: '/workspace', icon: CheckCheck },
-    { name: 'Buat Challenge', href: '/challenges/create', icon: Code2 },
-    { name: 'Direktori Perusahaan', href: '/companies', icon: Building2 },
+    { name: 'Dashboard Review', href: '/workspace', icon: CheckCheck },
+    { name: 'Manajemen Tim', href: '/workspace/team', icon: Users },
+    { name: 'Leaderboard Talenta', href: '/leaderboard', icon: Trophy },
   ];
 
-  const navLinks = user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
+  const guestNavLinks = [
+    { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
+    { name: 'Direktori Perusahaan', href: '/companies', icon: Building2 },
+    { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  ];
+
+  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
@@ -187,29 +194,27 @@ export const Navbar = () => {
               />
             </Link>
 
-            {isAuthenticated && (
-              <div className="hidden md:flex items-center gap-1.5">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  const isActive = pathname.startsWith(link.href);
+            <div className="hidden md:flex items-center gap-1.5">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname.startsWith(link.href);
 
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? 'bg-foreground/10 text-white shadow-inner'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : ''}`} />
-                      {link.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-foreground/10 text-white shadow-inner'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : ''}`} />
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -360,25 +365,29 @@ export const Navbar = () => {
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                         >
                           <UserIcon className="h-4 w-4 text-emerald-400" />
-                          Profil & Verifikasi
+                          {user?.role === 'COMPANY' ? 'Profil & Legalitas KYB' : 'Profil & Identitas'}
                         </Link>
-                        <Link
-                          href="/workspace"
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
-                        >
-                          <Briefcase className="h-4 w-4 text-cyan-400" />
-                          Dashboard
-                        </Link>
-                        {user?.role === 'COMPANY' && (
+                        {user?.role === 'TALENT' && (
                           <Link
-                            href="/company/billing"
+                            href="/talent/tokens"
                             onClick={() => setDropdownOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                           >
-                            <CreditCard className="h-4 w-4 text-amber-400" />
-                            Langganan & Tagihan
+                            <Coins className="h-4 w-4 text-amber-400" />
+                            Saldo & Token
                           </Link>
+                        )}
+                        {user?.role === 'COMPANY' && (
+                          <>
+                            <Link
+                              href="/company/billing"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                            >
+                              <CreditCard className="h-4 w-4 text-amber-400" />
+                              Langganan & Tagihan
+                            </Link>
+                          </>
                         )}
                         <div className="border-t border-border my-1" />
                         <button
@@ -462,28 +471,29 @@ export const Navbar = () => {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4"
           >
-            {isAuthenticated && (
-              <div className="space-y-1">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  const isActive = pathname.startsWith(link.href);
-
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium ${
-                        isActive ? 'bg-foreground/10 text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
-                      }`}
-                    >
-                      <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
-                      {link.name}
-                    </Link>
-                  );
-                })}
+            <div className="space-y-1">
+              <div className="px-4 py-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Menu Utama</span>
               </div>
-            )}
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname.startsWith(link.href);
+
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium ${
+                      isActive ? 'bg-foreground/10 text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
 
             <div className="border-t border-foreground/10 pt-4">
               {isAuthenticated ? (
@@ -497,31 +507,38 @@ export const Navbar = () => {
                       <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                     </div>
                   </div>
+                  <div className="px-4 py-2">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Akun Saya</span>
+                  </div>
                   <Link
                     href="/profile"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   >
                     <UserIcon className="h-5 w-5 text-emerald-400" />
-                    Profil & Verifikasi
+                    {user?.role === 'COMPANY' ? 'Profil & Legalitas KYB' : 'Profil & Identitas'}
                   </Link>
-                  <Link
-                    href="/workspace"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                  >
-                    <Briefcase className="h-5 w-5 text-cyan-400" />
-                    Dashboard
-                  </Link>
-                  {user?.role === 'COMPANY' && (
+                  {user?.role === 'TALENT' && (
                     <Link
-                      href="/company/billing"
+                      href="/talent/tokens"
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                     >
-                      <CreditCard className="h-5 w-5 text-amber-400" />
-                      Langganan & Tagihan
+                      <Coins className="h-5 w-5 text-amber-400" />
+                      Saldo & Token
                     </Link>
+                  )}
+                  {user?.role === 'COMPANY' && (
+                    <>
+                      <Link
+                        href="/company/billing"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                      >
+                        <CreditCard className="h-5 w-5 text-amber-400" />
+                        Langganan & Tagihan
+                      </Link>
+                    </>
                   )}
                   <button
                     onClick={() => {

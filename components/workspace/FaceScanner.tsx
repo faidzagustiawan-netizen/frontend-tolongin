@@ -148,7 +148,7 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
         </div>
       )}
 
-      <div className="mt-8 flex gap-4">
+      <div className="mt-8 flex flex-col sm:flex-row gap-4">
         {onCancel && (
           <Button variant="outline" onClick={() => { stopVideo(); onCancel(); }} className="flex-1" disabled={isCapturing || !!success}>
             Batal

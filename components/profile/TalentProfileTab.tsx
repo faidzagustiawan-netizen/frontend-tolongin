@@ -132,6 +132,89 @@ export const TalentProfileTab = ({
           </p>
         )}
       </div>
+
+      <div className="pt-6 border-t border-border">
+        <h4 className="text-lg font-bold text-foreground mb-1">Showcase Tantangan</h4>
+        <p className="text-xs text-muted-foreground mb-4">Pilih dan urutkan tantangan terbaik yang telah Anda selesaikan untuk dipamerkan di profil publik Anda.</p>
+        
+        {isEditingProfile ? (
+          <div className="space-y-3">
+            {talentProfile?.submissions?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {talentProfile.submissions.map((sub: any) => {
+                  const isSelected = (editFormData.showcasedSubmissionIds || []).includes(sub.id);
+                  return (
+                    <div 
+                      key={sub.id} 
+                      className={`p-4 border rounded-xl cursor-pointer transition-colors ${isSelected ? 'border-emerald-500 bg-emerald-500/10' : 'border-border bg-card hover:border-emerald-500/50'}`}
+                      onClick={() => {
+                        let current = editFormData.showcasedSubmissionIds || [];
+                        if (isSelected) {
+                          current = current.filter((id: string) => id !== sub.id);
+                        } else {
+                          current = [...current, sub.id];
+                        }
+                        setEditFormData({ ...editFormData, showcasedSubmissionIds: current });
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-foreground truncate max-w-[200px]">{sub.challenge?.title || 'Tantangan Tidak Diketahui'}</p>
+                          <p className="text-xs text-muted-foreground">{sub.challenge?.category}</p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground'}`}>
+                          {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Anda belum memiliki submisi tantangan.</p>
+            )}
+            {editFormData.showcasedSubmissionIds?.length > 0 && (
+              <p className="text-xs text-emerald-500 font-medium">Tips: Tantangan akan ditampilkan sesuai urutan Anda mengkliknya.</p>
+            )}
+          </div>
+        ) : (
+          <div>
+            {talentProfile?.showcasedSubmissionIds?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {talentProfile.showcasedSubmissionIds.map((id: string) => {
+                  const sub = talentProfile.submissions?.find((s: any) => s.id === id);
+                  if (!sub) return null;
+                  
+                  const isDeadlinePassed = sub.challenge?.deadlineAt && new Date(sub.challenge.deadlineAt) < new Date();
+                  const solutionUrl = sub.repositoryUrl || sub.figmaUrl || sub.liveDemoUrl || sub.solutionFilesUrl;
+
+                  return (
+                    <div key={id} className="p-4 border border-border bg-card rounded-xl flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-shadow">
+                      <div>
+                        <p className="text-sm font-bold text-foreground line-clamp-2">{sub.challenge?.title}</p>
+                        <p className="text-xs text-emerald-400 mt-1">{sub.challenge?.category}</p>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border">
+                        {isDeadlinePassed ? (
+                          <a href={solutionUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 font-semibold hover:underline block text-center">
+                            Lihat Solusi Submisi
+                          </a>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground text-center italic">
+                            Solusi disembunyikan hingga tenggat waktu tantangan berlalu.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Belum ada tantangan yang di-showcase.</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

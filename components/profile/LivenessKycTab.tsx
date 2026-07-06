@@ -92,7 +92,7 @@ export const LivenessKycTab = ({
           {talentProfile?.faceVerificationStatus === 'VERIFIED' && (
             <div className="space-y-4 pt-2">
               <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
-                <div className="relative h-16 w-16 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex flex-col items-center justify-center shadow-md">
+                <div className="relative h-16 w-16 shrink-0 rounded-xl bg-black overflow-hidden border border-emerald-500/50 flex flex-col items-center justify-center shadow-md">
                   <ShieldCheck className="h-8 w-8 text-emerald-400" />
                 </div>
                 <div className="space-y-1">
@@ -113,7 +113,7 @@ export const LivenessKycTab = ({
               )}
               
               {(showLivenessCam || showTestFaceCam) && (
-                <Button variant="ghost" onClick={() => { setShowLivenessCam(false); setShowTestFaceCam(false); }} className="w-full text-xs text-red-400 border border-red-500/20 bg-red-500/10">
+                <Button variant="ghost" onClick={() => { setShowLivenessCam(false); setShowTestFaceCam(false); }} className="w-full text-xs text-red-400 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20">
                   Batal Kamera
                 </Button>
               )}

@@ -89,7 +89,7 @@ export default function ProfilePage() {
       };
       
       if (imageDataUrl) {
-        payload.avatarUrl = imageDataUrl;
+        payload.encryptedPrivateFace = imageDataUrl;
       }
 
       await authService.updateProfile(payload);
@@ -201,6 +201,7 @@ export default function ProfilePage() {
         linkedinUrl: talentProfile?.linkedinUrl || '',
         figmaUrl: talentProfile?.figmaUrl || '',
         ktpNik: talentProfile?.ktpNik || '',
+        showcasedSubmissionIds: talentProfile?.showcasedSubmissionIds || [],
       } : {
         companyName: companyProfile?.companyName || '',
         industry: companyProfile?.industry || '',
