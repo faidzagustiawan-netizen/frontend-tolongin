@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -176,7 +176,11 @@ export const Navbar = () => {
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
-  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
+  const adminNavLinks = [
+    { name: 'Super Admin', href: '/admin', icon: LayoutDashboard },
+  ];
+
+  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'ADMIN' ? adminNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
@@ -194,7 +198,7 @@ export const Navbar = () => {
               />
             </Link>
 
-            <div className="hidden md:flex items-center gap-1.5">
+            <div className="hidden lg:flex items-center gap-1.5">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname.startsWith(link.href);
@@ -217,7 +221,7 @@ export const Navbar = () => {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-4">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -418,7 +422,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          <div className="flex md:hidden items-center gap-3">
+          <div className="flex lg:hidden items-center gap-3">
             {/* Theme Toggle for Mobile */}
             <button
               onClick={toggleTheme}
@@ -469,7 +473,7 @@ export const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4"
+            className="lg:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4 shadow-2xl"
           >
             <div className="space-y-1">
               <div className="px-4 py-2">
@@ -573,7 +577,7 @@ export const Navbar = () => {
 
       <AnimatePresence>
         {notifOpen && mobileMenuOpen && (
-          <div className="md:hidden border-t border-foreground/10 bg-card px-4 py-4 max-h-80 overflow-y-auto">
+          <div className="lg:hidden border-t border-foreground/10 bg-card px-4 py-4 max-h-80 overflow-y-auto">
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
               <h3 className="font-display font-bold text-foreground text-sm">Notifikasi</h3>
               {unreadCount > 0 && (
