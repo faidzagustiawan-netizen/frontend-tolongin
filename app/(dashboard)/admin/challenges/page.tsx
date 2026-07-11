@@ -6,7 +6,7 @@ import { ShieldAlert, Trash2, Search, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminChallengesPage() {
   const { user } = useUserStore();
@@ -19,7 +19,7 @@ export default function AdminChallengesPage() {
 
     const fetchChallenges = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/admin/challenges`, {
+        const res = await fetch(`${API_URL}/admin/challenges`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -37,7 +37,7 @@ export default function AdminChallengesPage() {
     if (!confirmTakedown) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/challenges/${challengeId}`, {
+      const res = await fetch(`${API_URL}/admin/challenges/${challengeId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

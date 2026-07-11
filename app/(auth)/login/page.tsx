@@ -41,7 +41,11 @@ function LoginContent() {
       const data = await authService.login(values);
       if (data?.user) {
         setUser(data.user);
-        router.push(data.user.role === 'COMPANY' ? '/challenges' : '/workspace');
+        if (data.user.role === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push(data.user.role === 'COMPANY' ? '/challenges' : '/workspace');
+        }
       }
     } catch (err: any) {
       setAuthError(err.message || 'Email atau kata sandi salah. Silakan coba lagi.');

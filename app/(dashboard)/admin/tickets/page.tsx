@@ -5,7 +5,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { LifeBuoy, Search, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminTicketsPage() {
   const { user } = useUserStore();
@@ -20,7 +20,7 @@ export default function AdminTicketsPage() {
 
   const fetchTickets = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/tickets`, {
+      const res = await fetch(`${API_URL}/admin/tickets`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -40,7 +40,7 @@ export default function AdminTicketsPage() {
   const handleSelectTicket = async (ticket: any) => {
     setSelectedTicket(ticket);
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/tickets/${ticket.id}/replies`, {
+      const res = await fetch(`${API_URL}/admin/tickets/${ticket.id}/replies`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -55,7 +55,7 @@ export default function AdminTicketsPage() {
     if (!replyMessage || !selectedTicket) return;
 
     try {
-      await fetch(`${API_URL}/api/v1/admin/tickets/${selectedTicket.id}/replies`, {
+      await fetch(`${API_URL}/admin/tickets/${selectedTicket.id}/replies`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export default function AdminTicketsPage() {
   const handleCloseTicket = async () => {
     if (!selectedTicket) return;
     try {
-      await fetch(`${API_URL}/api/v1/admin/tickets/${selectedTicket.id}/close`, {
+      await fetch(`${API_URL}/admin/tickets/${selectedTicket.id}/close`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -6,7 +6,7 @@ import { useUserStore } from '../../../store/userStore';
 import { ShieldAlert, Users, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminDashboardPage() {
   const { user } = useUserStore();
@@ -28,11 +28,11 @@ export default function AdminDashboardPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         };
-        const statsRes = await fetch(`${API_URL}/api/v1/admin/stats`, { headers });
+        const statsRes = await fetch(`${API_URL}/admin/stats`, { headers });
         const statsData = await statsRes.json();
         setStats(statsData);
         
-        const companiesRes = await fetch(`${API_URL}/api/v1/admin/companies/pending`, { headers });
+        const companiesRes = await fetch(`${API_URL}/admin/companies/pending`, { headers });
         const companiesData = await companiesRes.json();
         setPendingCompanies(companiesData);
       } catch (err) {
@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
-      await fetch(`${API_URL}/api/v1/admin/companies/${companyId}/verify`, { 
+      await fetch(`${API_URL}/admin/companies/${companyId}/verify`, { 
         method: 'POST',
         headers,
         body: JSON.stringify({ status })

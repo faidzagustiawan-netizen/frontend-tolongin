@@ -5,7 +5,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { CreditCard, Search, ArrowUpRight, ArrowDownRight, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminBillingPage() {
   const { user } = useUserStore();
@@ -19,7 +19,7 @@ export default function AdminBillingPage() {
 
     const fetchBilling = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/admin/billing`, {
+        const res = await fetch(`${API_URL}/admin/billing`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

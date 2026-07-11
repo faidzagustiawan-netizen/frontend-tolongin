@@ -5,7 +5,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { ShieldAlert, Ban, Search, MailWarning } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminUsersPage() {
   const { user } = useUserStore();
@@ -18,7 +18,7 @@ export default function AdminUsersPage() {
 
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/admin/users`, {
+        const res = await fetch(`${API_URL}/admin/users`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -36,7 +36,7 @@ export default function AdminUsersPage() {
     if (!confirmBan) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/users/${userId}/ban`, {
+      const res = await fetch(`${API_URL}/admin/users/${userId}/ban`, {
         method: 'PATCH',
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
     if (!message) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/users/${userId}/warning`, {
+      const res = await fetch(`${API_URL}/admin/users/${userId}/warning`, {
         method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,

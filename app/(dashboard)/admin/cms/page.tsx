@@ -5,7 +5,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { Megaphone, Trash2, Plus, Info, AlertTriangle, CheckCircle, PenTool } from 'lucide-react';
 import { format } from 'date-fns';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminCMSPage() {
   const { user } = useUserStore();
@@ -20,7 +20,7 @@ export default function AdminCMSPage() {
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/announcements`, {
+      const res = await fetch(`${API_URL}/admin/announcements`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -42,7 +42,7 @@ export default function AdminCMSPage() {
     if (!title || !content) return alert('Judul dan Konten wajib diisi!');
 
     try {
-      await fetch(`${API_URL}/api/v1/admin/announcements`, {
+      await fetch(`${API_URL}/admin/announcements`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export default function AdminCMSPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus pengumuman ini?')) return;
     try {
-      await fetch(`${API_URL}/api/v1/admin/announcements/${id}`, {
+      await fetch(`${API_URL}/admin/announcements/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

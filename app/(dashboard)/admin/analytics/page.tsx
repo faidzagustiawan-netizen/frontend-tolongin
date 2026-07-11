@@ -5,7 +5,7 @@ import { useUserStore } from '../../../../store/userStore';
 import { BarChart3, TrendingUp, Users, Target } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 
@@ -20,7 +20,7 @@ export default function AdminAnalyticsPage() {
 
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/admin/analytics`, {
+        const res = await fetch(`${API_URL}/admin/analytics`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const result = await res.json();
