@@ -4,6 +4,8 @@ import { UserProfile } from '../types';
 export interface UserData {
   id: string;
   email: string;
+  fullName?: string;
+  isVerified?: boolean;
   role: 'TALENT' | 'COMPANY' | 'ADMIN';
   profile?: UserProfile;
 }

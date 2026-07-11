@@ -13,7 +13,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([]);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   useEffect(() => {
     if (!user) return;
