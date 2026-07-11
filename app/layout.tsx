@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { Navbar } from "../components/common/Navbar";
 import { Footer } from "../components/common/Footer";
+import { AuthGuard } from "../components/providers/AuthGuard";
 import Script from "next/script";
 
 const inter = Inter({
@@ -66,9 +67,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <Providers>
-          <Navbar />
-          <main className="flex-1 flex flex-col">{children}</main>
-          <Footer />
+          <AuthGuard>
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </AuthGuard>
         </Providers>
       </body>
     </html>
