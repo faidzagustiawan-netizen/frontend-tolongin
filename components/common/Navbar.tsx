@@ -350,13 +350,13 @@ export const Navbar = () => {
                   >
                     <div className="h-7 w-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-xs overflow-hidden">
                       {user?.profile?.avatarUrl || user?.profile?.logoUrl ? (
-                        <img src={user.profile.avatarUrl || user.profile.logoUrl} alt="Profile" className="w-full h-full object-cover" />
+                        <img src={(user.profile.avatarUrl as string) || (user.profile.logoUrl as string)} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        user?.profile?.fullName?.[0]?.toUpperCase() || user?.profile?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'
+                        (user?.profile as any)?.fullName?.[0]?.toUpperCase() || (user?.profile as any)?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
                       )}
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{user?.profile?.fullName || user?.profile?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
+                      <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{(user?.profile as any)?.fullName || (user?.profile as any)?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
                       <p className="text-[10px] text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                     </div>
                   </button>
@@ -518,13 +518,13 @@ export const Navbar = () => {
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-base overflow-hidden">
                         {user?.profile?.avatarUrl || user?.profile?.logoUrl ? (
-                          <img src={user.profile.avatarUrl || user.profile.logoUrl} alt="Profile" className="w-full h-full object-cover" />
+                          <img src={(user.profile.avatarUrl as string) || (user.profile.logoUrl as string)} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
-                          user?.profile?.fullName?.[0]?.toUpperCase() || user?.profile?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
+                          (user?.profile as any)?.fullName?.[0]?.toUpperCase() || (user?.profile as any)?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">{user?.profile?.fullName || user?.profile?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
+                        <p className="text-sm font-medium text-foreground">{(user?.profile as any)?.fullName || (user?.profile as any)?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
                         <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                       </div>
                     </div>
