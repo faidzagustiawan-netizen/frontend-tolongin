@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Input } from '../common/Input';
+import { Button } from '../common/Button';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Image as ImageIcon, X } from 'lucide-react';
 
 interface TalentProfileTabProps {
   talentProfile: any;
@@ -14,49 +17,146 @@ export const TalentProfileTab = ({
   editFormData,
   setEditFormData,
 }: TalentProfileTabProps) => {
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [avatarMethod, setAvatarMethod] = useState<'url' | 'upload'>('url');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    setUploadError(null);
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Harap upload file gambar yang valid (JPG, PNG, GIF, dll).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Ukuran gambar tidak boleh melebihi 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        setEditFormData({ ...editFormData, avatarUrl: result });
+        setIsUploadModalOpen(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="Nama Lengkap"
-          defaultValue={talentProfile?.fullName}
-          value={isEditingProfile ? editFormData.fullName : undefined}
+          value={isEditingProfile ? (editFormData.fullName || '') : (talentProfile?.fullName || '')}
           onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
           disabled={!isEditingProfile}
         />
         <Input
           label="Keahlian Utama (Headline)"
-          defaultValue={talentProfile?.headline}
-          value={isEditingProfile ? editFormData.headline : undefined}
+          value={isEditingProfile ? (editFormData.headline || '') : (talentProfile?.headline || '')}
           onChange={(e) => setEditFormData({ ...editFormData, headline: e.target.value })}
           disabled={!isEditingProfile}
         />
         <div className="md:col-span-2">
-          <Input
-            label="Foto Profil Publik (URL Gambar Bebas)"
-            placeholder="https://contoh.com/foto-saya.jpg"
-            defaultValue={talentProfile?.avatarUrl}
-            value={isEditingProfile ? editFormData.avatarUrl : undefined}
-            onChange={(e) => setEditFormData({ ...editFormData, avatarUrl: e.target.value })}
-            disabled={!isEditingProfile}
-          />
-          <p className="text-[10px] text-muted-foreground mt-1 ml-1">
-            Ini adalah foto publik yang dilihat semua orang. Anda bebas mengubahnya. Foto ini **tidak akan** mengubah atau memengaruhi wajah identitas asli (KTP) yang terkunci di sistem keamanan kami.
-          </p>
-        </div>
+        {isEditingProfile && (
+          <>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Foto Profil Publik</label>
+          <div className="flex gap-4 items-start mb-6">
+            <div className="w-16 h-16 rounded-full bg-foreground/5 border border-border flex-shrink-0 flex items-center justify-center overflow-hidden">
+              {editFormData.avatarUrl ? (
+                <img src={editFormData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-muted-foreground opacity-50" />
+              )}
+            </div>
+            <div className="flex-1 space-y-3">
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <input 
+                    type="radio" 
+                    checked={avatarMethod === 'url'} 
+                    onChange={() => setAvatarMethod('url')} 
+                    className="accent-emerald-500" 
+                  />
+                  Gunakan URL
+                </label>
+                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <input 
+                    type="radio" 
+                    checked={avatarMethod === 'upload'} 
+                    onChange={() => setAvatarMethod('upload')} 
+                    className="accent-emerald-500" 
+                  />
+                  Upload File
+                </label>
+              </div>
+              {avatarMethod === 'url' ? (
+                <Input
+                  placeholder="https://contoh.com/foto-saya.jpg"
+                  value={editFormData.avatarUrl || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, avatarUrl: e.target.value })}
+                />
+              ) : (
+                <div className="flex gap-3 items-center">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    className="flex-shrink-0 h-[42px]" 
+                    onClick={() => setIsUploadModalOpen(true)}
+                  >
+                    Pilih Gambar
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Upload file dari perangkat Anda</span>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1 ml-1">
+                Ini adalah foto publik yang dilihat semua orang. Anda bebas mengubahnya. Foto ini **tidak akan** mengubah atau memengaruhi wajah identitas asli (KTP) yang terkunci di sistem keamanan kami.
+              </p>
+            </div>
+          </div>
+        </>
+        )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="NIK KTP"
-          defaultValue={talentProfile?.ktpNik}
-          value={isEditingProfile ? editFormData.ktpNik : undefined}
+          value={isEditingProfile ? (editFormData.ktpNik || '') : (talentProfile?.ktpNik || '')}
           onChange={(e) => setEditFormData({ ...editFormData, ktpNik: e.target.value })}
           disabled={!isEditingProfile}
         />
         <Input
           label="Daftar Keahlian (Pisahkan dengan koma)"
-          defaultValue={talentProfile?.skills?.join(', ')}
-          value={isEditingProfile ? editFormData.skills : undefined}
+          value={isEditingProfile ? (editFormData.skills || '') : (talentProfile?.skills?.join(', ') || '')}
           onChange={(e) => setEditFormData({ ...editFormData, skills: e.target.value })}
           disabled={!isEditingProfile}
         />
@@ -65,8 +165,7 @@ export const TalentProfileTab = ({
         <Input
           label="Domisili (Location)"
           placeholder="Cth: Jakarta, Bandung, dll."
-          defaultValue={talentProfile?.location}
-          value={isEditingProfile ? editFormData.location : undefined}
+          value={isEditingProfile ? (editFormData.location || '') : (talentProfile?.location || '')}
           onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
           disabled={!isEditingProfile}
         />
@@ -97,22 +196,19 @@ export const TalentProfileTab = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Input
           label="URL GitHub"
-          defaultValue={talentProfile?.githubUrl}
-          value={isEditingProfile ? editFormData.githubUrl : undefined}
+          value={isEditingProfile ? (editFormData.githubUrl || '') : (talentProfile?.githubUrl || '')}
           onChange={(e) => setEditFormData({ ...editFormData, githubUrl: e.target.value })}
           disabled={!isEditingProfile}
         />
         <Input
           label="URL LinkedIn"
-          defaultValue={talentProfile?.linkedinUrl}
-          value={isEditingProfile ? editFormData.linkedinUrl : undefined}
+          value={isEditingProfile ? (editFormData.linkedinUrl || '') : (talentProfile?.linkedinUrl || '')}
           onChange={(e) => setEditFormData({ ...editFormData, linkedinUrl: e.target.value })}
           disabled={!isEditingProfile}
         />
         <Input
           label="URL Figma"
-          defaultValue={talentProfile?.figmaUrl}
-          value={isEditingProfile ? editFormData.figmaUrl : undefined}
+          value={isEditingProfile ? (editFormData.figmaUrl || '') : (talentProfile?.figmaUrl || '')}
           onChange={(e) => setEditFormData({ ...editFormData, figmaUrl: e.target.value })}
           disabled={!isEditingProfile}
         />
@@ -123,7 +219,7 @@ export const TalentProfileTab = ({
           <textarea
             className="w-full bg-background border border-border rounded-xl p-4 text-foreground text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
             rows={4}
-            value={editFormData.bio}
+            value={editFormData.bio || ''}
             onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
           />
         ) : (
@@ -215,6 +311,62 @@ export const TalentProfileTab = ({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {isUploadModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden p-6"
+            >
+              <button
+                type="button"
+                onClick={() => setIsUploadModalOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-foreground/5 text-muted-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h3 className="text-lg font-bold text-foreground mb-1">Upload Foto Profil</h3>
+              <p className="text-xs text-muted-foreground mb-6">Pilih atau tarik gambar dari perangkat Anda. (Maksimal 5MB, format gambar saja)</p>
+
+              <div 
+                onDragEnter={handleDrag} 
+                onDragLeave={handleDrag} 
+                onDragOver={handleDrag} 
+                onDrop={handleDrop}
+                className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl transition-colors cursor-pointer overflow-hidden ${
+                  dragActive ? 'border-emerald-500 bg-emerald-500/10' : 'border-border hover:bg-foreground/5'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                
+                <div className="flex flex-col items-center text-center p-4 pointer-events-none">
+                  <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3 text-muted-foreground">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground mb-1">
+                    <span className="text-emerald-500">Klik untuk upload</span> atau drag and drop
+                  </p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, GIF hingga 5MB</p>
+                </div>
+              </div>
+
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-4 text-center font-medium">{uploadError}</p>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

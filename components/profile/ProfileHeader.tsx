@@ -19,9 +19,9 @@ export const ProfileHeader = ({ user, isTalent, talentProfile, companyProfile }:
           {/* Foto Publik */}
           <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-foreground/5 border border-foreground/10 flex flex-col items-center justify-center overflow-hidden flex-shrink-0 shadow-2xl group">
             {isTalent && talentProfile?.avatarUrl ? (
-              <Image src={talentProfile.avatarUrl} alt={talentProfile.fullName || 'User'} fill sizes="112px" className="object-cover" />
+              <img src={talentProfile.avatarUrl} alt={talentProfile.fullName || 'User'} className="w-full h-full object-cover" />
             ) : !isTalent && companyProfile?.logoUrl ? (
-              <Image src={companyProfile.logoUrl} alt={companyProfile.companyName || 'Company'} fill sizes="112px" className="object-cover" />
+              <img src={companyProfile.logoUrl} alt={companyProfile.companyName || 'Company'} className="w-full h-full object-cover" />
             ) : (
               <User className="relative z-10 h-12 w-12 text-muted-foreground" />
             )}
@@ -33,7 +33,7 @@ export const ProfileHeader = ({ user, isTalent, talentProfile, companyProfile }:
           {/* Foto Privat (Hanya muncul jika encryptedPrivateFace ada dan user adalah owner) */}
           {isTalent && talentProfile?.encryptedPrivateFace && (
             <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-black border-2 border-emerald-500/50 flex flex-col items-center justify-center overflow-hidden flex-shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <Image src={talentProfile.encryptedPrivateFace} alt="Foto Privat" fill sizes="112px" className="object-cover opacity-80" />
+              <img src={talentProfile.encryptedPrivateFace} alt="Foto Privat" className="w-full h-full object-cover opacity-80" />
               <div className="absolute bottom-0 inset-x-0 bg-emerald-900/90 text-emerald-300 text-[10px] font-bold uppercase flex items-center justify-center gap-1 py-1 z-20">
                 <ShieldCheck className="h-3 w-3" /> Privat
               </div>

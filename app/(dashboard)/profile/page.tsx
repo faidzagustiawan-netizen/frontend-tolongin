@@ -99,7 +99,7 @@ export default function ProfilePage() {
       
       // Update local state temporarily, or refetch
       if (profile?.talentProfile) {
-        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor, ...(imageDataUrl ? { avatarUrl: imageDataUrl } : {}) });
+        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor, ...(imageDataUrl ? { encryptedPrivateFace: imageDataUrl } : {}) });
       }
       refetchVerification();
       refetch();
@@ -176,6 +176,7 @@ export default function ProfilePage() {
     setVerificationSuccess(null);
     try {
       const payload: any = { ...editFormData };
+      delete payload.ktpNik;
       if (typeof payload.skills === 'string') {
         payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
@@ -306,13 +307,15 @@ export default function ProfilePage() {
               <h3 className="font-display text-xl font-bold text-foreground">
                 {isTalent ? 'Informasi Profil Talenta' : 'Informasi Perusahaan Mitra'}
               </h3>
-              <Button 
-                variant={isEditingProfile ? "secondary" : "primary"} 
-                size="sm" 
-                onClick={handleEditToggle}
-              >
-                {isEditingProfile ? 'Batal' : 'Edit Profil'}
-              </Button>
+              {!isEditingProfile && (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleEditToggle}
+                >
+                  Edit Profil
+                </Button>
+              )}
             </div>
 
             {isTalent ? (
@@ -332,7 +335,14 @@ export default function ProfilePage() {
             )}
 
             {isEditingProfile && (
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-4 gap-3">
+                <Button 
+                  variant="secondary" 
+                  onClick={handleEditToggle}
+                  disabled={isSavingProfile}
+                >
+                  Batal Simpan
+                </Button>
                 <Button onClick={handleSaveProfile} isLoading={isSavingProfile}>
                   Simpan Perubahan
                 </Button>

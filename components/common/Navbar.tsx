@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, LayoutDashboard } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -23,7 +23,23 @@ export const Navbar = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
+  const [mobileProfileMenuOpen, setMobileProfileMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -176,11 +192,7 @@ export const Navbar = () => {
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
-  const adminNavLinks = [
-    { name: 'Super Admin', href: '/admin', icon: LayoutDashboard },
-  ];
-
-  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'ADMIN' ? adminNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
+  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
@@ -198,7 +210,7 @@ export const Navbar = () => {
               />
             </Link>
 
-            <div className="hidden lg:flex items-center gap-1.5">
+            <div className="hidden md:flex items-center gap-1.5">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname.startsWith(link.href);
@@ -213,7 +225,6 @@ export const Navbar = () => {
                         : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : ''}`} />
                     {link.name}
                   </Link>
                 );
@@ -221,7 +232,7 @@ export const Navbar = () => {
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -237,16 +248,8 @@ export const Navbar = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                {/* Token Balance */}
-                {user?.role === 'TALENT' && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                    <Coins className="h-4 w-4" />
-                    <span className="text-xs font-bold font-mono">{tokenBalance} Tokens</span>
-                  </div>
-                )}
-
                 {/* Notification Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={notifRef}>
                   <button
                     onClick={() => {
                       setNotifOpen(!notifOpen);
@@ -336,7 +339,7 @@ export const Navbar = () => {
                 </div>
 
                 {/* Profile Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => {
                       setDropdownOpen(!dropdownOpen);
@@ -345,11 +348,15 @@ export const Navbar = () => {
                     className="flex items-center gap-3 pl-3 pr-4 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 hover:bg-foreground/10 transition-colors"
                     aria-label="Profile Menu"
                   >
-                    <div className="h-7 w-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-xs">
-                      {user?.email?.[0].toUpperCase() || 'U'}
+                    <div className="h-7 w-7 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-xs overflow-hidden">
+                      {user?.profile?.avatarUrl || user?.profile?.logoUrl ? (
+                        <img src={user.profile.avatarUrl || user.profile.logoUrl} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        user?.profile?.fullName?.[0]?.toUpperCase() || user?.profile?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || 'U'
+                      )}
                     </div>
                     <div className="text-left">
-                      <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{user?.email}</p>
+                      <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{user?.profile?.fullName || user?.profile?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
                       <p className="text-[10px] text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
                     </div>
                   </button>
@@ -375,10 +382,13 @@ export const Navbar = () => {
                           <Link
                             href="/talent/tokens"
                             onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                            className="flex items-center justify-between px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                           >
-                            <Coins className="h-4 w-4 text-amber-400" />
-                            Saldo & Token
+                            <div className="flex items-center gap-2.5">
+                              <Coins className="h-4 w-4 text-amber-400" />
+                              Saldo & Token
+                            </div>
+                            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{tokenBalance} Token</span>
                           </Link>
                         )}
                         {user?.role === 'COMPANY' && (
@@ -422,7 +432,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          <div className="flex lg:hidden items-center gap-3">
+          <div className="flex md:hidden items-center gap-3">
             {/* Theme Toggle for Mobile */}
             <button
               onClick={toggleTheme}
@@ -473,7 +483,7 @@ export const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4 shadow-2xl"
+            className="md:hidden border-b border-foreground/10 bg-background/95 backdrop-blur-xl px-4 pt-2 pb-6 space-y-4"
           >
             <div className="space-y-1">
               <div className="px-4 py-2">
@@ -492,7 +502,6 @@ export const Navbar = () => {
                       isActive ? 'bg-foreground/10 text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                     }`}
                   >
-                    <Icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
                     {link.name}
                   </Link>
                 );
@@ -502,48 +511,76 @@ export const Navbar = () => {
             <div className="border-t border-foreground/10 pt-4">
               {isAuthenticated ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 px-4 py-2">
-                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-base">
-                      {user?.email?.[0].toUpperCase() || 'U'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{user?.email}</p>
-                      <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Akun Saya</span>
-                  </div>
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                  <div 
+                    className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-foreground/5 rounded-lg transition-colors mx-2"
+                    onClick={() => setMobileProfileMenuOpen(!mobileProfileMenuOpen)}
                   >
-                    <UserIcon className="h-5 w-5 text-emerald-400" />
-                    {user?.role === 'COMPANY' ? 'Profil & Legalitas KYB' : 'Profil & Identitas'}
-                  </Link>
-                  {user?.role === 'TALENT' && (
-                    <Link
-                      href="/talent/tokens"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
-                    >
-                      <Coins className="h-5 w-5 text-amber-400" />
-                      Saldo & Token
-                    </Link>
-                  )}
-                  {user?.role === 'COMPANY' && (
-                    <>
-                      <Link
-                        href="/company/billing"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-semibold text-base overflow-hidden">
+                        {user?.profile?.avatarUrl || user?.profile?.logoUrl ? (
+                          <img src={user.profile.avatarUrl || user.profile.logoUrl} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          user?.profile?.fullName?.[0]?.toUpperCase() || user?.profile?.companyName?.[0]?.toUpperCase() || user?.fullName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{user?.profile?.fullName || user?.profile?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
+                        <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-lg text-muted-foreground">
+                      <MoreVertical className="h-5 w-5" />
+                    </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {mobileProfileMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden space-y-1"
                       >
-                        <CreditCard className="h-5 w-5 text-amber-400" />
-                        Langganan & Tagihan
-                      </Link>
-                    </>
-                  )}
+                        <div className="px-4 py-2 pt-0">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Akun Saya</span>
+                        </div>
+                        <Link
+                          href="/profile"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                        >
+                          <UserIcon className="h-5 w-5 text-emerald-400" />
+                          {user?.role === 'COMPANY' ? 'Profil & Legalitas KYB' : 'Profil & Identitas'}
+                        </Link>
+                        {user?.role === 'TALENT' && (
+                          <Link
+                            href="/talent/tokens"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-4 py-3 mx-2 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Coins className="h-5 w-5 text-amber-400" />
+                              Saldo & Token
+                            </div>
+                            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{tokenBalance} Token</span>
+                          </Link>
+                        )}
+                        {user?.role === 'COMPANY' && (
+                          <>
+                            <Link
+                              href="/company/billing"
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                            >
+                              <CreditCard className="h-5 w-5 text-amber-400" />
+                              Langganan & Tagihan
+                            </Link>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
@@ -576,34 +613,72 @@ export const Navbar = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {notifOpen && mobileMenuOpen && (
-          <div className="lg:hidden border-t border-foreground/10 bg-card px-4 py-4 max-h-80 overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
+        {notifOpen && !mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="md:hidden absolute top-16 right-4 left-4 bg-card border border-border rounded-2xl shadow-2xl py-3 z-50 max-h-[80vh] overflow-hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-border flex-shrink-0">
               <h3 className="font-display font-bold text-foreground text-sm">Notifikasi</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-emerald-400 font-medium"
+                  className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-medium transition-colors"
                 >
-                  Tandai semua dibaca
+                  <CheckCheck className="h-3.5 w-3.5" /> Tandai semua dibaca
                 </button>
               )}
             </div>
-            {notifications.length > 0 ? (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  onClick={() => handleMarkAsRead(n.id)}
-                  className="py-3 border-b border-border/50 last:border-0"
-                >
-                  <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-muted-foreground'}`}>{n.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">{n.content}</p>
+
+            <div className="overflow-y-auto divide-y divide-border custom-scrollbar flex-1">
+              {notifications.length > 0 ? (
+                <>
+                  {notifications.slice(0, 5).map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        handleMarkAsRead(n.id);
+                        if (n.linkUrl) {
+                          setNotifOpen(false);
+                          router.push(n.linkUrl);
+                        }
+                      }}
+                      className={`p-4 transition-colors cursor-pointer flex items-start gap-3 ${
+                        !n.isRead ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-foreground/5'
+                      }`}
+                    >
+                      <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!n.isRead ? 'bg-emerald-400 animate-pulse' : 'bg-transparent'}`} />
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className={`text-xs font-semibold ${!n.isRead ? 'text-white' : 'text-muted-foreground'}`}>{n.title}</h4>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(n.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{n.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-3 bg-card border-t border-border text-center sticky bottom-0">
+                    <Link
+                      href="/notifications"
+                      onClick={() => setNotifOpen(false)}
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                    >
+                      Lihat Semua Notifikasi
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-center text-muted-foreground px-4 space-y-2">
+                  <Info className="h-8 w-8 mx-auto opacity-50" />
+                  <p className="text-xs font-medium">Belum ada notifikasi baru.</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-4">Belum ada notifikasi.</p>
-            )}
-          </div>
+              )}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </nav>

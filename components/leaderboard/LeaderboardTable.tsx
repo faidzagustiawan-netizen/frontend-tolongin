@@ -62,7 +62,7 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
                 <div className="flex items-center gap-4">
                   <div className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-foreground/5 border border-foreground/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                     {talent.avatarUrl ? (
-                      <Image src={talent.avatarUrl} alt={talent.fullName} fill sizes="64px" className="object-cover" />
+                      <img src={talent.avatarUrl} alt={talent.fullName} className="w-full h-full object-cover" />
                     ) : (
                       <User className="relative z-10 h-6 w-6 text-muted-foreground" />
                     )}

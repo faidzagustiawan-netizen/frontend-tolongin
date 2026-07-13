@@ -78,7 +78,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 rounded-xl bg-foreground/5 border border-foreground/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md ${isCompleted ? 'grayscale' : ''}`}>
               {logoUrl ? (
-                <Image src={logoUrl} alt={companyName} fill sizes="48px" className="object-cover" />
+                <img src={logoUrl} alt={companyName} className="w-full h-full object-cover" />
               ) : (
                 <Building2 className="h-6 w-6 text-muted-foreground relative z-10" />
               )}
