@@ -12,6 +12,8 @@ export interface UserProfile {
   bio?: string;
   companyName?: string;
   website?: string;
+  experiences?: any[];
+  educations?: any[];
   [key: string]: unknown;
 }
 

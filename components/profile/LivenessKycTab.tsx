@@ -51,9 +51,6 @@ export const LivenessKycTab = ({
 }: LivenessKycTabProps) => {
   return (
     <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
-      <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-        <ShieldCheck className="h-4 w-4" /> Keamanan & Validasi
-      </div>
       <h3 className="font-display text-xl font-bold text-foreground">Status Verifikasi Identitas</h3>
 
       {isTalent ? (

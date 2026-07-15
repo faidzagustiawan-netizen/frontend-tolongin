@@ -2,40 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '../../../store/userStore';
-import { challengesService } from '../../../services/challenges.service';
-import { verificationService } from '../../../services/verification.service';
 import { authService } from '../../../services/auth.service';
-import { subscriptionsService } from '../../../services/subscriptions.service';
 import { Button } from '../../../components/common/Button';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 import { ProfileHeader } from '../../../components/profile/ProfileHeader';
-import { TalentProfileTab } from '../../../components/profile/TalentProfileTab';
-import { CompanySettingsTab } from '../../../components/profile/CompanySettingsTab';
+import { EditIntroModal } from '../../../components/profile/EditIntroModal';
+import { AddSectionModal } from '../../../components/profile/AddSectionModal';
+import { EditPhotoModal } from '../../../components/profile/EditPhotoModal';
+import { EditLinksModal } from '../../../components/profile/EditLinksModal';
+import { SkillsSection } from '../../../components/profile/SkillsSection';
+import { ExperienceSection } from '../../../components/profile/ExperienceSection';
+import { EducationSection } from '../../../components/profile/EducationSection';
 import { LivenessKycTab } from '../../../components/profile/LivenessKycTab';
-import { BillingTab } from '../../../components/profile/BillingTab';
 import { TalentBadgesTab } from '../../../components/profile/TalentBadgesTab';
+import { PublicProfileCard } from '../../../components/profile/PublicProfileCard';
 
 export default function ProfilePage() {
   const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
+  const queryClient = useQueryClient();
+
+  const [isEditIntroOpen, setIsEditIntroOpen] = useState(false);
+  const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+  const [isEditPhotoOpen, setIsEditPhotoOpen] = useState(false);
+  const [isEditLinksOpen, setIsEditLinksOpen] = useState(false);
+  const [visibleSections, setVisibleSections] = useState<string[]>([]);
+  
+  // KYC specific states
   const [showLivenessCam, setShowLivenessCam] = useState(false);
-  const [isVerifyingKyb, setIsVerifyingKyb] = useState(false);
-  const [isUpgradingTier, setIsUpgradingTier] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<'STARTUP' | 'KONGLOMERAT' | 'CUSTOM' | null>(null);
-  const [kybEntityName, setKybEntityName] = useState('');
-  const [kybNumber, setKybNumber] = useState('');
-  const [kybDocUrl, setKybDocUrl] = useState('');
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
-
   const [showTestFaceCam, setShowTestFaceCam] = useState(false);
-  const [testFaceResult, setTestFaceResult] = useState<boolean | null>(null);
-
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>({});
 
   useEffect(() => {
     loadUserFromStorage();
@@ -47,178 +44,54 @@ export default function ProfilePage() {
     enabled: !!user?.id,
   });
 
-  const { data: verificationStatusData, refetch: refetchVerification } = useQuery({
-    queryKey: ['verification-status'],
-    queryFn: () => verificationService.getStatus(),
-    enabled: !!user?.id,
-  });
-
-  const { data: subStatusData, refetch: refetchSub } = useQuery({
-    queryKey: ['subscription-status'],
-    queryFn: () => subscriptionsService.getStatus(),
-    enabled: !!user?.id && user?.role === 'COMPANY',
-  });
-
   const profile = profileData?.data;
   const actualCompanyProfile = profile?.companyProfile || profile?.teamMemberships?.[0]?.company;
-  const verificationStatus = verificationStatusData?.data;
-  const subStatus = subStatusData?.data;
-
-  const { data: myChallengesData } = useQuery({
-    queryKey: ['my-challenges', user?.id],
-    queryFn: () => challengesService.getAll({ companyId: actualCompanyProfile?.id, includeDrafts: true }),
-    enabled: !!user?.id && user?.role === 'COMPANY' && !!actualCompanyProfile?.id,
-  });
-  const myChallenges = myChallengesData?.data || [];
+  const isTalent = user?.role === 'TALENT';
+  const talentProfile = profile?.talentProfile;
+  const companyProfile = actualCompanyProfile;
 
   useEffect(() => {
     if (profileData?.data) {
-      const p = profileData.data.talentProfile || actualCompanyProfile;
+      const p = talentProfile || companyProfile;
       if (p) updateUserProfile(p);
-    }
-  }, [profileData?.data, actualCompanyProfile, updateUserProfile]);
-
-  const handleFaceCaptureComplete = async (descriptor: number[], imageDataUrl?: string) => {
-    setVerificationError(null);
-    setVerificationSuccess(null);
-    try {
-      if (!user?.id) throw new Error("Pengguna belum login");
-
-      const payload: any = {
-        biometricFeatureVector: descriptor,
-      };
       
-      if (imageDataUrl) {
-        payload.encryptedPrivateFace = imageDataUrl;
+      // Auto-show sections that have data
+      if (isTalent && talentProfile) {
+        const initialSections: string[] = [];
+        if (talentProfile.experiences?.length > 0) initialSections.push('experience');
+        if (talentProfile.educations?.length > 0) initialSections.push('education');
+        if (talentProfile.skills?.length > 0) initialSections.push('skills');
+        if (talentProfile.earnedBadges?.length > 0) initialSections.push('badges');
+        setVisibleSections(prev => Array.from(new Set([...prev, ...initialSections])));
       }
+    }
+  }, [profileData?.data, talentProfile, companyProfile, isTalent, updateUserProfile]);
 
+  const handleUpdateProfile = async (payload: any) => {
+    try {
       await authService.updateProfile(payload);
-
-      setVerificationSuccess('Verifikasi biometrik wajah berhasil disimpan secara lokal!');
-      setShowLivenessCam(false);
-      
-      // Update local state temporarily, or refetch
-      if (profile?.talentProfile) {
-        updateUserProfile({ ...profile.talentProfile, faceVerificationStatus: 'VERIFIED', biometricFeatureVector: descriptor, ...(imageDataUrl ? { encryptedPrivateFace: imageDataUrl } : {}) });
-      }
-      refetchVerification();
+      toast.success('Profil berhasil diperbarui!');
       refetch();
     } catch (err: any) {
-      setShowLivenessCam(false);
-      const msg = err.response?.data?.message || err.message || 'Gagal menyimpan model wajah.';
-      setVerificationError(msg);
+      toast.error(err.response?.data?.message || err.message || 'Gagal memperbarui profil.');
+      throw err;
     }
   };
 
-  const handleFaceTestComplete = async (descriptor: number[], imageDataUrl?: string) => {
-    try {
-       if (!imageDataUrl) {
-         toast.error('Gagal mengambil gambar wajah');
-         setShowTestFaceCam(false);
-         return;
-       }
-       // Munculkan toast info bahwa sedang diproses
-       const loadingToast = toast.loading('Memverifikasi kecocokan wajah dengan model AI...');
-       
-       try {
-         const result = await verificationService.verifyExecution({ livePhotoUrl: imageDataUrl });
-         toast.dismiss(loadingToast);
-         
-         if (result.verified) {
-           setTestFaceResult(true);
-           toast.success(result.message);
-         } else {
-           setTestFaceResult(false);
-           toast.error(result.message);
-         }
-       } catch (err: any) {
-         toast.dismiss(loadingToast);
-         toast.error(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
-       }
-       
-       setShowTestFaceCam(false);
-    } catch (err: any) {
-       toast.error(err.response?.data?.message || err.message || 'Gagal melakukan tes wajah');
-       setShowTestFaceCam(false);
+  const handleAddSection = (key: string) => {
+    if (!visibleSections.includes(key)) {
+      setVisibleSections([...visibleSections, key]);
     }
   };
 
-
-  const handleKybSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!kybNumber || !kybDocUrl) return;
-    setIsVerifyingKyb(true);
-    setVerificationError(null);
-    setVerificationSuccess(null);
-
-    try {
-      await verificationService.verifyKyb({
-        businessRegistrationNumber: kybNumber,
-        documentUrl: kybDocUrl,
-        legalEntityName: kybEntityName || undefined,
-      });
-      setVerificationSuccess('Dokumen legalitas perusahaan berhasil dikirim dan sedang ditinjau oleh tim verifikator.');
-      if (profile?.companyProfile) {
-        updateUserProfile({ ...profile.companyProfile, kybStatus: 'VERIFIED' });
-      }
-      refetchVerification();
-      refetch();
-    } catch (err: any) {
-      setVerificationError(err.message || 'Gagal mengirim dokumen KYB. Silakan coba lagi.');
-    } finally {
-      setIsVerifyingKyb(false);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    setIsSavingProfile(true);
-    setVerificationError(null);
-    setVerificationSuccess(null);
-    try {
-      const payload: any = { ...editFormData };
-      delete payload.ktpNik;
-      if (typeof payload.skills === 'string') {
-        payload.skills = payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean);
-      }
-      await authService.updateProfile(payload);
-      setVerificationSuccess('Profil berhasil diperbarui!');
-      setIsEditingProfile(false);
-      refetch();
-    } catch (err: any) {
-      setVerificationError(err.message || 'Gagal memperbarui profil.');
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const handleEditToggle = () => {
-    if (!isEditingProfile) {
-      setEditFormData(isTalent ? {
-        fullName: talentProfile?.fullName || '',
-        headline: talentProfile?.headline || '',
-        bio: talentProfile?.bio || '',
-        skills: talentProfile?.skills?.join(', ') || '',
-        githubUrl: talentProfile?.githubUrl || '',
-        linkedinUrl: talentProfile?.linkedinUrl || '',
-        figmaUrl: talentProfile?.figmaUrl || '',
-        ktpNik: talentProfile?.ktpNik || '',
-        showcasedSubmissionIds: talentProfile?.showcasedSubmissionIds || [],
-      } : {
-        companyName: companyProfile?.companyName || '',
-        industry: companyProfile?.industry || '',
-        companySize: companyProfile?.companySize || '',
-        websiteUrl: companyProfile?.websiteUrl || '',
-        description: companyProfile?.description || '',
-      });
-    }
-    setIsEditingProfile(!isEditingProfile);
+  const handleRemoveSection = (key: string) => {
+    setVisibleSections(visibleSections.filter(s => s !== key));
   };
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
-        <div className="h-12 bg-foreground/5 rounded-xl w-1/3" />
-        <div className="h-60 bg-foreground/5 rounded-xl w-full" />
+      <div className="w-full max-w-7xl mx-auto px-4 py-20 space-y-8 animate-pulse">
+        <div className="h-64 bg-foreground/5 rounded-3xl w-full" />
       </div>
     );
   }
@@ -234,160 +107,112 @@ export default function ProfilePage() {
     );
   }
 
-  const isTalent = user.role === 'TALENT';
-  const talentProfile = profile.talentProfile;
-  const companyProfile = actualCompanyProfile;
-
-  const subscriptionPlans = [
-    {
-      tier: 'STARTUP' as const,
-      name: 'Paket Murah',
-      price: 'Rp 500.000',
-      period: '/ bulan',
-      desc: 'Ideal untuk startup tahap awal yang mencari talenta unggul.',
-      features: ['Maksimal 1 studi kasus (aktif/draf)', 'Direktori studi kasus dasar', 'Koreksi kode otomatis AI', 'Dukungan komunitas'],
-      popular: false,
-    },
-    {
-      tier: 'KONGLOMERAT' as const,
-      name: 'Paket Pro',
-      price: 'Rp 2.500.000',
-      period: '/ bulan',
-      desc: 'Solusi lengkap untuk perusahaan berskala besar dan enterprise.',
-      features: ['Maksimal 5 studi kasus (aktif/draf)', 'Pembuat studi kasus otomatis AI', 'Verifikasi AI Anti-Joki prioritas', 'Laporan analitik rekrutmen mendalam', 'Dedicated Account Support'],
-      popular: true,
-    },
-    {
-      tier: 'CUSTOM' as const,
-      name: 'Paket Custom',
-      price: 'Kustom',
-      period: '/ kontrak',
-      desc: 'Disesuaikan dengan kebutuhan infrastruktur dan integrasi ATS internal.',
-      features: ['Studi kasus aktif tak terbatas', 'Semua fitur Paket Pro', 'Integrasi API langsung ke ATS internal', 'Rubrik penilaian kustom khusus', 'SLA jaminan uptime 99.9%', 'Pelatihan rekruter khusus'],
-      popular: false,
-    },
-  ];
-
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      <ProfileHeader
-        user={user}
-        isTalent={isTalent}
-        talentProfile={talentProfile}
-        companyProfile={companyProfile}
-      />
-
-      {!isTalent && companyProfile && companyProfile.trustScore < 80 && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
-          <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">
-            <strong>Peringatan SLA Penilaian:</strong> Trust Score Anda telah turun di bawah batas optimal. Sistem telah mendeteksi keterlambatan dalam memberikan umpan balik (feedback) pada submisi kandidat (&gt; 7 hari). Harap segera evaluasi submisi tertunda agar visibilitas studi kasus Anda tidak dikurangi.
-          </p>
-        </div>
-      )}
-
-      {verificationSuccess && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
-          <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">{verificationSuccess}</p>
-        </div>
-      )}
-
-      {verificationError && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
-          <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">{verificationError}</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Left Column (Main Content) */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
-            <div className="flex justify-between items-center border-b border-border pb-4">
-              <h3 className="font-display text-xl font-bold text-foreground">
-                {isTalent ? 'Informasi Profil Talenta' : 'Informasi Perusahaan Mitra'}
-              </h3>
-              {!isEditingProfile && (
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  onClick={handleEditToggle}
-                >
-                  Edit Profil
-                </Button>
-              )}
-            </div>
-
-            {isTalent ? (
-              <TalentProfileTab
-                talentProfile={talentProfile}
-                isEditingProfile={isEditingProfile}
-                editFormData={editFormData}
-                setEditFormData={setEditFormData}
-              />
-            ) : (
-              <CompanySettingsTab
-                companyProfile={companyProfile}
-                isEditingProfile={isEditingProfile}
-                editFormData={editFormData}
-                setEditFormData={setEditFormData}
-              />
-            )}
-
-            {isEditingProfile && (
-              <div className="flex justify-end pt-4 gap-3">
-                <Button 
-                  variant="secondary" 
-                  onClick={handleEditToggle}
-                  disabled={isSavingProfile}
-                >
-                  Batal Simpan
-                </Button>
-                <Button onClick={handleSaveProfile} isLoading={isSavingProfile}>
-                  Simpan Perubahan
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {!isTalent && companyProfile && (
-            <BillingTab
-              companyProfile={companyProfile}
-              myChallenges={myChallenges}
-              subscriptionPlans={subscriptionPlans}
-              isUpgradingTier={isUpgradingTier}
-              selectedTier={selectedTier}
-            />
-          )}
-
-          {isTalent && talentProfile?.earnedBadges?.length > 0 && (
-            <TalentBadgesTab earnedBadges={talentProfile.earnedBadges} />
-          )}
-        </div>
-
-        <div className="space-y-8">
-          <LivenessKycTab
+          <ProfileHeader
+            user={user}
             isTalent={isTalent}
             talentProfile={talentProfile}
             companyProfile={companyProfile}
-            verificationError={verificationError}
-            showLivenessCam={showLivenessCam}
-            setShowLivenessCam={setShowLivenessCam}
-            showTestFaceCam={showTestFaceCam}
-            setShowTestFaceCam={setShowTestFaceCam}
-            handleFaceCaptureComplete={handleFaceCaptureComplete}
-            handleFaceTestComplete={handleFaceTestComplete}
-            handleKybSubmit={handleKybSubmit}
-            kybEntityName={kybEntityName}
-            setKybEntityName={setKybEntityName}
-            kybNumber={kybNumber}
-            setKybNumber={setKybNumber}
-            kybDocUrl={kybDocUrl}
-            setKybDocUrl={setKybDocUrl}
-            isVerifyingKyb={isVerifyingKyb}
+            onEditIntroClick={() => setIsEditIntroOpen(true)}
+            onAddSectionClick={() => setIsAddSectionOpen(true)}
+            onEditPhotoClick={() => setIsEditPhotoOpen(true)}
           />
+
+          {isTalent && visibleSections.includes('experience') && (
+            <ExperienceSection 
+              experiences={talentProfile?.experiences || []} 
+              onUpdate={(experiences) => handleUpdateProfile({ experiences })}
+              onRemoveSection={() => handleRemoveSection('experience')}
+            />
+          )}
+
+          {isTalent && visibleSections.includes('education') && (
+            <EducationSection 
+              educations={talentProfile?.educations || []} 
+              onUpdate={(educations) => handleUpdateProfile({ educations })}
+              onRemoveSection={() => handleRemoveSection('education')}
+            />
+          )}
+
+          {isTalent && visibleSections.includes('skills') && (
+            <SkillsSection 
+              skills={talentProfile?.skills || []} 
+              onUpdate={(skills) => handleUpdateProfile({ skills })}
+              onRemoveSection={() => handleRemoveSection('skills')}
+            />
+          )}
+        </div>
+
+        {/* Right Column (Sidebar) */}
+        <div className="space-y-8">
+          <PublicProfileCard 
+            profileUrl={talentProfile?.linkedinUrl || ''} 
+            onEditClick={() => setIsEditLinksOpen(true)}
+          />
+          
+          {/* Liveness KYC always shown on the right for talent */}
+          {isTalent && (
+            <LivenessKycTab
+              isTalent={isTalent}
+              talentProfile={talentProfile}
+              companyProfile={companyProfile}
+              showLivenessCam={showLivenessCam}
+              setShowLivenessCam={setShowLivenessCam}
+              showTestFaceCam={showTestFaceCam}
+              setShowTestFaceCam={setShowTestFaceCam}
+              handleFaceCaptureComplete={async () => {}} 
+              handleFaceTestComplete={async () => {}}
+              handleKybSubmit={async () => {}}
+              kybEntityName=""
+              setKybEntityName={() => {}}
+              kybNumber=""
+              setKybNumber={() => {}}
+              kybDocUrl=""
+              setKybDocUrl={() => {}}
+              isVerifyingKyb={false}
+              verificationError={null}
+            />
+          )}
+
+          {isTalent && visibleSections.includes('badges') && (
+            <div className="bg-card border border-border rounded-3xl p-8 shadow-lg">
+              <TalentBadgesTab earnedBadges={talentProfile?.earnedBadges || []} />
+            </div>
+          )}
         </div>
       </div>
+
+      <EditIntroModal 
+        isOpen={isEditIntroOpen}
+        onClose={() => setIsEditIntroOpen(false)}
+        talentProfile={talentProfile}
+        onSave={handleUpdateProfile}
+      />
+
+      <AddSectionModal 
+        isOpen={isAddSectionOpen}
+        onClose={() => setIsAddSectionOpen(false)}
+        onAddSection={handleAddSection}
+        visibleSections={visibleSections}
+      />
+
+      <EditPhotoModal
+        isOpen={isEditPhotoOpen}
+        onClose={() => setIsEditPhotoOpen(false)}
+        talentProfile={talentProfile}
+        onSave={handleUpdateProfile}
+      />
+
+      <EditLinksModal
+        isOpen={isEditLinksOpen}
+        onClose={() => setIsEditLinksOpen(false)}
+        talentProfile={talentProfile}
+        onSave={handleUpdateProfile}
+      />
     </div>
   );
 }

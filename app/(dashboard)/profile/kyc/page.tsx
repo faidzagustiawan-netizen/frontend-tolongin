@@ -109,6 +109,29 @@ export default function KycVerificationPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleKtpDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setKtpFileError('Ukuran gambar maksimal 5MB');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setKtpFileError('Format file harus berupa gambar (JPG/PNG)');
+      return;
+    }
+
+    setKtpFileError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setKtpPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
 
 
   const captureSelfieAndVerify = useCallback(async (imageSrc: string) => {
@@ -189,10 +212,14 @@ export default function KycVerificationPage() {
               </div>
 
               {!ktpPreview ? (
-                <label className="border-2 border-dashed border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden">
+                <label 
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleKtpDrop}
+                  className="border-2 border-dashed border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden"
+                >
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20 pointer-events-none" />
                   <UploadCloud className="h-12 w-12 text-muted-foreground group-hover:text-emerald-500 mb-4 transition-colors" />
-                  <p className="text-sm font-medium text-foreground text-center">Klik untuk mengunggah foto KTP</p>
+                  <p className="text-sm font-medium text-foreground text-center">Klik atau tarik file untuk mengunggah foto KTP</p>
                   <p className="text-xs text-muted-foreground mt-2 text-center">Maksimal 5MB (JPG, PNG)</p>
                   <input type="file" accept="image/*" className="hidden" onChange={handleKtpUpload} />
                 </label>
