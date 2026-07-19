@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CompanyDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = params.slug as string;
   const [activeTab, setActiveTab] = useState<'ongoing' | 'upcoming' | 'completed'>('ongoing');
 
   const { data: company, isLoading, isError } = useQuery({

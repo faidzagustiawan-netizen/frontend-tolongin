@@ -39,7 +39,7 @@ export const LeaderboardTable = ({ leaderboard, currentUserEmail, getRankInfo, s
           const isCurrentUser = currentUserEmail && currentUserEmail === talent.user?.email;
 
           return (
-            <Link key={talent.id} href={`/talents/${talent.userId}`} className="block">
+            <Link key={talent.id} href={`/talents/${talent.slug || talent.userId}`} className="block">
               <motion.div
                 layout
                 initial={{ opacity: 0, y: 20 }}

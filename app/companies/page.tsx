@@ -46,7 +46,7 @@ export default function CompaniesDirectoryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {companies.map((company: any, i: number) => (
             <motion.div
-              key={company.id}
+              key={company.slug || company.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
@@ -85,7 +85,7 @@ export default function CompaniesDirectoryPage() {
                   <Users className="w-4 h-4" />
                   <span>{company._count?.challenges || 0} Studi Kasus</span>
                 </div>
-                <Link href={`/companies/${company.id}`}>
+                <Link href={`/companies/${company.slug || company.id}`}>
                   <Button variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 group-hover:px-6 transition-all">
                     Lihat Profil <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>

@@ -41,7 +41,7 @@ export const EducationSection = ({ educations: initialEducations, onUpdate, onRe
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    let newArr = [...educations];
+    const newArr = [...educations];
     if (editingIndex !== null) {
       newArr[editingIndex] = formData;
     } else {

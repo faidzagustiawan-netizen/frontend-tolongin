@@ -10,10 +10,10 @@ import { Button } from '../../../components/common/Button';
 import { TalentProfileTab } from '../../../components/profile/TalentProfileTab';
 import { Navbar } from '../../../components/common/Navbar';
 
-export default function PublicProfilePage({ params }: { params: { id: string } }) {
+export default function PublicProfilePage({ params }: { params: { slug: string } }) {
   const { data: profileData, isLoading, error } = useQuery({
-    queryKey: ['profile', params.id],
-    queryFn: () => authService.getProfile(params.id),
+    queryKey: ['profile', params.slug],
+    queryFn: () => authService.getProfile(params.slug),
   });
 
   if (isLoading) {

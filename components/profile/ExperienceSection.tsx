@@ -42,7 +42,7 @@ export const ExperienceSection = ({ experiences: initialExperiences, onUpdate, o
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    let newArr = [...experiences];
+    const newArr = [...experiences];
     if (editingIndex !== null) {
       newArr[editingIndex] = formData;
     } else {

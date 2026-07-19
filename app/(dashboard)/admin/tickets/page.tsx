@@ -34,7 +34,10 @@ export default function AdminTicketsPage() {
 
   useEffect(() => {
     if (!user || user.role !== 'ADMIN') return;
-    fetchTickets();
+    const load = async () => {
+      await fetchTickets();
+    };
+    load();
   }, [user, token]);
 
   const handleSelectTicket = async (ticket: any) => {

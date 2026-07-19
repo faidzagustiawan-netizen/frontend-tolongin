@@ -12,7 +12,7 @@ export default function MultipleChoiceBuilder({ comp, onChange }: BuilderProps) 
             <div className="relative flex items-center justify-center">
               <input 
                 type="radio" 
-                name={`correct-${Math.random()}`} 
+                name={`correct-${opt.id || optIdx}`} 
                 checked={opt.isCorrect} 
                 onChange={() => {
                   const newOpts = [...(comp.options || [])];

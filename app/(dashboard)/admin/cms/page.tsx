@@ -34,7 +34,10 @@ export default function AdminCMSPage() {
 
   useEffect(() => {
     if (!user || user.role !== 'ADMIN') return;
-    fetchAnnouncements();
+    const load = async () => {
+      await fetchAnnouncements();
+    };
+    load();
   }, [user, token]);
 
   const handleCreate = async (e: React.FormEvent) => {
