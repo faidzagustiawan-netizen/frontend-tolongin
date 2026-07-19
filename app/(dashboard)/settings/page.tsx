@@ -3,22 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUserStore } from '../../../store/userStore';
-import { authService } from '../../../services/auth.service';
-import { Button } from '../../../components/common/Button';
+import { useUserStore } from '@/store/userStore';
+import { authService } from '@/services/auth.service';
+import { Button } from '@/components/common/Button';
 import { AlertCircle } from 'lucide-react';
 
-import { ProfileHeader } from '../../../components/profile/ProfileHeader';
-import { EditIntroModal } from '../../../components/profile/EditIntroModal';
-import { AddSectionModal } from '../../../components/profile/AddSectionModal';
-import { EditPhotoModal } from '../../../components/profile/EditPhotoModal';
-import { EditLinksModal } from '../../../components/profile/EditLinksModal';
-import { SkillsSection } from '../../../components/profile/SkillsSection';
-import { ExperienceSection } from '../../../components/profile/ExperienceSection';
-import { EducationSection } from '../../../components/profile/EducationSection';
-import { LivenessKycTab } from '../../../components/profile/LivenessKycTab';
-import { TalentBadgesTab } from '../../../components/profile/TalentBadgesTab';
-import { PublicProfileCard } from '../../../components/profile/PublicProfileCard';
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { EditIntroModal } from '@/components/profile/EditIntroModal';
+import { AddSectionModal } from '@/components/profile/AddSectionModal';
+import { EditPhotoModal } from '@/components/profile/EditPhotoModal';
+import { EditLinksModal } from '@/components/profile/EditLinksModal';
+import { SkillsSection } from '@/components/profile/SkillsSection';
+import { ExperienceSection } from '@/components/profile/ExperienceSection';
+import { EducationSection } from '@/components/profile/EducationSection';
+import { LivenessKycTab } from '@/components/profile/LivenessKycTab';
+import { TalentBadgesTab } from '@/components/profile/TalentBadgesTab';
+import { PublicProfileCard } from '@/components/profile/PublicProfileCard';
 
 export default function ProfilePage() {
   const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
@@ -216,3 +216,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

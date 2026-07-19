@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useUserStore } from '../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const { user, loadUserFromStorage } = useUserStore();

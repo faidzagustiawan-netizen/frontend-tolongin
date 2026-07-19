@@ -25,6 +25,7 @@
     "react-easy-crop": "^6.1.0",
     "react-hook-form": "^7.76.0",
     "react-hot-toast": "^2.6.0",
+    "react-resizable-panels": "^4.12.2",
     "recharts": "^3.9.2",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",

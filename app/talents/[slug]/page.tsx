@@ -8,7 +8,6 @@ import { TalentBadgesTab } from '../../../components/profile/TalentBadgesTab';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { TalentProfileTab } from '../../../components/profile/TalentProfileTab';
-import { Navbar } from '../../../components/common/Navbar';
 
 export default function PublicProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
@@ -21,7 +20,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ slug: 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg">
-        <Navbar />
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
           <div className="h-60 bg-foreground/5 rounded-3xl w-full" />
           <div className="h-60 bg-foreground/5 rounded-3xl w-full" />
@@ -33,7 +31,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ slug: 
   if (error || !profileData?.data) {
     return (
       <div className="min-h-screen bg-bg">
-        <Navbar />
         <div className="text-center py-32 space-y-4">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto" />
           <h2 className="text-xl font-bold text-foreground">Profil Tidak Ditemukan</h2>
@@ -51,7 +48,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="min-h-screen bg-bg">
-      <Navbar />
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         <ProfileHeader
           user={user}

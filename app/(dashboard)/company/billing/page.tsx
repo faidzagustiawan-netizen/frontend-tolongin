@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserStore } from '../../../../store/userStore';
-import { subscriptionsService } from '../../../../services/subscriptions.service';
+import { useUserStore } from '@/store/userStore';
+import { subscriptionsService } from '@/services/subscriptions.service';
 import { CheckCircle2, Zap, Shield, Crown, CreditCard, ArrowRight, Loader2, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Script from 'next/script';
@@ -59,7 +59,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     loadUserFromStorage();
-  }, [loadUserFromStorage]);
+    if (user && user.role !== 'COMPANY' && user.role !== 'ADMIN') {
+      router.push('/');
+    }
+  }, [loadUserFromStorage, user, router]);
 
   const currentTier = user?.profile?.subscriptionTier || 'STARTUP';
 
@@ -73,7 +76,7 @@ export default function BillingPage() {
 
     setIsLoading(true);
     try {
-      const { PaymentsService } = await import('../../../../services/payments.service');
+      const { PaymentsService } = await import('@/services/payments.service');
       const result = await PaymentsService.subscribePremium();
       if (result.snapToken) {
         (window as any).snap.pay(result.snapToken, {
@@ -192,3 +195,5 @@ export default function BillingPage() {
     </div>
   );
 }
+
+

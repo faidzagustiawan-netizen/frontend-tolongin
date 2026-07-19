@@ -50,7 +50,7 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
     try {
       await submissionsService.enroll({ challengeId: challenge.id });
       setNdaModalOpen(false);
-      router.push('/workspace');
+      router.push('/dashboard');
     } catch (err: any) {
       setEnrollmentError(err.message || 'Gagal mendaftar ke studi kasus ini.');
     } finally {

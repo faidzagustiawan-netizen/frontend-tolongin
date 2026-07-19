@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { notificationsService, NotificationItem } from '../../../services/notifications.service';
-import { useUserStore } from '../../../store/userStore';
-import { Button } from '../../../components/common/Button';
+import { notificationsService, NotificationItem } from '@/services/notifications.service';
+import { useUserStore } from '@/store/userStore';
+import { Button } from '@/components/common/Button';
 import { Bell, CheckCheck, Info, ArrowLeft, Trash2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -51,7 +51,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8">
-      <Link href="/workspace" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali
       </Link>
 

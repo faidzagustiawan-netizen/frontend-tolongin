@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
-import { CreateChallengePayload } from '../../../../../services/challenges.service';
-import { Button } from '../../../../../components/common/Button';
-import { Input } from '../../../../../components/common/Input';
-import { DurationPicker } from '../../../../../components/common/DurationPicker';
+import { CreateChallengePayload } from '@/services/challenges.service';
+import { Button } from '@/components/common/Button';
+import { Input } from '@/components/common/Input';
+import { DurationPicker } from '@/components/common/DurationPicker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QuestionTypeRegistry } from '../../../../../components/question-types';
+import { QuestionTypeRegistry } from '@/components/question-types';
 
 interface QuestionBuilderProps {
   manualData: CreateChallengePayload;
@@ -153,7 +153,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     <div 
       onKeyDown={handleKeyDown}
       className={`flex flex-col border border-border overflow-hidden duration-500 ${
-      isEditorExpanded ? 'fixed inset-0 z-[100] bg-bg rounded-none' : 'h-[750px] bg-bg rounded-2xl animate-in fade-in slide-in-from-bottom-4'
+      isEditorExpanded ? 'fixed inset-0 z-[100] bg-background rounded-none' : 'h-[750px] bg-background rounded-2xl animate-in fade-in slide-in-from-bottom-4'
     }`}>
       
       {/* Top Header & Horizontal Tabs for Stages */}
@@ -211,7 +211,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
 
       {/* Main Content Area */}
       {selectedSectionIdx !== null && manualData.sections?.[selectedSectionIdx] && (
-        <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar bg-bg relative pb-32">
+        <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar bg-background relative pb-32">
           
           {/* Section Settings */}
           <div className="bg-card p-6 border-b border-border flex flex-wrap items-start gap-6 shadow-sm sticky top-0 z-20">
@@ -220,7 +220,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
               <input 
                 value={manualData.sections[selectedSectionIdx].title}
                 onChange={(e) => updateSectionTitle(selectedSectionIdx, e.target.value)}
-                className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
                 placeholder="Contoh: Kuis Pemrograman React"
               />
             </div>
@@ -245,9 +245,9 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
           {/* List of Questions (LMS Style) */}
           <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-4">
             {(manualData.sections[selectedSectionIdx].components || []).length === 0 ? (
-               <div className="text-center py-16 text-muted border-2 border-dashed border-border rounded-2xl bg-card">
+               <div className="text-center py-16 text-muted-foreground border-2 border-dashed border-border rounded-2xl bg-card">
                  <Settings className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                 <p className="text-lg font-medium text-title mb-2">Belum ada pertanyaan</p>
+                 <p className="text-lg font-medium text-foreground mb-2">Belum ada pertanyaan</p>
                  <p className="text-sm">Klik tombol "Tambah Pertanyaan" di bawah untuk mulai membuat kuis.</p>
                </div>
             ) : (
@@ -303,7 +303,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="border-t border-border bg-bg"
+                          className="border-t border-border bg-background"
                         >
                           <div className="p-5 sm:p-6 space-y-6">
                             
@@ -313,7 +313,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                                 <textarea 
                                   value={comp.question}
                                   onChange={(e) => updateComponent(selectedSectionIdx, compIdx, 'question', e.target.value)}
-                                  className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
+                                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors"
                                   rows={3}
                                   placeholder="Tuliskan pertanyaan di sini..."
                                 />
@@ -324,7 +324,7 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                                   type="number"
                                   value={comp.points}
                                   onChange={(e) => updateComponent(selectedSectionIdx, compIdx, 'points', parseInt(e.target.value) || 0)}
-                                  className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors sm:text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-emerald-500 transition-colors sm:text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                               </div>
                             </div>
@@ -375,3 +375,5 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
 
   return content;
 }
+
+

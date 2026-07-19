@@ -44,7 +44,7 @@ function LoginContent() {
         if (data.user.role === 'ADMIN') {
           router.push('/admin');
         } else {
-          router.push(data.user.role === 'COMPANY' ? '/challenges' : '/workspace');
+          router.push('/dashboard');
         }
       }
     } catch (err: any) {

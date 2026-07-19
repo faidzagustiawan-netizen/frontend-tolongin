@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUserStore } from '../../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 import { FileText, Search, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -116,3 +116,4 @@ export default function AdminAuditLogsPage() {
     </div>
   );
 }
+

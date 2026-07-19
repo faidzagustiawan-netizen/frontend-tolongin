@@ -2,15 +2,15 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '../../../../components/common/Button';
-import { verificationService } from '../../../../services/verification.service';
+import { Button } from '@/components/common/Button';
+import { verificationService } from '@/services/verification.service';
 import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 
-const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
+const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 
 type KycStep = 'KTP' | 'LIVENESS' | 'SUCCESS';
 
@@ -370,3 +370,5 @@ export default function KycVerificationPage() {
     </div>
   );
 }
+
+

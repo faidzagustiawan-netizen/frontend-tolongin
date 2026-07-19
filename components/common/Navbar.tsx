@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -174,16 +174,21 @@ export const Navbar = () => {
   };
 
   const talentNavLinks = [
+    { name: 'Dashboard', href: '/', icon: CheckCheck },
     { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
     { name: 'Perusahaan Mitra', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
-    { name: 'Workspace Ku', href: '/workspace', icon: CheckCheck },
   ];
 
   const companyNavLinks = [
-    { name: 'Dashboard Review', href: '/workspace', icon: CheckCheck },
-    { name: 'Manajemen Tim', href: '/workspace/team', icon: Users },
+    { name: 'Dashboard', href: '/', icon: CheckCheck },
     { name: 'Leaderboard Talenta', href: '/leaderboard', icon: Trophy },
+  ];
+
+  const adminNavLinks = [
+    { name: 'Panel Admin', href: '/admin', icon: LayoutDashboard },
+    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+    { name: 'Users', href: '/admin/users', icon: Users },
   ];
 
   const guestNavLinks = [
@@ -192,7 +197,13 @@ export const Navbar = () => {
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
-  const navLinks = !isAuthenticated ? guestNavLinks : user?.role === 'COMPANY' ? companyNavLinks : talentNavLinks;
+  const navLinks = !isAuthenticated 
+    ? guestNavLinks 
+    : user?.role === 'ADMIN' 
+      ? adminNavLinks 
+      : user?.role === 'COMPANY' 
+        ? companyNavLinks 
+        : talentNavLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
@@ -371,7 +382,7 @@ export const Navbar = () => {
                         className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-2xl py-1 z-50 overflow-hidden"
                       >
                         <Link
-                          href="/profile"
+                          href="/settings"
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                         >
@@ -545,7 +556,7 @@ export const Navbar = () => {
                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Akun Saya</span>
                         </div>
                         <Link
-                          href="/profile"
+                          href="/settings"
                           onClick={() => setMobileMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                         >

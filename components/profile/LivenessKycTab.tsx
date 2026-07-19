@@ -79,7 +79,7 @@ export const LivenessKycTab = ({
           </div>
 
           {!showLivenessCam && (
-            <Link href="/profile/kyc" className="block w-full">
+            <Link href="/dashboard/settings/kyc" className="block w-full">
               <Button className="w-full shadow-xl" variant={talentProfile?.faceVerificationStatus === 'VERIFIED' ? 'outline' : 'primary'}>
                 {talentProfile?.faceVerificationStatus === 'VERIFIED' ? 'Perbarui Verifikasi KTP & Wajah' : 'Mulai Verifikasi Identitas (KYC & Liveness)'}
               </Button>

@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { submissionsService } from '../../../../../services/submissions.service';
-import { useUserStore } from '../../../../../store/userStore';
-import { Button } from '../../../../../components/common/Button';
-import { Input, Textarea } from '../../../../../components/common/Input';
+import { submissionsService } from '@/services/submissions.service';
+import { useUserStore } from '@/store/userStore';
+import { Button } from '@/components/common/Button';
+import { Input, Textarea } from '@/components/common/Input';
 import Image from 'next/image';
 import { ArrowLeft, ExternalLink, Code2, FileText, CheckCircle, Clock, XCircle, Brain, Target, ShieldAlert, FileCode2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -27,7 +27,7 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'ADMIN') {
-      router.push('/workspace');
+      router.push('/dashboard');
     }
   }, [isAuthenticated, user, router]);
 
@@ -56,7 +56,7 @@ export default function SubmissionDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold text-foreground mb-4">Submisi Tidak Ditemukan</h2>
-        <Button onClick={() => router.push('/workspace')} variant="secondary">Kembali</Button>
+        <Button onClick={() => router.push('/dashboard')} variant="secondary">Kembali</Button>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function SubmissionDetailPage() {
       });
       alert('Penilaian berhasil disimpan!');
       refetch();
-      router.push(`/workspace/submissions/challenge/${submission.challengeId}`);
+      router.push(`/dashboard/company/submissions/challenge/${submission.challengeId}`);
     } catch (error) {
       console.error(error);
       alert('Gagal menyimpan penilaian');
@@ -85,7 +85,7 @@ export default function SubmissionDetailPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <button 
-        onClick={() => router.push(`/workspace/submissions/challenge/${submission.challengeId}`)}
+        onClick={() => router.push(`/dashboard/company/submissions/challenge/${submission.challengeId}`)}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Kandidat

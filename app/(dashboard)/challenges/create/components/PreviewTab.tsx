@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, UploadCloud, ChevronRight, Play, CheckCircle2, Lock, Clock } from 'lucide-react';
-import { CreateChallengePayload } from '../../../../../services/challenges.service';
-import { pistonService } from '../../../../../services/piston.service';
-import { QuestionTypeRegistry } from '../../../../../components/question-types';
+import { CreateChallengePayload } from '@/services/challenges.service';
+import { pistonService } from '@/services/piston.service';
+import { QuestionTypeRegistry } from '@/components/question-types';
 import dynamic from 'next/dynamic';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat Editor...</div> });
@@ -92,7 +92,7 @@ export default function PreviewTab({ manualData, onClose }: PreviewTabProps) {
               <div key={idx} className={`relative flex gap-6 ${isLocked ? 'opacity-50' : ''}`}>
                 {/* Timeline Line */}
                 {idx !== (manualData.sections?.length || 0) - 1 && (
-                  <div className="absolute left-6 top-14 bottom-[-24px] w-0.5 bg-dark-border"></div>
+                  <div className="absolute left-6 top-14 bottom-[-24px] w-0.5 bg-border"></div>
                 )}
                 
                 {/* Icon */}
@@ -461,3 +461,5 @@ export default function PreviewTab({ manualData, onClose }: PreviewTabProps) {
     </div>
   );
 }
+
+

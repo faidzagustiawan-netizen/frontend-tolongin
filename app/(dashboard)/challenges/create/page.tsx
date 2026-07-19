@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserStore } from '../../../../store/userStore';
-import { challengesService, CreateChallengePayload } from '../../../../services/challenges.service';
-import { Button } from '../../../../components/common/Button';
-import { Input, Textarea } from '../../../../components/common/Input';
+import { useUserStore } from '@/store/userStore';
+import { challengesService, CreateChallengePayload } from '@/services/challenges.service';
+import { Button } from '@/components/common/Button';
+import { Input, Textarea } from '@/components/common/Input';
 import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from './components/ManualBuilder';
@@ -20,7 +20,7 @@ export default function CreateChallengePage() {
   useEffect(() => {
     loadUserFromStorage();
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'TALENT') {
-      router.push('/workspace');
+      router.push('/dashboard');
     }
   }, [loadUserFromStorage, isAuthenticated, user, router]);
 
@@ -144,7 +144,7 @@ export default function CreateChallengePage() {
       setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
       setTimeout(() => {
         localStorage.removeItem('draftChallenge');
-        router.push('/workspace');
+        router.push('/dashboard');
       }, 2000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');
@@ -189,7 +189,7 @@ export default function CreateChallengePage() {
         <ArrowLeft className="h-4 w-4" /> Kembali
       </button>
 
-      <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 sm:p-12 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-primary p-8 sm:p-12 shadow-2xl">
 
   {/* Glow lama tetap dipertahankan */}
   <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
@@ -209,7 +209,7 @@ export default function CreateChallengePage() {
               L0 0
               Z
             "
-            fill="#1e7f4d"
+            className="fill-primary"
           />
         </svg>
 
@@ -218,13 +218,13 @@ export default function CreateChallengePage() {
 
         {/* Content */}
         <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground/90 tracking-tight leading-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight leading-tight">
             Buat Challenge,
             <br />
             Temukan Talenta Berkualitas
           </h1>
 
-          <p className="max-w-2xl text-sm text-foreground/90 leading-relaxed">
+          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
             Buat tantangan teknis atau bisnis untuk talenta. Anda dapat mendesain
             secara manual atau membiarkan AI generatif kami merancang spesifikasi
             dan rubrik secara otomatis.
@@ -233,7 +233,7 @@ export default function CreateChallengePage() {
 
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 bg-bg p-2 rounded-2xl border border-border w-full sm:w-fit">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 bg-background p-2 rounded-2xl border border-border w-full sm:w-fit">
         <div className="relative group w-full sm:w-auto">
           <button
             onClick={() => {
@@ -243,7 +243,7 @@ export default function CreateChallengePage() {
             }}
             disabled={user?.profile?.subscriptionTier === 'STARTUP'}
             className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
-              activeTab === 'AI' ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]' : 'text-muted-foreground hover:text-foreground'
+              activeTab === 'AI' ? 'bg-primary text-white shadow-lg border border-primary' : 'text-muted-foreground hover:text-foreground'
             } ${user?.profile?.subscriptionTier === 'STARTUP' ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Sparkles className="h-4 w-4" /> AI Auto-Generate
@@ -258,8 +258,8 @@ export default function CreateChallengePage() {
             onClick={() => setActiveTab('MANUAL')}
             className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
               activeTab === 'MANUAL'
-            ? 'bg-[#1e7f4d] text-white shadow-lg border border-[#1e7f4d]'
-            : 'text-muted hover:text-title hover:bg-card'
+            ? 'bg-primary text-white shadow-lg border border-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-card'
             }`}
           >
             <Briefcase className="h-4 w-4" />
@@ -313,7 +313,7 @@ export default function CreateChallengePage() {
                   <select
                     value={aiCategory}
                     onChange={(e) => setAiCategory(e.target.value as any)}
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="FRONTEND">Frontend Development</option>
                     <option value="BACKEND">Backend Development</option>
@@ -328,7 +328,7 @@ export default function CreateChallengePage() {
                   <select
                     value={aiDifficulty}
                     onChange={(e) => setAiDifficulty(e.target.value as any)}
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                   >
                     <option value="BEGINNER">Beginner (Pemanasan untuk pemula yang baru belajar)</option>
                     <option value="INTERMEDIATE">Intermediate (Tantangan menengah, butuh pemahaman kuat)</option>
@@ -369,3 +369,4 @@ export default function CreateChallengePage() {
     </div>
   );
 }
+

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Calendar, ShieldAlert, Plus, Trash2, PieChart } from 'lucide-react';
-import { Input, Textarea } from '../../../../../components/common/Input';
-import { DateTimePicker } from '../../../../../components/common/DateTimePicker';
-import { CreateChallengePayload } from '../../../../../services/challenges.service';
+import { Input, Textarea } from '@/components/common/Input';
+import { DateTimePicker } from '@/components/common/DateTimePicker';
+import { CreateChallengePayload } from '@/services/challenges.service';
 
 interface GeneralFormProps {
   manualData: CreateChallengePayload;
@@ -54,8 +54,8 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h3 className="text-xl font-bold text-title mb-1">Informasi Umum</h3>
-        <p className="text-sm text-muted mb-6">Lengkapi informasi dasar mengenai studi kasus yang akan Anda buat.</p>
+        <h3 className="text-xl font-bold text-foreground mb-1">Informasi Umum</h3>
+        <p className="text-sm text-muted-foreground mb-6">Lengkapi informasi dasar mengenai studi kasus yang akan Anda buat.</p>
       </div>
 
       <Input
@@ -68,13 +68,13 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Kategori Pekerjaan {!manualData.category && <span className="text-red-500 ml-1">*</span>}
           </label>
           <select
             value={manualData.category}
             onChange={(e) => setManualData({ ...manualData, category: e.target.value as any })}
-            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="FRONTEND">Frontend Development</option>
@@ -86,13 +86,13 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Tingkat Kesulitan {!manualData.difficulty && <span className="text-red-500 ml-1">*</span>}
           </label>
           <select
             value={manualData.difficulty}
             onChange={(e) => setManualData({ ...manualData, difficulty: e.target.value as any })}
-            className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
             <option value="BEGINNER">Beginner (Pemanasan untuk pemula yang baru belajar)</option>
@@ -110,7 +110,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           placeholder="Tentukan batas akhir..."
           required
         />
-        <p className="text-xs text-muted mt-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
+        <p className="text-xs text-muted-foreground mt-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
       </div>
 
       <Textarea
@@ -133,7 +133,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
 
       <div className="pt-6 mt-8 border-t border-border">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-bold text-title flex items-center gap-2">
+          <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             <PieChart className="w-5 h-5 text-emerald-500" />
             Kriteria & Bobot Penilaian (Rubrik)
           </h3>
@@ -141,7 +141,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
             Total: {totalWeight}% {totalWeight !== 100 && '(Wajib 100%)'}
           </span>
         </div>
-        <p className="text-sm text-muted mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           Tentukan parameter penilaian ujian ini. Berlaku sebagai panduan tim Rekruter untuk evaluasi manual, maupun instruksi mutlak untuk AI Evaluator (jika paket langganan Anda mendukung).
         </p>
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
@@ -153,7 +153,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
         <div className="space-y-3">
           {rubricKeys.length === 0 && (
             <div className="text-center p-6 bg-background border border-dashed border-border rounded-xl">
-              <p className="text-sm text-muted">Belum ada kriteria penilaian. Tambahkan kriteria pertama Anda.</p>
+              <p className="text-sm text-muted-foreground">Belum ada kriteria penilaian. Tambahkan kriteria pertama Anda.</p>
             </div>
           )}
           {rubricKeys.map((key, idx) => (
@@ -163,7 +163,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
                 placeholder="Nama Kriteria (misal: Kualitas Kode)"
                 value={key}
                 onChange={(e) => handleUpdateCriteria(key, e.target.value, (manualData.gradingRubric as any)[key])}
-                className="flex-1 bg-bg border border-border rounded-xl px-4 py-2.5 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <div className="relative w-24">
                 <input
@@ -172,14 +172,14 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
                   max="100"
                   value={(manualData.gradingRubric as any)[key]}
                   onChange={(e) => handleUpdateCriteria(key, key, parseInt(e.target.value) || 0)}
-                  className="w-full bg-bg border border-border rounded-xl px-4 py-2.5 text-sm text-title focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <span className="absolute right-3 top-2.5 text-muted text-sm">%</span>
+                <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">%</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleRemoveCriteria(key)}
-                className="p-2.5 text-muted hover:text-red-500 bg-bg border border-border rounded-xl hover:bg-red-500/10 transition-colors"
+                className="p-2.5 text-muted-foreground hover:text-red-500 bg-background border border-border rounded-xl hover:bg-red-500/10 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -196,13 +196,13 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
       </div>
 
       <div className="pt-6 mt-8 border-t border-border">
-        <h3 className="text-lg font-bold text-title mb-1 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-red-500" />
           Pengaturan Keamanan & Anti-Kecurangan
         </h3>
-        <p className="text-sm text-muted mb-6">Konfigurasi seberapa ketat pengawasan yang diberlakukan selama peserta mengerjakan ujian.</p>
+        <p className="text-sm text-muted-foreground mb-6">Konfigurasi seberapa ketat pengawasan yang diberlakukan selama peserta mengerjakan ujian.</p>
         
-        <div className="space-y-4 bg-bg border border-border p-6 rounded-xl">
+        <div className="space-y-4 bg-background border border-border p-6 rounded-xl">
           {[
             { id: 'requireFaceScan', label: 'Wajib Verifikasi Wajah (KYC)', desc: 'Kandidat wajib melakukan pemindaian wajah sebelum dapat memulai ujian.' },
             { id: 'continuousTracking', label: 'Pelacakan Wajah Berkelanjutan', desc: 'Kamera aktif selama ujian berlangsung untuk memastikan wajah kandidat tidak hilang atau diganti.' },
@@ -233,7 +233,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
               />
               <label htmlFor={setting.id} className="flex flex-col cursor-pointer">
                 <span className="text-sm font-semibold text-foreground">{setting.label}</span>
-                <span className="text-xs text-muted mt-0.5">{setting.desc}</span>
+                <span className="text-xs text-muted-foreground mt-0.5">{setting.desc}</span>
               </label>
             </div>
           ))}
@@ -241,7 +241,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           {/* If trackTabSwitches is on, show maxTabSwitches input */}
           {!!(manualData.gradingRubric as any)?.proctoringSettings?.trackTabSwitches && (
             <div className="ml-7 mt-3">
-              <label className="block text-xs font-medium text-muted mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Batas Toleransi Pindah Tab (0 = Hanya dicatat, tidak diblokir)
               </label>
               <input
@@ -271,3 +271,5 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
     </div>
   );
 }
+
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUserStore } from '../../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 import { BarChart3, TrendingUp, Users, Target } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -128,3 +128,4 @@ export default function AdminAnalyticsPage() {
     </div>
   );
 }
+

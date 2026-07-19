@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserStore } from '../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 import { ShieldAlert, Users, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 

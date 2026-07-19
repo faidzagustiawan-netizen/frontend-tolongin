@@ -2,23 +2,24 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { submissionsService } from '../../../../services/submissions.service';
-import { verificationService } from '../../../../services/verification.service';
-import { pistonService } from '../../../../services/piston.service';
-import { useUserStore } from '../../../../store/userStore';
-import { Button } from '../../../../components/common/Button';
-import { Input, Textarea } from '../../../../components/common/Input';
-import { FileUploader } from '../../../../components/workspace/FileUploader';
+import { submissionsService } from '@/services/submissions.service';
+import { verificationService } from '@/services/verification.service';
+import { pistonService } from '@/services/piston.service';
+import { useUserStore } from '@/store/userStore';
+import { Button } from '@/components/common/Button';
+import { Input, Textarea } from '@/components/common/Input';
+import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal
 } from 'lucide-react';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ContinuousProctoring } from '../../../../components/workspace/ContinuousProctoring';
-const FaceScanner = dynamic(() => import('../../../../components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
+import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
+const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
 
 export default function EnrollmentWorkspacePage() {
@@ -41,6 +42,10 @@ export default function EnrollmentWorkspacePage() {
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [componentResponses, setComponentResponses] = useState<Record<string, any>>({});
   
+  // UX Optimization States
+  const [hideTimer, setHideTimer] = useState<boolean>(false);
+  const [runTour, setRunTour] = useState<boolean>(false);
+  const [copySuccess, setCopySuccess] = useState<Record<string, boolean>>({});
   // Auto-Save State
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
@@ -142,14 +147,25 @@ export default function EnrollmentWorkspacePage() {
   // Redirect if not found
   useEffect(() => {
     if (!isTalentLoading && !selectedEnrollment) {
-      router.push('/workspace');
+      router.push('/dashboard');
     } else if (selectedEnrollment) {
       const subs = selectedEnrollment.submissions || [];
       if (subs.length > 0) {
         setCurrentStep('SUBMITTED');
+      } else {
+        // If not submitted, start the tour if they haven't seen it yet
+        const hasSeenTour = localStorage.getItem('hasSeenWorkspaceTour');
+        if (!hasSeenTour) {
+          setRunTour(true);
+        }
       }
     }
   }, [isTalentLoading, selectedEnrollment, router]);
+
+  const finishTour = () => {
+    setRunTour(false);
+    localStorage.setItem('hasSeenWorkspaceTour', 'true');
+  };
 
   // Hydration Draft Data (Auto-Load)
   useEffect(() => {
@@ -418,7 +434,7 @@ export default function EnrollmentWorkspacePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <Link href="/workspace" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
 
@@ -643,7 +659,7 @@ export default function EnrollmentWorkspacePage() {
                           </p>
                         </div>
                         <Button 
-                          onClick={() => router.push('/workspace')}
+                          onClick={() => router.push('/dashboard')}
                           className="w-full bg-white text-red-600 font-bold h-12"
                         >
                           Kembali ke Dashboard

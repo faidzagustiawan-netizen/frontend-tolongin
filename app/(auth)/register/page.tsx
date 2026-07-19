@@ -134,7 +134,7 @@ function RegisterContent() {
       
       if (data?.user) {
         setUser(data.user);
-        router.push(data.user.role === 'COMPANY' ? '/workspace' : '/profile');
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setAuthError(err.message || 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.');

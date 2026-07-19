@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUserStore } from '../../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 import { ShieldAlert, Ban, Search, MailWarning } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -176,3 +176,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+

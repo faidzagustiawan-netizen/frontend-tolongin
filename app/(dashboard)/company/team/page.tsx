@@ -1,23 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesService } from '../../../../services/companies.service';
-import { useUserStore } from '../../../../store/userStore';
-import { Card } from '../../../../components/common/Card';
-import { Button } from '../../../../components/common/Button';
-import { Badge } from '../../../../components/common/Badge';
-import { Input } from '../../../../components/common/Input';
+import { companiesService } from '@/services/companies.service';
+import { useUserStore } from '@/store/userStore';
+import { Card } from '@/components/common/Card';
+import { Button } from '@/components/common/Button';
+import { Badge } from '@/components/common/Badge';
+import { Input } from '@/components/common/Input';
 import { Users, Activity, Copy, Check, Key, ChevronRight, Clock, Box, ShieldCheck, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function TeamWorkspacePage() {
   const { user } = useUserStore();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'logs'>('members');
   const [searchLog, setSearchLog] = useState('');
+
+  useEffect(() => {
+    if (user && user.role !== 'COMPANY' && user.role !== 'ADMIN') {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const { data: teamMembers, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['teamMembers'],
@@ -356,3 +364,5 @@ export default function TeamWorkspacePage() {
     </div>
   );
 }
+
+

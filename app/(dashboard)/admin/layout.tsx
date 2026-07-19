@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, ShieldAlert, BarChart3, CreditCard, LifeBuoy, FileText, Megaphone } from 'lucide-react';
-import { useUserStore } from '../../../store/userStore';
+import { useUserStore } from '@/store/userStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

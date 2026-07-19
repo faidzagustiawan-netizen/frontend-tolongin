@@ -1,12 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, Coins, ArrowRight, Loader2 } from 'lucide-react';
-import { PaymentsService } from '../../../../services/payments.service';
+import { PaymentsService } from '@/services/payments.service';
+import { useRouter } from 'next/navigation';
+import { useUserStore } from '@/store/userStore';
 
 export default function TokenTopUpPage() {
+  const router = useRouter();
+  const { user } = useUserStore();
   const [loading, setLoading] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'TALENT' && user.role !== 'ADMIN') {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const handleTopup = async (tokenAmount: number) => {
     setLoading(tokenAmount);
@@ -117,3 +127,5 @@ export default function TokenTopUpPage() {
     </div>
   );
 }
+
+

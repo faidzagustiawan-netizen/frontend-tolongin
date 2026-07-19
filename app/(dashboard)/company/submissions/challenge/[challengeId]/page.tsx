@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { submissionsService } from '../../../../../../services/submissions.service';
-import { useUserStore } from '../../../../../../store/userStore';
-import { Button } from '../../../../../../components/common/Button';
+import { submissionsService } from '@/services/submissions.service';
+import { useUserStore } from '@/store/userStore';
+import { Button } from '@/components/common/Button';
 import Image from 'next/image';
 import { FileText, CheckCircle, Clock, XCircle, Search, ChevronRight, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -21,7 +21,7 @@ export default function ChallengeSubmissionsPage() {
   // Protect route
   useEffect(() => {
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'ADMIN') {
-      router.push('/workspace');
+      router.push('/dashboard');
     }
   }, [isAuthenticated, user, router]);
 
@@ -56,7 +56,7 @@ export default function ChallengeSubmissionsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <button 
-        onClick={() => router.push('/workspace')}
+        onClick={() => router.push('/dashboard')}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
@@ -109,7 +109,7 @@ export default function ChallengeSubmissionsPage() {
                     transition={{ delay: index * 0.05 }}
                     key={sub.id} 
                     className="hover:bg-foreground/5 transition-colors group cursor-pointer"
-                    onClick={() => router.push(`/workspace/submissions/${sub.id}`)}
+                    onClick={() => router.push(`/dashboard/company/submissions/${sub.id}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">

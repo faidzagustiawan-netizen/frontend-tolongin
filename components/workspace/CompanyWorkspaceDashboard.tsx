@@ -73,7 +73,7 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                 Buat Studi Kasus Baru
               </Button>
             </Link>
-            <Link href="/workspace/team">
+            <Link href="/dashboard/company/team">
               <Button
                 size="sm"
                 className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
@@ -204,7 +204,7 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                                 Lihat Detail
                               </Button>
                             </Link>
-                            <Link href={`/workspace/submissions/challenge/${challenge.id}`}>
+                            <Link href={`/dashboard/company/submissions/challenge/${challenge.id}`}>
                               <Button variant="ghost" size="sm" className="text-emerald-400 hover:text-emerald-300">
                                 Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
                               </Button>
