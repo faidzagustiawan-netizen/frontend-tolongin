@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../../../services/auth.service';
 import { ProfileHeader } from '../../../components/profile/ProfileHeader';
@@ -10,10 +10,12 @@ import { Button } from '../../../components/common/Button';
 import { TalentProfileTab } from '../../../components/profile/TalentProfileTab';
 import { Navbar } from '../../../components/common/Navbar';
 
-export default function PublicProfilePage({ params }: { params: { slug: string } }) {
+export default function PublicProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = use(params);
+
   const { data: profileData, isLoading, error } = useQuery({
-    queryKey: ['profile', params.slug],
-    queryFn: () => authService.getProfile(params.slug),
+    queryKey: ['profile', resolvedParams.slug],
+    queryFn: () => authService.getProfile(resolvedParams.slug),
   });
 
   if (isLoading) {
