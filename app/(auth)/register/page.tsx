@@ -134,7 +134,7 @@ function RegisterContent() {
       
       if (data?.user) {
         setUser(data.user);
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err: any) {
       setAuthError(err.message || 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.');

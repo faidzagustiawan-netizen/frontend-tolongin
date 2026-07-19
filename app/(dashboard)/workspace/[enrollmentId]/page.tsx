@@ -147,7 +147,7 @@ export default function EnrollmentWorkspacePage() {
   // Redirect if not found
   useEffect(() => {
     if (!isTalentLoading && !selectedEnrollment) {
-      router.push('/dashboard');
+      router.push('/');
     } else if (selectedEnrollment) {
       const subs = selectedEnrollment.submissions || [];
       if (subs.length > 0) {
@@ -434,7 +434,7 @@ export default function EnrollmentWorkspacePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
+      <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
 
@@ -659,7 +659,7 @@ export default function EnrollmentWorkspacePage() {
                           </p>
                         </div>
                         <Button 
-                          onClick={() => router.push('/dashboard')}
+                          onClick={() => router.push('/')}
                           className="w-full bg-white text-red-600 font-bold h-12"
                         >
                           Kembali ke Dashboard
@@ -1125,7 +1125,7 @@ export default function EnrollmentWorkspacePage() {
               </div>
             </div>
             
-            <a href={`/challenges/${selectedEnrollment.challenge.id}`} target="_blank" rel="noreferrer" className="w-full">
+            <a href={`/challenges/${selectedEnrollment.challenge.slug}`} target="_blank" rel="noreferrer" className="w-full">
               <Button variant="secondary" className="w-full flex justify-center items-center gap-2 mt-4">
                 Lihat Detail Tantangan
               </Button>

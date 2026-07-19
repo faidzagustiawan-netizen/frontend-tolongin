@@ -63,7 +63,7 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
                 Buat Public Challenge (-50)
               </Button>
             </Link>
-            <Link href="/dashboard/talent/tokens">
+            <Link href="/talent/tokens">
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2 text-white"

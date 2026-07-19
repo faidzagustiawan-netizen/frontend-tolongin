@@ -1,19 +1,32 @@
 const fs = require('fs');
-const path = require('path');
-const dir = 'd:/Tolongin/frontend/app/(dashboard)/admin';
+const glob = require('glob');
 
-function walk(d) {
-  fs.readdirSync(d).forEach(f => {
-    const fp = path.join(d, f);
-    if (fs.statSync(fp).isDirectory()) {
-      walk(fp);
-    } else if (fp.endsWith('.tsx')) {
-      let c = fs.readFileSync(fp, 'utf8');
-      c = c.replace(/\$\{API_URL\}\/api\/v1\//g, '${API_URL}/');
-      fs.writeFileSync(fp, c);
-      console.log(`Updated ${fp}`);
-    }
-  })
+const files = glob.sync('d:/Tolongin/frontend/**/*.{tsx,ts}', { ignore: '**/node_modules/**' });
+let changedFiles = 0;
+
+for (const file of files) {
+  let content = fs.readFileSync(file, 'utf8');
+  let newContent = content;
+
+  // Replace /dashboard/company, /dashboard/talent, /dashboard/settings
+  newContent = newContent.replace(/\/dashboard\/company\//g, '/company/');
+  newContent = newContent.replace(/\/dashboard\/talent\//g, '/talent/');
+  newContent = newContent.replace(/\/dashboard\/settings\//g, '/settings/');
+
+  // Fix challenge.id to challenge.slug where appropriate
+  if (file.endsWith('sitemap.ts')) {
+    newContent = newContent.replace(/\$\{baseUrl\}\/challenges\/\$\{challenge\.id\}/g, '${baseUrl}/challenges/${challenge.slug}');
+  }
+  
+  if (file.includes('workspace') && file.endsWith('page.tsx')) {
+    newContent = newContent.replace(/\/challenges\/\$\{selectedEnrollment\.challenge\.id\}/g, '/challenges/${selectedEnrollment.challenge.slug}');
+  }
+
+  if (content !== newContent) {
+    fs.writeFileSync(file, newContent, 'utf8');
+    console.log('Fixed', file);
+    changedFiles++;
+  }
 }
 
-walk(dir);
+console.log('Total files changed:', changedFiles);

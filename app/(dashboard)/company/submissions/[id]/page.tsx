@@ -27,7 +27,7 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'ADMIN') {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAuthenticated, user, router]);
 
@@ -56,7 +56,7 @@ export default function SubmissionDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold text-foreground mb-4">Submisi Tidak Ditemukan</h2>
-        <Button onClick={() => router.push('/dashboard')} variant="secondary">Kembali</Button>
+        <Button onClick={() => router.push('/')} variant="secondary">Kembali</Button>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function SubmissionDetailPage() {
       });
       alert('Penilaian berhasil disimpan!');
       refetch();
-      router.push(`/dashboard/company/submissions/challenge/${submission.challengeId}`);
+      router.push(`/company/submissions/challenge/${submission.challengeId}`);
     } catch (error) {
       console.error(error);
       alert('Gagal menyimpan penilaian');
@@ -85,7 +85,7 @@ export default function SubmissionDetailPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <button 
-        onClick={() => router.push(`/dashboard/company/submissions/challenge/${submission.challengeId}`)}
+        onClick={() => router.push(`/company/submissions/challenge/${submission.challengeId}`)}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Kandidat
@@ -233,7 +233,7 @@ export default function SubmissionDetailPage() {
               <Brain className="w-12 h-12 text-gray-600 mb-3" />
               <h3 className="text-foreground font-medium mb-1">AI Assessment Tidak Tersedia</h3>
               <p className="text-sm text-muted-foreground max-w-sm mb-4">Fitur penilaian otomatis dan deteksi plagiarisme hanya tersedia untuk perusahaan dengan paket Premium (Konglomerat / Custom).</p>
-              <Button variant="outline" size="sm" onClick={() => router.push('/profile')}>Upgrade Sekarang</Button>
+              <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>Upgrade Sekarang</Button>
             </div>
           )}
         </div>

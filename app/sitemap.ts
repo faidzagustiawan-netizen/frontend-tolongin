@@ -37,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { data: challenges } = await challengesService.getAll();
     
     const challengeRoutes = challenges.map((challenge: any) => ({
-      url: `${baseUrl}/challenges/${challenge.id}`, // using id as slug fallback
+      url: `${baseUrl}/challenges/${challenge.slug}`, // using id as slug fallback
       lastModified: new Date(challenge.updatedAt || new Date()),
       changeFrequency: 'weekly',
       priority: 0.8,

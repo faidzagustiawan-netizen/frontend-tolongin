@@ -359,7 +359,7 @@ export default function KycVerificationPage() {
               )}
 
               <div className="pt-6">
-                <Button onClick={() => router.push('/profile')} size="lg">
+                <Button onClick={() => router.push('/settings')} size="lg">
                   Kembali ke Profil
                 </Button>
               </div>

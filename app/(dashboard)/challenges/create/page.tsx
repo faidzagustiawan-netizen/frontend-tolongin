@@ -20,7 +20,7 @@ export default function CreateChallengePage() {
   useEffect(() => {
     loadUserFromStorage();
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'TALENT') {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [loadUserFromStorage, isAuthenticated, user, router]);
 
@@ -144,7 +144,7 @@ export default function CreateChallengePage() {
       setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
       setTimeout(() => {
         localStorage.removeItem('draftChallenge');
-        router.push('/dashboard');
+        router.push('/');
       }, 2000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');

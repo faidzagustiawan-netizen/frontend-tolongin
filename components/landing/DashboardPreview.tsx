@@ -29,7 +29,7 @@ export function DashboardPreview({ user }: { user: any }) {
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
             {isCompany ? (
-              <Link href="/dashboard">
+              <Link href="/">
                 <Button size="lg" className="shadow-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold">
                   Buka Dasbor Rekruter <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -61,7 +61,7 @@ export function DashboardPreview({ user }: { user: any }) {
           </div>
         </Link>
 
-        <Link href="/dashboard" className="group p-6 rounded-3xl bg-card border border-border hover:border-cyan-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
+        <Link href="/" className="group p-6 rounded-3xl bg-card border border-border hover:border-cyan-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="space-y-3 relative z-10">
             <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform">
@@ -75,7 +75,7 @@ export function DashboardPreview({ user }: { user: any }) {
           </div>
         </Link>
 
-        <Link href="/profile" className="group p-6 rounded-3xl bg-card border border-border hover:border-amber-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
+        <Link href="/settings" className="group p-6 rounded-3xl bg-card border border-border hover:border-amber-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="space-y-3 relative z-10">
             <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
@@ -89,7 +89,7 @@ export function DashboardPreview({ user }: { user: any }) {
           </div>
         </Link>
 
-        <Link href="/profile" className="group p-6 rounded-3xl bg-card border border-border hover:border-indigo-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
+        <Link href="/settings" className="group p-6 rounded-3xl bg-card border border-border hover:border-indigo-500/50 hover:bg-card/80 transition-all duration-300 shadow-xl flex flex-col justify-between h-56 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="space-y-3 relative z-10">
             <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">

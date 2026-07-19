@@ -95,7 +95,7 @@ export const BillingTab = ({
                     Paket Saat Ini Aktif
                   </Button>
                 ) : (
-                  <Link href="/dashboard/company/billing" className="w-full">
+                  <Link href="/company/billing" className="w-full">
                     <Button
                       variant={plan.popular ? 'primary' : 'secondary'}
                       className="w-full font-semibold shadow-xl"

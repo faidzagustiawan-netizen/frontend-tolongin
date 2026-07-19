@@ -21,7 +21,7 @@ export default function ChallengeSubmissionsPage() {
   // Protect route
   useEffect(() => {
     if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'ADMIN') {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAuthenticated, user, router]);
 
@@ -56,7 +56,7 @@ export default function ChallengeSubmissionsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <button 
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push('/')}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
@@ -109,7 +109,7 @@ export default function ChallengeSubmissionsPage() {
                     transition={{ delay: index * 0.05 }}
                     key={sub.id} 
                     className="hover:bg-foreground/5 transition-colors group cursor-pointer"
-                    onClick={() => router.push(`/dashboard/company/submissions/${sub.id}`)}
+                    onClick={() => router.push(`/company/submissions/${sub.id}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
