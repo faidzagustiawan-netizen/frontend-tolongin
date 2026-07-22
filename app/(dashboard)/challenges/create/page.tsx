@@ -43,7 +43,10 @@ export default function CreateChallengePage() {
           'Content-Type': 'application/json'
         }
       });
-      if (!res.ok) throw new Error('Gagal menduplikasi template');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || `Gagal menduplikasi template (${res.status})`);
+      }
       const data = await res.json();
       
       setSuccessMsg('Template berhasil disalin. Anda dapat menyesuaikannya sekarang.');
