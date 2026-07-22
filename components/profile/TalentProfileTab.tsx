@@ -147,13 +147,14 @@ export const TalentProfileTab = ({
         )}
       </div>
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input
-          label="NIK KTP"
-          value={isEditingProfile ? (editFormData.ktpNik || '') : (talentProfile?.ktpNik || '')}
-          onChange={(e) => setEditFormData({ ...editFormData, ktpNik: e.target.value })}
-          disabled={!isEditingProfile}
-        />
+      <div className={`grid grid-cols-1 ${isEditingProfile ? 'md:grid-cols-2' : ''} gap-6`}>
+        {isEditingProfile && (
+          <Input
+            label="NIK KTP (Privat)"
+            value={editFormData.ktpNik || ''}
+            onChange={(e) => setEditFormData({ ...editFormData, ktpNik: e.target.value })}
+          />
+        )}
         <Input
           label="Daftar Keahlian (Pisahkan dengan koma)"
           value={isEditingProfile ? (editFormData.skills || '') : (talentProfile?.skills?.join(', ') || '')}
@@ -230,11 +231,15 @@ export const TalentProfileTab = ({
       </div>
 
       <div className="pt-6 border-t border-border">
-        <h4 className="text-lg font-bold text-foreground mb-1">Showcase Tantangan</h4>
-        <p className="text-xs text-muted-foreground mb-4">Pilih dan urutkan tantangan terbaik yang telah Anda selesaikan untuk dipamerkan di profil publik Anda.</p>
+        <h4 className="text-lg font-bold text-foreground mb-1">
+          {isEditingProfile ? 'Showcase Tantangan' : 'Portofolio Tantangan'}
+        </h4>
+        {isEditingProfile && (
+          <p className="text-xs text-muted-foreground mb-4">Pilih dan urutkan tantangan terbaik yang telah Anda selesaikan untuk dipamerkan di profil publik Anda.</p>
+        )}
         
         {isEditingProfile ? (
-          <div className="space-y-3">
+          <div className="space-y-3 mt-4">
             {talentProfile?.submissions?.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {talentProfile.submissions.map((sub: any) => {
