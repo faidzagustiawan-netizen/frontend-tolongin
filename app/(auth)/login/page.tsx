@@ -30,6 +30,7 @@ function LoginContent() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -147,6 +148,50 @@ function LoginContent() {
             </Link>
           </div>
         </div>
+
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mt-6">
+            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider text-center mb-3">Dev Auto Login</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-xs bg-black/40 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                onClick={() => {
+                  setValue('email', 'faidzagustiawan@gmail.com');
+                  setValue('password', '123456');
+                }}
+              >
+                Talent 1
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-xs bg-black/40 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400"
+                onClick={() => {
+                  setValue('email', 'company1@test.com');
+                  setValue('password', 'password123');
+                }}
+              >
+                Company 1
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-xs bg-black/40 hover:bg-purple-500/20 border-purple-500/30 text-purple-400"
+                onClick={() => {
+                  setValue('email', 'admin@tolongin.co');
+                  setValue('password', 'AdminPassword123');
+                }}
+              >
+                Admin
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
