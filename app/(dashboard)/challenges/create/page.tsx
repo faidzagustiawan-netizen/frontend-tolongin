@@ -19,7 +19,7 @@ export default function CreateChallengePage() {
 
   useEffect(() => {
     // Fetch templates
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/challenges/templates`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/templates`)
       .then(res => res.json())
       .then(data => {
         setTemplates(Array.isArray(data) ? data : []);
