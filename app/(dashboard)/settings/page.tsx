@@ -9,7 +9,9 @@ import { Button } from '@/components/common/Button';
 import { AlertCircle } from 'lucide-react';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { AboutSection } from '@/components/profile/AboutSection';
 import { EditIntroModal } from '@/components/profile/EditIntroModal';
+import { EditAboutModal } from '@/components/profile/EditAboutModal';
 import { AddSectionModal } from '@/components/profile/AddSectionModal';
 import { EditPhotoModal } from '@/components/profile/EditPhotoModal';
 import { EditLinksModal } from '@/components/profile/EditLinksModal';
@@ -25,10 +27,12 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
 
   const [isEditIntroOpen, setIsEditIntroOpen] = useState(false);
+  const [isEditAboutOpen, setIsEditAboutOpen] = useState(false);
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
   const [isEditPhotoOpen, setIsEditPhotoOpen] = useState(false);
   const [isEditLinksOpen, setIsEditLinksOpen] = useState(false);
   const [visibleSections, setVisibleSections] = useState<string[]>([]);
+  const [autoOpenSection, setAutoOpenSection] = useState<string | null>(null);
   
   // KYC specific states
   const [showLivenessCam, setShowLivenessCam] = useState(false);
@@ -79,9 +83,17 @@ export default function ProfilePage() {
   };
 
   const handleAddSection = (key: string) => {
+    if (key === 'about') {
+      setIsAddSectionOpen(false);
+      setIsEditAboutOpen(true);
+      return;
+    }
+
     if (!visibleSections.includes(key)) {
       setVisibleSections([...visibleSections, key]);
     }
+    setAutoOpenSection(key);
+    setIsAddSectionOpen(false);
   };
 
   const handleRemoveSection = (key: string) => {
@@ -122,11 +134,22 @@ export default function ProfilePage() {
             onEditPhotoClick={() => setIsEditPhotoOpen(true)}
           />
 
+          {isTalent && (visibleSections.includes('about') || talentProfile?.bio) && (
+            <AboutSection 
+              bio={talentProfile?.bio}
+              onEditClick={() => setIsEditAboutOpen(true)}
+              autoOpenAddModal={autoOpenSection === 'about'}
+              onModalOpened={() => setAutoOpenSection(null)}
+            />
+          )}
+
           {isTalent && visibleSections.includes('experience') && (
             <ExperienceSection 
               experiences={talentProfile?.experiences || []} 
               onUpdate={(experiences) => handleUpdateProfile({ experiences })}
               onRemoveSection={() => handleRemoveSection('experience')}
+              autoOpenAddModal={autoOpenSection === 'experience'}
+              onModalOpened={() => setAutoOpenSection(null)}
             />
           )}
 
@@ -135,6 +158,8 @@ export default function ProfilePage() {
               educations={talentProfile?.educations || []} 
               onUpdate={(educations) => handleUpdateProfile({ educations })}
               onRemoveSection={() => handleRemoveSection('education')}
+              autoOpenAddModal={autoOpenSection === 'education'}
+              onModalOpened={() => setAutoOpenSection(null)}
             />
           )}
 
@@ -143,6 +168,8 @@ export default function ProfilePage() {
               skills={talentProfile?.skills || []} 
               onUpdate={(skills) => handleUpdateProfile({ skills })}
               onRemoveSection={() => handleRemoveSection('skills')}
+              autoOpenAddModal={autoOpenSection === 'skills'}
+              onModalOpened={() => setAutoOpenSection(null)}
             />
           )}
         </div>
@@ -150,7 +177,9 @@ export default function ProfilePage() {
         {/* Right Column (Sidebar) */}
         <div className="space-y-8">
           <PublicProfileCard 
-            profileUrl={talentProfile?.linkedinUrl || ''} 
+            linkedinUrl={talentProfile?.linkedinUrl || ''} 
+            githubUrl={talentProfile?.githubUrl || ''}
+            figmaUrl={talentProfile?.figmaUrl || ''}
             onEditClick={() => setIsEditLinksOpen(true)}
           />
           
@@ -193,11 +222,19 @@ export default function ProfilePage() {
         onSave={handleUpdateProfile}
       />
 
+      <EditAboutModal 
+        isOpen={isEditAboutOpen}
+        onClose={() => setIsEditAboutOpen(false)}
+        talentProfile={talentProfile}
+        onSave={handleUpdateProfile}
+      />
+
       <AddSectionModal 
         isOpen={isAddSectionOpen}
         onClose={() => setIsAddSectionOpen(false)}
         onAddSection={handleAddSection}
         visibleSections={visibleSections}
+        isAboutAdded={!!talentProfile?.bio}
       />
 
       <EditPhotoModal

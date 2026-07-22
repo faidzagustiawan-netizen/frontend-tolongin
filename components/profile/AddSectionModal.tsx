@@ -6,9 +6,10 @@ interface AddSectionModalProps {
   onClose: () => void;
   onAddSection: (sectionKey: string) => void;
   visibleSections: string[];
+  isAboutAdded?: boolean;
 }
 
-export const AddSectionModal = ({ isOpen, onClose, onAddSection, visibleSections }: AddSectionModalProps) => {
+export const AddSectionModal = ({ isOpen, onClose, onAddSection, visibleSections, isAboutAdded }: AddSectionModalProps) => {
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>('Inti');
 
   if (!isOpen) return null;
@@ -20,7 +21,7 @@ export const AddSectionModal = ({ isOpen, onClose, onAddSection, visibleSections
       items: [
         { key: 'about', label: 'Tambahkan tentang' },
         { key: 'education', label: 'Tambahkan pendidikan' },
-        { key: 'experience', label: 'Tambahkan posisi' },
+        { key: 'experience', label: 'Tambahkan pengalaman' },
         { key: 'skills', label: 'Tambahkan keahlian' },
       ]
     },
@@ -65,7 +66,7 @@ export const AddSectionModal = ({ isOpen, onClose, onAddSection, visibleSections
                   <p className="text-sm text-muted-foreground">{category.description}</p>
                   <div className="space-y-1">
                     {category.items.map((item) => {
-                      const isAdded = visibleSections.includes(item.key);
+                      const isAdded = item.key === 'about' ? isAboutAdded : visibleSections.includes(item.key);
                       return (
                         <button
                           key={item.key}

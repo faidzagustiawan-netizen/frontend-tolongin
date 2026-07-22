@@ -1,38 +1,53 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, X, Search, Pencil, Trash, ArrowLeft } from 'lucide-react';
-import { Button } from '../common/Button';
-import { skillsService } from '../../services/skills.service';
+import { useUserStore } from '@/store/userStore';
+import { authService } from '@/services/auth.service';
+import { ArrowLeft, Pencil, Plus, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/common/Button';
+import { skillsService } from '@/services/skills.service';
 
-interface SkillsSectionProps {
-  skills: string[];
-  onUpdate: (skills: string[]) => Promise<void>;
-  onRemoveSection?: () => void;
-  autoOpenAddModal?: boolean;
-  onModalOpened?: () => void;
-}
-
-export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection, autoOpenAddModal, onModalOpened }: SkillsSectionProps) => {
+export default function SkillsSettingsPage() {
   const router = useRouter();
-  const [skills, setSkills] = useState<string[]>(initialSkills || []);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { user, loadUserFromStorage } = useUserStore();
+  const [skills, setSkills] = useState<string[]>([]);
   
+  const [skillToEdit, setSkillToEdit] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  useEffect(() => {
-    setSkills(initialSkills || []);
-  }, [initialSkills]);
 
   useEffect(() => {
-    if (autoOpenAddModal) {
-      handleOpenAddModal();
-      if (onModalOpened) onModalOpened();
+    loadUserFromStorage();
+  }, [loadUserFromStorage]);
+
+  useEffect(() => {
+    if (user?.id) {
+      authService.getProfile(user.id).then((res) => {
+        const tp = res.data?.talentProfile;
+        if (tp) {
+          setSkills(tp.skills || []);
+        }
+      });
     }
-  }, [autoOpenAddModal, onModalOpened]);
+  }, [user?.id]);
+
+  const handleUpdate = async (newSkills: string[]) => {
+    setIsSaving(true);
+    try {
+      await authService.updateProfile({ skills: newSkills });
+      setSkills(newSkills);
+      toast.success('Keahlian berhasil diperbarui');
+    } catch (e: any) {
+      toast.error('Gagal memperbarui keahlian');
+    }
+    setIsSaving(false);
+  };
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -41,7 +56,7 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
           const results = await skillsService.searchSkills(searchTerm);
           setSuggestions(results);
         } catch (e: any) {
-          console.error('Failed to search skills', e.message || e.response?.data || e);
+          console.error('Failed to search skills', e);
         }
       } else {
         setSuggestions([]);
@@ -55,10 +70,6 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
     setSearchTerm('');
     setFocusedIndex(-1);
     setIsAddModalOpen(true);
-  };
-
-  const handleOpenEditListModal = () => {
-    router.push('/settings/skills');
   };
 
   const handleSelectSuggestion = (skillName: string) => {
@@ -111,10 +122,8 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
 
     setIsSaving(true);
     const newSkills = [...skills, trimmedSearch];
-    setSkills(newSkills);
-    await onUpdate(newSkills);
+    await handleUpdate(newSkills);
     
-    // Add new skill to directory automatically
     skillsService.createSkill(trimmedSearch).catch(() => {});
 
     setSearchTerm('');
@@ -123,38 +132,90 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
     setIsAddModalOpen(false);
   };
 
-  const handleRemoveWholeSection = () => {
-    if (window.confirm('Yakin ingin menghapus seluruh bagian Keahlian dari profil Anda?')) {
-      if (onRemoveSection) {
-        onRemoveSection();
-      }
+  const handleDelete = async () => {
+    if (skillToEdit) {
+      const newSkills = skills.filter((s) => s !== skillToEdit);
+      await handleUpdate(newSkills);
+      setSkillToEdit(null);
     }
   };
 
+  if (!user) return null;
+
   return (
-    <div className="bg-card border border-border rounded-3xl p-8 shadow-lg space-y-6 relative overflow-hidden">
-      <div className="flex justify-between items-center border-b border-border pb-4">
-        <h3 className="font-display text-xl font-bold text-foreground">Keahlian</h3>
-        <div className="flex items-center gap-2">
-          <button onClick={handleOpenAddModal} className="p-2 rounded-full hover:bg-foreground/10 transition-colors z-20 text-muted-foreground hover:text-foreground" title="Tambah Keahlian">
-            <Plus className="h-5 w-5" />
-          </button>
-          <button onClick={handleOpenEditListModal} className="p-2 rounded-full hover:bg-foreground/10 transition-colors z-20 text-muted-foreground hover:text-foreground" title="Edit Keahlian">
-            <Pencil className="h-5 w-5" />
-          </button>
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="bg-card border border-border rounded-3xl shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between p-8 border-b border-border">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.push('/settings')} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <h1 className="text-2xl font-display font-bold text-foreground">Keahlian</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleOpenAddModal} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors border border-border">
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="bg-emerald-600 text-white px-5 py-2 rounded-full text-sm font-medium">Semua keahlian ({skills.length})</span>
+          </div>
+
+          <div className="space-y-0">
+            {skills.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Belum ada keahlian yang ditambahkan.</p>
+            ) : (
+              skills.map((skill, index) => (
+                <div key={index} className="flex justify-between items-center py-6 border-b border-border last:border-0 group">
+                  <span className="font-semibold text-foreground text-lg">{skill}</span>
+                  <button 
+                    onClick={() => setSkillToEdit(skill)}
+                    className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {skills.map((skill, index) => (
-          <div key={index} className="flex items-center gap-2 bg-foreground/5 border border-foreground/10 rounded-full px-4 py-1.5">
-            <span className="text-sm font-medium text-foreground">{skill}</span>
+      {/* Edit Skill Modal */}
+      {skillToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground">Edit keahlian</h2>
+              <button onClick={() => setSkillToEdit(null)} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <label className="text-sm font-medium text-foreground mb-2 block">Keahlian*</label>
+              <input 
+                type="text" 
+                value={skillToEdit} 
+                disabled 
+                className="w-full bg-foreground/5 border border-border rounded-lg px-4 py-3 text-foreground opacity-70 cursor-not-allowed"
+              />
+            </div>
+
+            <div className="p-6 border-t border-border flex justify-between items-center bg-foreground/5 rounded-b-2xl">
+              <Button variant="outline" onClick={handleDelete} isLoading={isSaving} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-transparent">
+                Hapus keahlian
+              </Button>
+              <Button onClick={() => setSkillToEdit(null)} className="rounded-full px-6">
+                Simpan
+              </Button>
+            </div>
           </div>
-        ))}
-        {skills.length === 0 && (
-          <p className="text-sm text-muted-foreground">Belum ada keahlian yang ditambahkan.</p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Add Modal */}
       {isAddModalOpen && (
@@ -218,7 +279,6 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
           </div>
         </div>
       )}
-
     </div>
   );
-};
+}

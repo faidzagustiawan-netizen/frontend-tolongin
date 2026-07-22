@@ -11,20 +11,23 @@ interface EditIntroModalProps {
 
 export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditIntroModalProps) => {
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     headline: '',
     location: '',
-    bio: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (talentProfile) {
+      const parts = (talentProfile.fullName || '').split(' ');
+      const fName = parts[0] || '';
+      const lName = parts.slice(1).join(' ') || '';
       setFormData({
-        fullName: talentProfile.fullName || '',
+        firstName: fName,
+        lastName: lName,
         headline: talentProfile.headline || '',
         location: talentProfile.location || '',
-        bio: talentProfile.bio || '',
       });
     }
   }, [talentProfile]);
@@ -38,7 +41,8 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    await onSave(formData);
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+    await onSave({ fullName, headline: formData.headline, location: formData.location });
     setIsSaving(false);
     onClose();
   };
@@ -56,19 +60,31 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
         <div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
           <p className="text-xs text-muted-foreground">* Wajib diisi</p>
           
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Nama depan*</label>
-            <input 
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Nama depan*</label>
+              <input 
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Nama belakang*</label>
+              <input 
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Judul (Headline)*</label>
+            <label className="text-sm font-medium text-foreground">Moto Profesional*</label>
             <input 
               name="headline"
               value={formData.headline}
@@ -86,16 +102,6 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
               onChange={handleChange}
               placeholder="Cth: Jakarta, Indonesia"
               className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Bio / Tentang</label>
-            <textarea 
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none min-h-[120px]"
             />
           </div>
         </div>
