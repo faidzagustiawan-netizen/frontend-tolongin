@@ -35,7 +35,7 @@ export default function CreateChallengePage() {
     if (!isAuthenticated) return;
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/templates/${templateId}/clone`, {
         method: 'POST',
         headers: {
