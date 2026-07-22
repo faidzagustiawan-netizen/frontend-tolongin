@@ -288,7 +288,24 @@ export const TalentProfileTab = ({
                     <div key={id} className="p-4 border border-border bg-card rounded-xl flex flex-col justify-between h-full shadow-sm hover:shadow-md transition-shadow">
                       <div>
                         <p className="text-sm font-bold text-foreground line-clamp-2">{sub.challenge?.title}</p>
-                        <p className="text-xs text-emerald-400 mt-1">{sub.challenge?.category}</p>
+                        <p className="text-xs text-emerald-400 mt-1 mb-3">{sub.challenge?.category}</p>
+                        
+                        {(sub.aiScore !== null || sub.softSkillScore !== null) && (
+                          <div className="flex items-center gap-4 text-xs font-medium">
+                            {sub.aiScore !== null && (
+                              <div className="flex items-center gap-1.5 text-foreground bg-foreground/5 px-2 py-1 rounded-md border border-border">
+                                <span className="text-muted-foreground">Hard Skill:</span>
+                                <span>{sub.aiScore}/100</span>
+                              </div>
+                            )}
+                            {sub.softSkillScore !== null && (
+                              <div className="flex items-center gap-1.5 text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-md border border-cyan-500/20">
+                                <span className="text-cyan-500/70">Soft Skill:</span>
+                                <span>{sub.softSkillScore}/100</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="mt-4 pt-4 border-t border-border">
                         {isDeadlinePassed ? (

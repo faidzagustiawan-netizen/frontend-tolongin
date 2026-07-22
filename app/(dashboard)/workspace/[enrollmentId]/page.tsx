@@ -18,6 +18,7 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'reac
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { getLearningRecommendation } from '@/lib/learning-taxonomy';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
@@ -1096,6 +1097,38 @@ export default function EnrollmentWorkspacePage() {
                       <Award className="h-4 w-4" /> Ulasan Final Rekruter
                     </h5>
                     <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{latestSubmission.reviewerFeedback}</p>
+                  </div>
+                )}
+
+                {latestSubmission.weaknessTags && latestSubmission.weaknessTags.length > 0 && (
+                  <div className="bg-background border border-border rounded-2xl p-6 space-y-4">
+                    <h5 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <Award className="h-4 w-4" /> Rekomendasi Pembelajaran (Career Path)
+                    </h5>
+                    <p className="text-[10px] text-muted-foreground">
+                      Berdasarkan evaluasi AI, Anda disarankan untuk memperdalam pemahaman pada topik berikut sebelum mengambil tantangan serupa:
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 mt-2">
+                      {latestSubmission.weaknessTags.map((tag: string, i: number) => {
+                        const rec = getLearningRecommendation(tag);
+                        return (
+                          <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-border/60 bg-foreground/5 rounded-xl gap-3">
+                            <div>
+                              <p className="text-sm font-bold text-foreground">{rec.tag}</p>
+                              <p className="text-[10px] text-muted-foreground">Platform yang disarankan: <span className="font-semibold text-foreground/80">{rec.platform}</span></p>
+                            </div>
+                            <a 
+                              href={rec.urlTemplate} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors text-center whitespace-nowrap flex items-center justify-center gap-2"
+                            >
+                              Mulai Belajar <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

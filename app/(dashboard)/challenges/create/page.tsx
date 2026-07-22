@@ -12,8 +12,60 @@ import ManualBuilder from './components/ManualBuilder';
 export default function CreateChallengePage() {
   const router = useRouter();
   const { user, loadUserFromStorage, isAuthenticated } = useUserStore();
-  const [activeTab, setActiveTab] = useState<'MANUAL' | 'AI'>('MANUAL');
+  const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'MANUAL' | 'AI'>('TEMPLATES');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+
+  useEffect(() => {
+    // Fetch templates
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/challenges/templates`)
+      .then(res => res.json())
+      .then(data => {
+        setTemplates(Array.isArray(data) ? data : []);
+        setIsLoadingTemplates(false);
+      })
+      .catch(err => {
+        console.error('Failed to load templates:', err);
+        setIsLoadingTemplates(false);
+      });
+  }, []);
+
+  const handleCloneTemplate = async (templateId: string) => {
+    if (!isAuthenticated) return;
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/templates/${templateId}/clone`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('Gagal menduplikasi template');
+      const data = await res.json();
+      
+      setSuccessMsg('Template berhasil disalin. Anda dapat menyesuaikannya sekarang.');
+      // Load the cloned challenge into manual builder
+      setManualData({
+        id: data.id,
+        title: data.title,
+        summary: data.summary,
+        description: data.description,
+        category: data.category,
+        difficulty: data.difficulty,
+        sections: data.sections || [],
+        gradingRubric: data.gradingRubric,
+        status: data.status,
+      });
+      setActiveTab('MANUAL');
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -234,6 +286,17 @@ export default function CreateChallengePage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 bg-background p-2 rounded-2xl border border-border w-full sm:w-fit">
+        <button
+            onClick={() => setActiveTab('TEMPLATES')}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
+              activeTab === 'TEMPLATES'
+            ? 'bg-primary text-white shadow-lg border border-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-card'
+            }`}
+          >
+            <Briefcase className="h-4 w-4" />
+            <span>Template Library</span>
+          </button>
         <div className="relative group w-full sm:w-auto">
           <button
             onClick={() => {
@@ -262,7 +325,7 @@ export default function CreateChallengePage() {
             : 'text-muted-foreground hover:text-foreground hover:bg-card'
             }`}
           >
-            <Briefcase className="h-4 w-4" />
+            <PlusCircle className="h-4 w-4" />
             <span>Pembuatan Manual</span>
           </button>
       </div>
@@ -282,7 +345,64 @@ export default function CreateChallengePage() {
       )}
 
       <AnimatePresence mode="wait">
-        {activeTab === 'AI' ? (
+        {activeTab === 'TEMPLATES' ? (
+          <motion.div
+            key="templates-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {isLoadingTemplates ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                <p>Memuat Role-Based Templates...</p>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground bg-card rounded-2xl border border-border">
+                <Briefcase className="h-12 w-12 mb-4 opacity-50" />
+                <p>Belum ada template yang tersedia. Anda bisa menggunakan AI Auto-Generate.</p>
+              </div>
+            ) : (
+              templates.map((tpl) => (
+                <div key={tpl.id} className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/50 transition-all flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
+                      {tpl.category}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {tpl.difficulty}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{tpl.templateRole || tpl.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-6 flex-grow">{tpl.summary}</p>
+                  
+                  <div className="space-y-4">
+                    <div className="text-xs space-y-2">
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <span>Modul Teknis & Live Coding</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <span>Soft Skill & Situational Test</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => handleCloneTemplate(tpl.id)}
+                      disabled={isSubmitting}
+                      className="w-full font-bold"
+                    >
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gunakan Template Ini"}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </motion.div>
+        ) : activeTab === 'AI' ? (
           <motion.div
             key="ai-form"
             initial={{ opacity: 0, x: -20 }}

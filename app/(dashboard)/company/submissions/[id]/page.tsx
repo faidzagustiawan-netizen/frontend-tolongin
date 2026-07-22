@@ -8,7 +8,7 @@ import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { Input, Textarea } from '@/components/common/Input';
 import Image from 'next/image';
-import { ArrowLeft, ExternalLink, Code2, FileText, CheckCircle, Clock, XCircle, Brain, Target, ShieldAlert, FileCode2, Play } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Code2, FileText, CheckCircle, Clock, XCircle, Brain, Target, ShieldAlert, FileCode2, Play, UserCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function SubmissionDetailPage() {
@@ -38,6 +38,12 @@ export default function SubmissionDetailPage() {
   });
 
   const submission = response?.data?.find((s: any) => s.id === submissionId);
+
+  const hasProctoringViolations = 
+    submission?.notes?.includes('Pelanggaran Fatal') || 
+    submission?.notes?.includes('Jendela peramban ditutup') || 
+    submission?.notes?.includes('Wajah tidak terdeteksi') ||
+    submission?.notes?.includes('wajah asing');
 
   // Parse AI Score if exists
   const aiScore = submission?.aiScore;
@@ -84,17 +90,32 @@ export default function SubmissionDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <button 
-        onClick={() => router.push(`/company/submissions/challenge/${submission.challengeId}`)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Kandidat
-      </button>
+      <div className="flex items-center justify-between mb-6 print:hidden">
+        <button 
+          onClick={() => router.push(`/company/submissions/challenge/${submission.challengeId}`)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Kandidat
+        </button>
+        <Button onClick={() => window.print()} variant="secondary" size="sm" className="gap-2">
+          <FileText className="w-4 h-4" /> Cetak / Simpan PDF
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Details */}
         <div className="lg:col-span-2 space-y-6">
+          {hasProctoringViolations && (
+            <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl flex items-start gap-4 text-red-500 print:block">
+              <ShieldAlert className="w-6 h-6 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-lg mb-1">Peringatan: Potensi Kecurangan (Anti-Joki)</h3>
+                <p className="text-sm opacity-90 leading-relaxed">Sistem mendeteksi adanya pelanggaran pengawasan yang krusial selama ujian berlangsung (berpindah tab berulang kali atau wajah asing). Skor AI di bawah ini mungkin tidak valid. Silakan periksa "Catatan Kandidat" di bawah untuk log selengkapnya.</p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-card border border-border rounded-2xl p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold overflow-hidden text-xl">
@@ -208,24 +229,38 @@ export default function SubmissionDetailPage() {
                 <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PREMIUM TIER</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-background/50 rounded-xl p-4 border border-white/5">
-                  <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Target className="w-3 h-3" /> Skor AI</p>
-                  <p className="text-3xl font-bold text-foreground">{submission.aiScore}<span className="text-lg text-muted-foreground">/100</span></p>
+                  <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><Target className="w-3 h-3" /> Hard Skill (AI)</p>
+                  <p className="text-3xl font-bold text-foreground">{submission.aiScore || 0}<span className="text-lg text-muted-foreground">/100</span></p>
+                </div>
+                <div className="bg-background/50 rounded-xl p-4 border border-white/5">
+                  <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><UserCheck className="w-3 h-3 text-cyan-400" /> Soft Skill (AI)</p>
+                  <p className="text-3xl font-bold text-cyan-400">{submission.softSkillScore || '-'}<span className="text-lg text-muted-foreground">/100</span></p>
                 </div>
                 <div className="bg-background/50 rounded-xl p-4 border border-white/5">
                   <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Plagiarisme</p>
                   <p className={`text-3xl font-bold ${submission.aiPlagiarismScore > 30 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {submission.aiPlagiarismScore}%
+                    {submission.aiPlagiarismScore || 0}%
                   </p>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Catatan Evaluasi Otomatis</h3>
-                <div className="text-sm text-muted-foreground leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5 whitespace-pre-wrap">
-                  {submission.aiCorrectionSummary || "Tidak ada catatan spesifik dari AI."}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Evaluasi Teknis (Hard Skills)</h3>
+                  <div className="text-sm text-muted-foreground leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5 whitespace-pre-wrap">
+                    {submission.aiCorrectionSummary || "Tidak ada catatan spesifik dari AI."}
+                  </div>
                 </div>
+                {submission.softSkillFeedback && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-cyan-500 uppercase tracking-wider mb-2">Analisis Kepribadian & Soft Skills</h3>
+                    <div className="text-sm text-cyan-200 leading-relaxed bg-cyan-950/30 p-4 rounded-xl border border-cyan-500/20 whitespace-pre-wrap">
+                      {submission.softSkillFeedback}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -239,7 +274,7 @@ export default function SubmissionDetailPage() {
         </div>
 
         {/* Right Column: Grading Form */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 print:hidden">
           <div className="bg-card border border-border rounded-2xl p-6 sticky top-24">
             <h2 className="text-lg font-bold text-foreground mb-6">Penilaian Manual</h2>
             <form onSubmit={handleGrade} className="space-y-5">
