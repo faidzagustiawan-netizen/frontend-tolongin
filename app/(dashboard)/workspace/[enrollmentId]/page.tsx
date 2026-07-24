@@ -810,7 +810,7 @@ export default function EnrollmentWorkspacePage() {
                                       />
                                     )}
 
-                                    {currentComp.type === 'URL_LINK' && (
+                                    {currentComp.type === 'URL_SUBMISSION' && (
                                       <div>
                                         <label className="block text-sm font-medium text-muted-foreground mb-2">Masukkan Tautan (URL)</label>
                                         <div className="flex items-center bg-background border border-border rounded-xl overflow-hidden focus-within:border-cyan-500 transition-colors">
@@ -843,7 +843,7 @@ export default function EnrollmentWorkspacePage() {
                                       </div>
                                     )}
 
-                                    {currentComp.type === 'VIDEO_RECORDING' && (
+                                    {currentComp.type === 'VIDEO_UPLOAD' && (
                                       <div className="space-y-4">
                                         <button 
                                           type="button"
@@ -888,7 +888,7 @@ export default function EnrollmentWorkspacePage() {
                                             height="400px"
                                             language={currentComp.metadata?.language || 'javascript'}
                                             theme="vs-dark"
-                                            value={componentResponses[currentComp.id]?.textValue || ''}
+                                            value={componentResponses[currentComp.id]?.textValue || currentComp.metadata?.starterCode || ''}
                                             onChange={(value) => handleComponentChange(currentComp.id, value, 'textValue')}
                                             options={{
                                               minimap: { enabled: false },

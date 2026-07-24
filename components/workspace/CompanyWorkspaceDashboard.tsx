@@ -192,14 +192,14 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         {challenge.status === 'DRAFT' ? (
-                          <Link href={`/challenges/create?id=${challenge.id}`}>
+                          <Link href={`/challenges/${challenge.id}/edit`}>
                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-400 hover:text-amber-300">
                               Lanjutkan Edit Draf <ChevronRight className="w-4 h-4 ml-1" />
                             </Button>
                           </Link>
                         ) : (
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link href={`/challenges/create?id=${challenge.id}`}>
+                            <Link href={`/challenges/${challenge.id}/edit`}>
                               <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
                                 Lihat Detail
                               </Button>

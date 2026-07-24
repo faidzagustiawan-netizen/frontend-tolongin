@@ -32,6 +32,8 @@ export interface GenerateAiChallengePayload {
   prompt: string;
   category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  blueprint?: any;
+  previousBlueprint?: any;
 }
 
 export interface CreateDiscussionPayload {
@@ -54,6 +56,10 @@ export const challengesService = {
   },
   update: async (id: string, payload: Partial<CreateChallengePayload>) => {
     const { data } = await apiClient.patch(`/challenges/${id}`, payload);
+    return { data };
+  },
+  generateAiBlueprint: async (payload: GenerateAiChallengePayload) => {
+    const { data } = await apiClient.post('/challenges/ai-generate-blueprint', payload);
     return { data };
   },
   generateAi: async (payload: GenerateAiChallengePayload) => {
