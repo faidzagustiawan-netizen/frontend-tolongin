@@ -522,11 +522,27 @@ export default function CreateChallengePage() {
                     <p className="text-sm text-muted-foreground mb-4">Silakan tinjau kerangka berikut. Jika sudah sesuai, kami akan *generate* detail kode dan soal yang sangat komprehensif.</p>
                     <div className="bg-background rounded-xl p-4 border border-border space-y-4">
                       {aiBlueprint.reasoning && (
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
-                          <span className="text-xs font-bold text-primary uppercase flex items-center gap-2">
-                            <Sparkles className="w-3 h-3" /> AI Reasoning
+                        <div className="bg-primary/5 p-5 rounded-xl border border-primary/20 mb-4">
+                          <span className="text-xs font-extrabold text-primary uppercase flex items-center gap-2 tracking-wider">
+                            <Sparkles className="w-4 h-4" /> AI Reasoning
                           </span>
-                          <p className="text-foreground text-sm mt-2 italic">{aiBlueprint.reasoning}</p>
+                          <p className="text-foreground text-sm mt-3 leading-relaxed opacity-90">{aiBlueprint.reasoning}</p>
+                        </div>
+                      )}
+                      
+                      {aiBlueprint.requiredAssets && aiBlueprint.requiredAssets.length > 0 && (
+                        <div className="bg-yellow-500/10 p-5 rounded-xl border border-yellow-500/30 mb-4">
+                          <span className="text-xs font-extrabold text-yellow-500 uppercase flex items-center gap-2 tracking-wider">
+                            <AlertCircle className="w-4 h-4" /> Butuh Aset Eksternal
+                          </span>
+                          <p className="text-foreground text-sm mt-3 leading-relaxed opacity-90">
+                            AI mendeteksi bahwa studi kasus ini membutuhkan aset eksternal berikut: <strong className="text-yellow-500">{aiBlueprint.requiredAssets.join(', ')}</strong>.
+                          </p>
+                          <p className="text-foreground text-sm mt-2 leading-relaxed opacity-90">
+                            Anda memiliki dua opsi: <br/>
+                            1. Jelaskan struktur kolom/data Anda di kotak revisi di bawah agar AI dapat memahami konteksnya.<br/>
+                            2. Lanjutkan tanpa merevisi, tetapi pastikan Anda mengunggah URL Dataset tersebut di pengaturan Lanjutan (Mode Manual) sebelum mempublikasikan studi kasus ini.
+                          </p>
                         </div>
                       )}
                       <div>
@@ -538,14 +554,20 @@ export default function CreateChallengePage() {
                         <p className="text-foreground text-sm mt-1">{aiBlueprint.summary}</p>
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-muted-foreground uppercase">Tahapan & Silabus Ujian</span>
-                        <ul className="list-disc list-inside mt-2 space-y-1">
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tahapan & Silabus Ujian</span>
+                        <div className="mt-4 space-y-4">
                           {aiBlueprint.sections_outline?.map((sec: any, idx: number) => (
-                            <li key={idx} className="text-sm text-muted-foreground">
-                              <span className="font-medium text-foreground">{sec.title}</span> - {sec.competencies?.join(', ')}
-                            </li>
+                            <div key={idx} className="bg-card/50 border border-border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-foreground text-base">{sec.title}</span>
+                                <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                  {sec.competencies?.join(', ')}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground leading-relaxed">{sec.description}</p>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     </div>
                   </div>
