@@ -105,6 +105,19 @@ export default function CreateChallengePage() {
           console.error("Failed to parse saved draft", e);
         }
       }
+
+      const savedAiState = localStorage.getItem('aiDraftState');
+      if (savedAiState) {
+        try {
+          const parsed = JSON.parse(savedAiState);
+          if (parsed.aiPrompt) setAiPrompt(parsed.aiPrompt);
+          if (parsed.aiCategory) setAiCategory(parsed.aiCategory);
+          if (parsed.aiDifficulty) setAiDifficulty(parsed.aiDifficulty);
+          if (parsed.aiBlueprint) setAiBlueprint(parsed.aiBlueprint);
+        } catch (e) {
+          console.error("Failed to parse saved AI draft", e);
+        }
+      }
     }
   }, []);
 
@@ -113,6 +126,17 @@ export default function CreateChallengePage() {
       localStorage.setItem('draftChallenge', JSON.stringify(manualData));
     }
   }, [manualData]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aiDraftState', JSON.stringify({
+        aiPrompt,
+        aiCategory,
+        aiDifficulty,
+        aiBlueprint,
+      }));
+    }
+  }, [aiPrompt, aiCategory, aiDifficulty, aiBlueprint]);
 
   const handleGenerateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,7 +177,10 @@ export default function CreateChallengePage() {
       
       setSuccessMsg('Blueprint berhasil didaftarkan. AI sedang melengkapi draf Anda di latar belakang...');
       
-      // Redirect langsung ke rute edit
+      // Bersihkan cache dan redirect langsung ke rute edit
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('aiDraftState');
+      }
       router.push(`/challenges/${generatedChallenge.id}/edit`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal memproses AI generator. Pastikan API key backend telah terkonfigurasi.');
