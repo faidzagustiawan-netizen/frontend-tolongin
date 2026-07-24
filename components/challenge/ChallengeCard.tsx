@@ -53,7 +53,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   };
 
   const getCategoryColor = (cat: string) => {
-    return 'text-[#546E7A] bg-[#F4F6F8] border-[#CFD8DC] dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    return 'text-slate-600 bg-slate-50 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
   };
 
   const getCategoryLabel = (cat: string) => {
@@ -94,7 +94,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             )}
           </div>
           <div className="flex flex-col gap-1.5 pt-0.5">
-            <h3 className="text-base sm:text-lg font-bold text-[#1E7F4D] dark:text-emerald-400 leading-snug line-clamp-2">
+            <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug line-clamp-2">
               {title}
             </h3>
             <div className="flex items-center gap-1.5">
@@ -106,7 +106,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   <BadgeCheck className="h-4 w-4 text-blue-500" />
                 </span>
               ) : (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1E7F4D] text-white ml-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 ml-1">
                   Talenta
                 </span>
               )}
@@ -147,21 +147,6 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 <span>{rewardDescription}</span>
               </div>
             )}
-          </div>
-
-          {/* Divider */}
-          <div className="w-full h-px bg-emerald-200/50 dark:bg-emerald-500/20" />
-
-          {/* Hardcoded Skills */}
-          <div className="flex flex-wrap gap-2">
-             {['Python', 'Microservices', 'PostgreSQL', 'RESTful APIs', 'Unit Testing'].map(skill => (
-               <span key={skill} className="px-3 py-1.5 bg-white dark:bg-background rounded-xl text-xs font-semibold text-foreground/80 shadow-sm border border-border/50">
-                 {skill}
-               </span>
-             ))}
-             <span className="px-3 py-1.5 bg-white dark:bg-background rounded-xl text-xs font-bold text-foreground/60 shadow-sm border border-border/50">
-               +3
-             </span>
           </div>
         </div>
 
