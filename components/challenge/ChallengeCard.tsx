@@ -102,7 +102,9 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 {companyName}
               </span>
               {type === 'COMPANY' ? (
-                <BadgeCheck className="h-4 w-4 text-blue-500" title="Perusahaan Resmi" />
+                <span title="Perusahaan Resmi" className="inline-flex">
+                  <BadgeCheck className="h-4 w-4 text-blue-500" />
+                </span>
               ) : (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1E7F4D] text-white ml-1">
                   Talenta
