@@ -14,8 +14,8 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
       case 'ESSAY': return <FileText className="h-4 w-4 text-emerald-400" />;
       case 'LIVE_CODING': return <Code className="h-4 w-4 text-amber-400" />;
       case 'FILE_UPLOAD': return <FileText className="h-4 w-4 text-purple-400" />;
-      case 'VIDEO_RECORDING': return <Video className="h-4 w-4 text-rose-400" />;
-      case 'URL_LINK': return <Link className="h-4 w-4 text-blue-400" />;
+      case 'VIDEO_UPLOAD': return <Video className="h-4 w-4 text-rose-400" />;
+      case 'URL_SUBMISSION': return <Link className="h-4 w-4 text-blue-400" />;
       default: return <FileText className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -26,8 +26,8 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
       case 'ESSAY': return 'Uraian (Essay)';
       case 'LIVE_CODING': return 'Live Coding / Praktik';
       case 'FILE_UPLOAD': return 'Unggah Berkas';
-      case 'VIDEO_RECORDING': return 'Rekaman Video';
-      case 'URL_LINK': return 'Tautan Eksternal';
+      case 'VIDEO_UPLOAD': return 'Rekaman Video';
+      case 'URL_SUBMISSION': return 'Tautan Eksternal';
       default: return 'Tugas Umum';
     }
   };
@@ -38,8 +38,8 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
       case 'ESSAY': return 10;
       case 'LIVE_CODING': return 30;
       case 'FILE_UPLOAD': return 45;
-      case 'VIDEO_RECORDING': return 15;
-      case 'URL_LINK': return 5;
+      case 'VIDEO_UPLOAD': return 15;
+      case 'URL_SUBMISSION': return 5;
       default: return 5;
     }
   };
