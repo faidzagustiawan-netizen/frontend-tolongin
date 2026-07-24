@@ -186,6 +186,17 @@ export default function CreateChallengePage() {
 
   const handleAiGenerate = async () => {
     if (!aiPrompt || !aiBlueprint) return;
+
+    if (aiBlueprint.requiredAssets && aiBlueprint.requiredAssets.length > 0) {
+      const confirmed = window.confirm(
+        'PERINGATAN: Aset eksternal yang dibutuhkan belum dijelaskan.\n\n' +
+        'Jika Anda tidak menyerahkan rincian aset atau data yang diminta, kemungkinan besar soal yang digenerate ' +
+        'tidak akan maksimal, bersifat halusinasi, atau tidak sesuai dengan ekspektasi Anda.\n\n' +
+        'Apakah Anda yakin ingin melanjutkan tanpa merevisi?'
+      );
+      if (!confirmed) return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -537,6 +548,9 @@ export default function CreateChallengePage() {
                           </span>
                           <p className="text-foreground text-sm mt-3 leading-relaxed opacity-90">
                             AI mendeteksi bahwa studi kasus ini membutuhkan aset eksternal berikut: <strong className="text-yellow-500">{aiBlueprint.requiredAssets.join(', ')}</strong>.
+                          </p>
+                          <p className="text-foreground text-sm mt-2 leading-relaxed opacity-90 text-red-400 font-medium">
+                            PERHATIAN: Jika aset ini tidak diserahkan atau dijelaskan, kemungkinan soal yang digenerate tidak akan maksimal dan tidak sesuai dengan keinginan Anda.
                           </p>
                           <p className="text-foreground text-sm mt-2 leading-relaxed opacity-90">
                             Anda memiliki dua opsi: <br/>
