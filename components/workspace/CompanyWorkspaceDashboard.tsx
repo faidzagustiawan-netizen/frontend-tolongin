@@ -53,10 +53,10 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
 
         <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground/90 tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Dashboard Studi Kasus Aktif
           </h1>
-          <p className="max-w-2xl text-sm text-foreground/90 opacity-90 leading-relaxed">
+          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
             Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat.
             Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
           </p>
@@ -86,7 +86,7 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
           <Button
             onClick={() => refetchStats()}
             size="sm"
-            className="bg-white/15 text-foreground/90 border border-foreground/20 hover:bg-white/20 font-bold flex items-center gap-2"
+            className="bg-white/15 text-white border border-white/20 hover:bg-white/20 font-bold flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh Data

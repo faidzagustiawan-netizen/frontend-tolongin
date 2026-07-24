@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Briefcase, Timer, ArrowRight, Coins, Code2, Plus } from 'lucide-react';
+import { Briefcase, Timer, ArrowRight, Coins, Code2, Plus, Building2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {
@@ -30,10 +30,10 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
         <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
 
         <div className="relative z-10 space-y-2">
-          <h1 className="font-display text-3xl font-extrabold text-foreground/90 tracking-tight">
+          <h1 className="font-display text-3xl font-extrabold text-white tracking-tight">
             Workspace Talenta
           </h1>
-          <p className="text-sm text-foreground/90 opacity-90 max-w-xl leading-relaxed">
+          <p className="text-sm text-white/90 max-w-xl leading-relaxed">
             Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah
             selesai dievaluasi akan muncul di sini. Pilih salah satu untuk
             melanjutkan pengerjaan.
@@ -41,13 +41,13 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
         </div>
 
         <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
-          <div className="bg-white/15 backdrop-blur-md border border-foreground/20 px-6 py-3 rounded-2xl flex flex-col items-end">
-            <p className="text-[10px] text-foreground/70 font-bold uppercase tracking-wider mb-1">
+          <div className="bg-white/15 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl flex flex-col items-end">
+            <p className="text-[10px] text-white/70 font-bold uppercase tracking-wider mb-1">
               Saldo Token
             </p>
             <div className="flex items-center gap-2">
               <Coins className="h-6 w-6 text-amber-300" />
-              <span className="font-display text-2xl font-extrabold text-foreground-keep font-mono">
+              <span className="font-display text-2xl font-extrabold text-white font-mono">
                 {tokenData?.tokenBalance || 0}
               </span>
             </div>
@@ -102,15 +102,29 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
                               isExpired ? 'text-red-400 bg-red-500/10 border-red-500/30' :
                               'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
 
+            const companyName = enrollment.challenge?.challengeType === 'PUBLIC' ? (enrollment.challenge?.creator?.fullName || 'Talenta') : (enrollment.challenge?.company?.companyName || 'Perusahaan Mitra');
+            const logoUrl = enrollment.challenge?.challengeType === 'PUBLIC' ? enrollment.challenge?.creator?.avatarUrl : enrollment.challenge?.company?.logoUrl;
+
             return (
               <Link key={enrollment.id} href={`/workspace/${enrollment.id}`} className="group">
                 <div className="bg-card border border-border rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full hover:border-emerald-500/50 transition-all relative overflow-hidden space-y-6">
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="h-12 w-12 rounded-2xl bg-foreground/5 border border-foreground/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                        <Briefcase className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-foreground/5 border border-foreground/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt={companyName} className="w-full h-full object-cover" />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors line-clamp-1">
+                            {companyName}
+                          </p>
+                        </div>
                       </div>
-                      <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider border ${statusColor}`}>
+                      <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider border flex-shrink-0 ${statusColor}`}>
                         {enrollment.status.replace('_', ' ')}
                       </span>
                     </div>
