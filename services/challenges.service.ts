@@ -33,6 +33,7 @@ export interface GenerateAiChallengePayload {
   category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   blueprint?: any;
+  previousBlueprint?: any;
 }
 
 export interface CreateDiscussionPayload {

@@ -82,8 +82,9 @@ export default function CreateChallengePage() {
   // States for AI Form
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
-  const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('INTERMEDIATE');
+  const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('BEGINNER');
   const [aiBlueprint, setAiBlueprint] = useState<any>(null);
+  const [refinementPrompt, setRefinementPrompt] = useState('');
 
   // States for Manual Form
   const [manualData, setManualData] = useState<CreateChallengePayload>({
@@ -160,6 +161,29 @@ export default function CreateChallengePage() {
     }
   };
 
+  const handleRefineBlueprint = async () => {
+    if (!refinementPrompt) return;
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await challengesService.generateAiBlueprint({
+        prompt: refinementPrompt,
+        category: aiCategory,
+        difficulty: aiDifficulty,
+        previousBlueprint: aiBlueprint
+      });
+      setAiBlueprint(res.data);
+      setRefinementPrompt('');
+      setSuccessMsg('Blueprint berhasil direvisi berdasarkan masukan Anda!');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Gagal merevisi blueprint.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAiGenerate = async () => {
     if (!aiPrompt || !aiBlueprint) return;
     setIsSubmitting(true);
@@ -173,15 +197,15 @@ export default function CreateChallengePage() {
         difficulty: aiDifficulty,
         blueprint: aiBlueprint,
       });
-      const generatedChallenge = res.data;
+      setSuccessMsg('Proses generasi soal dan rubrik sedang berjalan di latar belakang! Silakan cek notifikasi atau Dashboard Anda beberapa saat lagi.');
       
-      setSuccessMsg('Blueprint berhasil didaftarkan. AI sedang melengkapi draf Anda di latar belakang...');
-      
-      // Bersihkan cache dan redirect langsung ke rute edit
+      // Bersihkan cache dan redirect langsung ke dashboard
       if (typeof window !== 'undefined') {
         localStorage.removeItem('aiDraftState');
       }
-      router.push(`/challenges/${generatedChallenge.id}/edit`);
+      setTimeout(() => {
+        router.push(`/`);
+      }, 3000); // Beri waktu 3 detik agar user bisa membaca pesan sukses
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal memproses AI generator. Pastikan API key backend telah terkonfigurasi.');
       setIsSubmitting(false);
@@ -497,6 +521,14 @@ export default function CreateChallengePage() {
                     <h3 className="text-xl font-bold text-foreground mb-2">Pratinjau Kerangka (Blueprint)</h3>
                     <p className="text-sm text-muted-foreground mb-4">Silakan tinjau kerangka berikut. Jika sudah sesuai, kami akan *generate* detail kode dan soal yang sangat komprehensif.</p>
                     <div className="bg-background rounded-xl p-4 border border-border space-y-4">
+                      {aiBlueprint.reasoning && (
+                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
+                          <span className="text-xs font-bold text-primary uppercase flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" /> AI Reasoning
+                          </span>
+                          <p className="text-foreground text-sm mt-2 italic">{aiBlueprint.reasoning}</p>
+                        </div>
+                      )}
                       <div>
                         <span className="text-xs font-bold text-muted-foreground uppercase">Judul</span>
                         <p className="text-foreground font-semibold mt-1">{aiBlueprint.title}</p>
@@ -515,6 +547,28 @@ export default function CreateChallengePage() {
                           ))}
                         </ul>
                       </div>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <label className="block text-sm font-medium text-foreground mb-2">Ada yang ingin diubah?</label>
+                    <div className="flex gap-2">
+                      <Textarea 
+                        placeholder="Contoh: Tolong ganti tahap wawancara dengan live coding algoritma..."
+                        value={refinementPrompt}
+                        onChange={(e) => setRefinementPrompt(e.target.value)}
+                        rows={2}
+                        className="flex-1"
+                        disabled={isSubmitting}
+                      />
+                      <Button
+                        onClick={handleRefineBlueprint}
+                        isLoading={isSubmitting}
+                        disabled={!refinementPrompt}
+                        className="self-end"
+                        variant="secondary"
+                      >
+                        Revisi
+                      </Button>
                     </div>
                   </div>
 
