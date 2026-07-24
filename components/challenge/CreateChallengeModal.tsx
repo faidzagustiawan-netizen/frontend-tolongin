@@ -31,8 +31,9 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
 
   // AI Generator Form State
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
+  const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('BACKEND');
   const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('ADVANCED');
+  const [aiBlueprint, setAiBlueprint] = useState<any>(null);
 
   const submitChallenge = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!title || !summary || !description) {
@@ -86,10 +87,35 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
     await submitChallenge('PUBLISHED');
   };
 
-  const handleAiSubmit = async (e: React.FormEvent) => {
+  const handleGenerateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiPrompt) {
       setSubmitError('Harap jelaskan kebutuhan rekrutmen atau masalah bisnis Anda di kolom prompt AI.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      const res = await challengesService.generateAiBlueprint({
+        prompt: aiPrompt,
+        category: aiCategory,
+        difficulty: aiDifficulty,
+      });
+      setAiBlueprint(res.data);
+      setSubmitSuccess('Blueprint kerangka soal berhasil dibuat. Silakan tinjau dan konfirmasi.');
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message || err.message || 'Gagal memproses AI blueprint generator.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAiSubmit = async () => {
+    if (!aiPrompt || !aiBlueprint) {
+      setSubmitError('Harap selesaikan pembuatan blueprint terlebih dahulu.');
       return;
     }
 
@@ -102,6 +128,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
         prompt: aiPrompt,
         category: aiCategory,
         difficulty: aiDifficulty,
+        blueprint: aiBlueprint,
       });
 
       setSubmitSuccess('AI berhasil merancang dan merumuskan draf studi kasus! Kasus baru telah ditambahkan sebagai Draf.');
@@ -110,6 +137,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
         onClose();
         setSubmitSuccess(null);
         setAiPrompt('');
+        setAiBlueprint(null);
       }, 2500);
     } catch (err: any) {
       setSubmitError(err.response?.data?.message || err.message || 'Gagal menghasilkan studi kasus via AI. Silakan coba lagi.');
@@ -290,69 +318,107 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
 
         {/* TAB AI GENERATOR */}
         {createTab === 'AI' && (
-          <form onSubmit={handleAiSubmit} className="space-y-5">
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-300 text-xs leading-relaxed">
-              <Zap className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-foreground block mb-0.5">Prompt-to-Challenge (Generative AI)</strong>
-                Jelaskan masalah spesifik atau posisi yang ingin Anda rekrut. AI akan merumuskan judul, latar belakang bisnis, rubrik penilaian, dan batasan arsitektural secara otomatis.
-              </div>
-            </div>
+            <div className="space-y-5">
+              {!aiBlueprint ? (
+                <form onSubmit={handleGenerateBlueprint} className="space-y-5">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-start gap-3.5 text-amber-300 text-xs leading-relaxed">
+                    <Zap className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-foreground block mb-0.5">Prompt-to-Challenge (Generative AI)</strong>
+                      Jelaskan masalah spesifik atau posisi yang ingin Anda rekrut. AI akan merumuskan kerangka (blueprint) terlebih dahulu sebelum men-generate kode dan rubrik lengkap.
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">Prompt Kebutuhan / Masalah Bisnis</label>
-              <textarea
-                rows={5}
-                placeholder="Misal: Perusahaan logistik kami mengalami keterlambatan sinkronisasi data pelacakan armada secara real-time. Kami butuh backend engineer senior yang bisa merancang arsitektur event-driven menggunakan Kafka dan Redis di ekosistem Go/NestJS."
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                className="w-full bg-background border border-border rounded-2xl p-4 text-xs text-foreground leading-relaxed focus:ring-2 focus:ring-amber-500"
-                required
-              />
-            </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">Prompt Kebutuhan / Masalah Bisnis</label>
+                    <textarea
+                      rows={5}
+                      placeholder="Misal: Perusahaan logistik kami mengalami keterlambatan sinkronisasi data pelacakan armada secara real-time. Kami butuh backend engineer senior yang bisa merancang arsitektur event-driven menggunakan Kafka dan Redis di ekosistem Go/NestJS."
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      className="w-full bg-background border border-border rounded-2xl p-4 text-xs text-foreground leading-relaxed focus:ring-2 focus:ring-amber-500"
+                      required
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Keahlian</label>
-                <select
-                  value={aiCategory}
-                  onChange={(e: any) => setAiCategory(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
-                >
-                  <option value="BACKEND">Backend & API</option>
-                  <option value="FRONTEND">Frontend Engineering</option>
-                  <option value="UI_UX">UI/UX Design</option>
-                  <option value="DATA_SCIENCE">Data Science & AI</option>
-                  <option value="MARKETING">Digital Marketing & SEO</option>
-                  <option value="PRODUCT">Product Management</option>
-                </select>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Keahlian</label>
+                      <select
+                        value={aiCategory}
+                        onChange={(e: any) => setAiCategory(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="BACKEND">Backend & API</option>
+                        <option value="FRONTEND">Frontend Engineering</option>
+                        <option value="UI_UX">UI/UX Design</option>
+                        <option value="DATA_SCIENCE">Data Science & AI</option>
+                        <option value="MARKETING">Digital Marketing & SEO</option>
+                        <option value="PRODUCT">Product Management</option>
+                      </select>
+                    </div>
 
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan Target</label>
-                <select
-                  value={aiDifficulty}
-                  onChange={(e: any) => setAiDifficulty(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
-                >
-                  <option value="ADVANCED">Advanced (Tingkat Lanjut)</option>
-                  <option value="INTERMEDIATE">Intermediate (Menengah)</option>
-                  <option value="BEGINNER">Beginner (Pemula)</option>
-                </select>
-              </div>
-            </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan Target</label>
+                      <select
+                        value={aiDifficulty}
+                        onChange={(e: any) => setAiDifficulty(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="ADVANCED">Advanced (Tingkat Lanjut)</option>
+                        <option value="INTERMEDIATE">Intermediate (Menengah)</option>
+                        <option value="BEGINNER">Beginner (Pemula)</option>
+                      </select>
+                    </div>
+                  </div>
 
-            <div className="pt-4 flex items-center justify-end gap-3">
-              <Button variant="ghost" onClick={onClose}>Batal</Button>
-              <Button
-                type="submit"
-                isLoading={isSubmitting}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xl shadow-orange-500/20 font-bold"
-              >
-                <Wand2 className="h-4 w-4 mr-2" /> Rancang dengan AI
-              </Button>
+                  <div className="pt-4 flex items-center justify-end gap-3">
+                    <Button variant="ghost" onClick={onClose}>Batal</Button>
+                    <Button
+                      type="submit"
+                      isLoading={isSubmitting}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xl shadow-orange-500/20 font-bold"
+                    >
+                      <Wand2 className="h-4 w-4 mr-2" /> Buat Blueprint
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-5">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-foreground mb-2">Pratinjau Kerangka (Blueprint)</h3>
+                    <p className="text-xs text-muted-foreground mb-4">Jika sudah sesuai, kami akan men-generate detail instruksi dan rubrik penilaian lengkap.</p>
+                    <div className="bg-background rounded-xl p-4 border border-border space-y-3">
+                      <div>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Judul</span>
+                        <p className="text-xs text-foreground font-semibold mt-1">{aiBlueprint.title}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Ringkasan</span>
+                        <p className="text-xs text-foreground mt-1">{aiBlueprint.summary}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setAiBlueprint(null)}
+                      disabled={isSubmitting}
+                    >
+                      Batal & Edit
+                    </Button>
+                    <Button
+                      onClick={handleAiSubmit}
+                      isLoading={isSubmitting}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xl shadow-orange-500/20 font-bold"
+                    >
+                      <Wand2 className="h-4 w-4 mr-2" /> Konfirmasi & Buat Detail Soal
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
         )}
       </div>
     </Modal>
