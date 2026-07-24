@@ -151,22 +151,12 @@ export default function CreateChallengePage() {
       });
       const generatedChallenge = res.data;
       
-      setManualData({
-        id: generatedChallenge.id,
-        title: generatedChallenge.title || '',
-        summary: generatedChallenge.summary || '',
-        description: generatedChallenge.description || '',
-        category: generatedChallenge.category || 'FRONTEND',
-        difficulty: generatedChallenge.difficulty || 'BEGINNER',
-        sections: generatedChallenge.sections || [],
-        gradingRubric: generatedChallenge.gradingRubric,
-      });
+      setSuccessMsg('Blueprint berhasil didaftarkan. AI sedang melengkapi draf Anda di latar belakang...');
       
-      setSuccessMsg('Studi kasus berhasil dirumuskan oleh AI! Silakan review dan sesuaikan di tab Manual Builder.');
-      setActiveTab('MANUAL');
+      // Redirect langsung ke rute edit
+      router.push(`/challenges/${generatedChallenge.id}/edit`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal memproses AI generator. Pastikan API key backend telah terkonfigurasi.');
-    } finally {
       setIsSubmitting(false);
     }
   };
