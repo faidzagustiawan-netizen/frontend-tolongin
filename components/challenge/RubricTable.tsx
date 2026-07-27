@@ -29,8 +29,7 @@ export const RubricTable: React.FC<RubricTableProps> = ({ rubric }) => {
   return (
     <div className="space-y-6">
       {/* Criteria & Weight Table */}
-      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-xl">
-        <div className="px-6 py-5 border-b border-border bg-foreground/5 flex items-center justify-between">
+      <div className="px-6 py-5 border-b border-border bg-foreground/5 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground">Kriteria & Bobot Penilaian AI</h4>
           <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
             Total Bobot: {totalWeight}%
@@ -49,22 +48,7 @@ export const RubricTable: React.FC<RubricTableProps> = ({ rubric }) => {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* LMS Duration & Custom Outputs Info */}
-      <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center gap-2 border-b border-border pb-3">
-          <Clock className="h-5 w-5 text-cyan-400" />
-          <h4 className="font-display font-bold text-foreground text-sm">Alokasi Pengerjaan LMS Server</h4>
-        </div>
-        <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-          <span>Batas Waktu Timer Server</span>
-          <span className="font-mono text-sm font-bold text-cyan-400">{durationHours} Jam</span>
-        </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          Waktu pengerjaan akan mulai dihitung otomatis oleh server begitu Anda menyetujui Digital NDA dan mengambil tantangan.
-        </p>
-      </div>
 
       {customOutputs.length > 0 && (
         <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-4">

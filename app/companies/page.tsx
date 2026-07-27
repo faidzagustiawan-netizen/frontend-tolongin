@@ -23,12 +23,12 @@ export default function CompaniesDirectoryPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-          Direktori Perusahaan Mitra
+      <div className="text-center max-w-3xl mx-auto space-y-4 font-jakarta">
+        <h1 className="font-jakarta text-3xl sm:text-6xl font-bold text-foreground tracking-tight leading-tight">
+          Perusahaan Mitra
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-          Temukan berbagai perusahaan teknologi terkemuka yang aktif mencari talenta melalui platform Tolongin. Ikuti studi kasus mereka dan buktikan kemampuan Anda.
+        <p className="font-jakarta text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto font-medium">
+          Temukan perusahaan teknologi yang mencari talenta sepertimu. Ambil studi kasus mereka dan tunjukkan kinerjamu.
         </p>
       </div>
 
@@ -50,44 +50,51 @@ export default function CompaniesDirectoryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="group bg-card hover:bg-card/80 border border-border rounded-3xl p-6 transition-all shadow-lg hover:shadow-xl hover:shadow-emerald-500/5 relative overflow-hidden flex flex-col h-full"
+              className="group bg-white dark:bg-card hover:bg-card/80 border border-border rounded-[24px] p-6 transition-all shadow-sm hover:shadow-xl relative overflow-hidden flex flex-col h-full font-jakarta z-10"
             >
-              <div className="flex items-start justify-between mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-muted/50 border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
+              {/* Radial Gradient (Dark Purple) */}
+              <div className="absolute -top-16 -right-16 w-52 h-52 bg-[#3B3669] rounded-full blur-[65px] opacity-20 dark:opacity-45 pointer-events-none -z-10" />
+
+              {/* Header: Logo & Trust Badge (Centered Vertically) */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-11 h-11 rounded-full bg-pink-600 text-white flex items-center justify-center overflow-hidden flex-shrink-0 text-sm font-bold shadow-md">
                   {company.logoUrl ? (
                     <img src={company.logoUrl} alt={company.companyName} className="w-full h-full object-cover" />
                   ) : (
-                    <Building2 className="w-8 h-8 text-muted-foreground" />
+                    company.companyName.substring(0, 2).toUpperCase()
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-semibold">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Trust {company.trustScore}
-                  </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    {company.industry}
+                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#00BC7D] text-white text-xs font-bold shadow-sm">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Trust {company.trustScore}
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col">
+                <span className="text-[11px] uppercase font-extrabold tracking-wider text-muted-foreground mb-1">
+                  {company.industry}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-jakarta font-extrabold text-foreground mb-2 leading-tight">
+                  {company.companyName}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-6 font-medium">
+                  {company.description || 'Perusahaan teknologi terdepan yang inovatif.'}
+                </p>
+
+                <div className="flex flex-col items-center justify-center mb-6 mt-auto">
+                  <span className="text-[3.5rem] font-black text-[#3B3669] dark:text-[#615FFF] leading-none mb-1">
+                    {company._count?.challenges || 0}
+                  </span>
+                  <span className="text-base font-medium text-[#3B3669] dark:text-[#615FFF]">
+                    studi kasus
                   </span>
                 </div>
               </div>
 
-              <div className="flex-1">
-                <h3 className="text-xl font-display font-bold text-foreground mb-2 group-hover:text-emerald-400 transition-colors">
-                  {company.companyName}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                  {company.description || 'Perusahaan teknologi terdepan yang inovatif.'}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-6 border-t border-border mt-auto">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span>{company._count?.challenges || 0} Studi Kasus</span>
-                </div>
-                <Link href={`/companies/${company.slug || company.id}`}>
-                  <Button variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 group-hover:px-6 transition-all">
-                    Lihat Profil <ArrowRight className="w-4 h-4 ml-2" />
+              <div className="pt-5 border-t border-border mt-auto">
+                <Link href={`/companies/${company.slug || company.id}`} className="block w-full">
+                  <Button variant="outline" className="w-full rounded-full border-2 border-[#3B3669] text-[#3B3669] hover:bg-[#615FFF] hover:border-[#615FFF] hover:text-white dark:border-[#615FFF] dark:text-[#615FFF] dark:hover:bg-[#615FFF] dark:hover:border-[#615FFF] dark:hover:text-white transition-all font-bold text-sm h-11 bg-transparent">
+                    Lihat profil
                   </Button>
                 </Link>
               </div>

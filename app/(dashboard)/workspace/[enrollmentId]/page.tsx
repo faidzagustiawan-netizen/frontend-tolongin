@@ -12,13 +12,14 @@ import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Layers, Code2, Video, Link2
 } from 'lucide-react';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getLearningRecommendation } from '@/lib/learning-taxonomy';
+import { RubricTable } from '@/components/challenge/RubricTable';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
@@ -60,6 +61,7 @@ export default function EnrollmentWorkspacePage() {
   const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [examQuestionIdx, setExamQuestionIdx] = useState(0);
+  const [activeTahapanPage, setActiveTahapanPage] = useState(0);
 
   useEffect(() => {
     setExamQuestionIdx(0);
@@ -434,31 +436,236 @@ export default function EnrollmentWorkspacePage() {
   const latestSubmission = submissions[submissions.length - 1];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-[var(--font-plus-jakarta)]">
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+        {/* Banner Image */}
+        <div className="h-48 w-full relative overflow-hidden bg-blue-600">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-90"></div>
+          {/* Custom illustration matching the reference can go here */}
+        </div>
 
-        <div className="space-y-2 relative z-10">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
-            <Briefcase className="h-4 w-4" /> Ruang Kerja LMS Aktif
+        {/* Content Area */}
+        <div className="px-8 pb-8">
+          {/* Logo overlay & Issuer */}
+          <div className="flex items-end gap-5 -mt-10 mb-6 relative z-10">
+            <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center border-4 border-card shadow-sm overflow-hidden shrink-0">
+              <span className="text-white font-bold text-5xl font-display">T</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl font-bold text-foreground tracking-tight">
+                {selectedEnrollment.challenge.company?.companyName || 'Platform'}
+              </span>
+              {selectedEnrollment.challenge.company && <BadgeCheck className="w-5 h-5 text-emerald-500" />}
+            </div>
           </div>
-          <h1 className="font-display text-3xl font-extrabold text-foreground tracking-tight">
+
+          {/* Title */}
+          <h1 className="font-display text-3xl font-extrabold text-foreground tracking-tight mb-8">
             {selectedEnrollment.challenge.title}
           </h1>
-          <p className="text-sm text-muted-foreground">Kerjakan studi kasus, unggah solusi, dan lihat evaluasi otomatis AI.</p>
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-4 mb-8 max-w-3xl">
+            <div className="flex items-center">
+              <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+                <Grid className="w-4 h-4" />
+                <span className="text-sm font-semibold">Kategori</span>
+              </div>
+              <div className="text-sm font-bold text-foreground">
+                <span className="text-[10px] uppercase border border-border px-3 py-1 rounded-full tracking-wider">
+                  {selectedEnrollment.challenge.category || 'DATA SCIENCE'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center md:pl-12">
+              <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-semibold">Batas waktu</span>
+              </div>
+              <div className="text-sm font-bold text-foreground">
+                {selectedEnrollment.challenge.gradingRubric?.durationHours || 72} Jam
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+                <UserCheck className="w-4 h-4" />
+                <span className="text-sm font-semibold">Mode proctoring</span>
+              </div>
+              <div className="text-sm font-bold text-foreground">
+                {isProctored ? 'Aktif (Biometrik Wajib)' : 'Non-Aktif'}
+              </div>
+            </div>
+
+            <div className="flex items-center md:pl-12">
+              <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-semibold">Evaluasi AI</span>
+              </div>
+              <div className="text-sm font-bold text-foreground">
+                Instant Feedback
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="text-base text-foreground font-medium mt-4">
+            {selectedEnrollment.challenge.shortDescription || 'Memahami dan memprediksi churn dengan model pembelajaran mesin.'}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8 lg:col-span-1 order-2 lg:order-1">
+
+
+          {/* Kriteria & Bobot Penilaian AI */}
+          {selectedEnrollment.challenge.gradingRubric && (
+            <div className="rounded-3xl shadow-xl overflow-hidden bg-card border border-border">
+              <RubricTable rubric={selectedEnrollment.challenge.gradingRubric} />
+            </div>
+          )}
+
+          {/* Informasi & Bantuan */}
+          <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">Informasi & Bantuan</h4>
+            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
+              <Clock className="h-4 w-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <p>Waktu pengerjaan disarankan adalah 3-7 hari setelah Anda mendaftar.</p>
+            </div>
+            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
+              <FileText className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p>Pastikan Anda mencantumkan tautan repositori GitHub dan demo langsung yang dapat diakses publik.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 space-y-8 order-1 lg:order-2">
+          {/* Tahapan & Struktur Ujian - Inline */}
+          {sections.length > 0 && (() => {
+            const getStageIcon = (type: string) => {
+              switch (type) {
+                case 'MULTIPLE_CHOICE': return <CheckCircle2 className="h-4 w-4 text-cyan-400" />;
+                case 'ESSAY': return <FileText className="h-4 w-4 text-emerald-400" />;
+                case 'LIVE_CODING': return <Code2 className="h-4 w-4 text-amber-400" />;
+                case 'FILE_UPLOAD': return <FileText className="h-4 w-4 text-purple-400" />;
+                case 'VIDEO_UPLOAD': return <Video className="h-4 w-4 text-rose-400" />;
+                case 'URL_SUBMISSION': return <Link2 className="h-4 w-4 text-blue-400" />;
+                default: return <FileText className="h-4 w-4 text-muted-foreground" />;
+              }
+            };
+            const getStageLabel = (type: string) => {
+              switch (type) {
+                case 'MULTIPLE_CHOICE': return 'Pilihan Ganda';
+                case 'ESSAY': return 'Uraian (Essay)';
+                case 'LIVE_CODING': return 'Live Coding / Praktik';
+                case 'FILE_UPLOAD': return 'Unggah Berkas';
+                case 'VIDEO_UPLOAD': return 'Rekaman Video';
+                case 'URL_SUBMISSION': return 'Tautan Eksternal';
+                default: return 'Tugas Umum';
+              }
+            };
+            const estimateDur = (type: string) => {
+              switch (type) {
+                case 'MULTIPLE_CHOICE': return 3;
+                case 'ESSAY': return 10;
+                case 'LIVE_CODING': return 30;
+                case 'FILE_UPLOAD': return 45;
+                case 'VIDEO_UPLOAD': return 15;
+                case 'URL_SUBMISSION': return 5;
+                default: return 5;
+              }
+            };
+            let totalDuration = 0;
+            return (
+              <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl space-y-8">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <Layers className="h-6 w-6 text-emerald-400" />
+                  </div>
+                  <h3 className="font-display text-2xl font-bold text-foreground">
+                    Tahapan & Struktur Ujian
+                  </h3>
+                </div>
+
+                <div className="space-y-8">
+                  {sections.length > 0 && (() => {
+                    const section = sections[activeTahapanPage];
+                    return (
+                      <div className="relative pl-6 sm:pl-8 border-l-2 border-border">
+                        <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-card border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                        <div className="space-y-4 -mt-1.5">
+                          <div>
+                            <h4 className="text-lg font-bold text-foreground">Tahap {activeTahapanPage + 1}: {section.title}</h4>
+                            {section.description && (
+                              <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-3xl">{section.description}</p>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {section.components?.map((comp: any, cIdx: number) => {
+                              const duration = estimateDur(comp.type);
+                              totalDuration += duration;
+                              return (
+                                <div key={cIdx} className="bg-background border border-border rounded-xl p-4 flex items-start gap-4 hover:border-emerald-500/30 transition-colors">
+                                  <div className="mt-0.5 flex-shrink-0 p-2 bg-foreground/5 dark:bg-black/40 rounded-lg border border-border dark:border-white/5">
+                                    {getStageIcon(comp.type)}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-sm font-bold text-foreground">Soal {cIdx + 1}</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        {comp.points} Poin
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-medium">{getStageLabel(comp.type)} • ~{duration} Menit</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {sections.length > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border mt-8">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTahapanPage(Math.max(0, activeTahapanPage - 1))}
+                      disabled={activeTahapanPage === 0}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Sebelumnya
+                    </Button>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Tahap {activeTahapanPage + 1} dari {sections.length}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTahapanPage(Math.min(sections.length - 1, activeTahapanPage + 1))}
+                      disabled={activeTahapanPage === sections.length - 1}
+                    >
+                      Selanjutnya
+                      <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">{selectedEnrollment.challenge.category} Challenge</span>
                 <h3 className="font-display text-2xl font-bold text-foreground mt-1">Sesi Pengerjaan</h3>
               </div>
 
@@ -1134,36 +1341,8 @@ export default function EnrollmentWorkspacePage() {
               </div>
             ) : null}
           </div>
-        </div>
 
-        <div className="space-y-8">
-          <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
-            <h3 className="font-display text-xl font-bold text-foreground border-b border-border pb-4">Informasi Pengerjaan LMS</h3>
-            <div className="space-y-4 text-xs text-muted-foreground">
-              <div className="flex justify-between py-2 border-b border-border/60">
-                <span className="text-muted-foreground">Waktu Mulai (Server)</span>
-                <span className="font-bold text-foreground text-right">{new Date(selectedEnrollment.startedAt).toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border/60">
-                <span className="text-muted-foreground">Batas Waktu</span>
-                <span className="font-bold text-red-400 text-right">{selectedEnrollment.challenge?.gradingRubric?.durationHours || 72} Jam</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border/60">
-                <span className="text-muted-foreground">Mode Proctoring</span>
-                <span className="font-bold text-amber-400 text-right">{isProctored ? 'Aktif (Biometrik Wajib)' : 'Tidak Aktif'}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-muted-foreground">Evaluasi AI</span>
-                <span className="font-bold text-emerald-400 text-right">Instant Feedback</span>
-              </div>
-            </div>
-            
-            <a href={`/challenges/${selectedEnrollment.challenge.slug}`} target="_blank" rel="noreferrer" className="w-full">
-              <Button variant="secondary" className="w-full flex justify-center items-center gap-2 mt-4">
-                Lihat Detail Tantangan
-              </Button>
-            </a>
-          </div>
+
         </div>
       </div>
     </div>

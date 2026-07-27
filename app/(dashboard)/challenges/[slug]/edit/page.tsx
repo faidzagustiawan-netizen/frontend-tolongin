@@ -11,7 +11,7 @@ import ManualBuilder from '../../create/components/ManualBuilder';
 export default function EditChallengePage() {
   const router = useRouter();
   const params = useParams();
-  const { id } = params as { id: string };
+  const { slug } = params as { slug: string };
   const { user, loadUserFromStorage, isAuthenticated } = useUserStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,9 +35,9 @@ export default function EditChallengePage() {
   }, [loadUserFromStorage, isAuthenticated, user, router]);
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       setIsLoading(true);
-      challengesService.getOne(id).then(res => {
+      challengesService.getOne(slug).then(res => {
         const found = res.data;
         if (found) {
           setManualData({
@@ -59,7 +59,7 @@ export default function EditChallengePage() {
         setIsLoading(false);
       });
     }
-  }, [id]);
+  }, [slug]);
 
   const handleManualSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!manualData.title || !manualData.summary || !manualData.description) {

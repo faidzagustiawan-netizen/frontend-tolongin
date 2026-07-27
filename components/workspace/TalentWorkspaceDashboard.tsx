@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Briefcase, Timer, ArrowRight, Coins, Code2, Plus, Building2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Briefcase, Timer, ArrowRight, Coins, Code2, Plus, Building2, User, BadgeCheck, Bookmark, Lock, CheckCircle2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {
@@ -98,54 +99,139 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
           {enrollments.map((enrollment: any) => {
             const isCompleted = enrollment.status === 'COMPLETED' || enrollment.status === 'PASSED';
             const isExpired = enrollment.status === 'EXPIRED';
-            const statusColor = isCompleted ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                              isExpired ? 'text-red-400 bg-red-500/10 border-red-500/30' :
-                              'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+            const statusColor = isCompleted ? 'text-white bg-[#1E7F4D] border-transparent' :
+                              isExpired ? 'text-white bg-[#991B1B] border-transparent' :
+                              'text-white bg-[#A16207] border-transparent';
 
             const companyName = enrollment.challenge?.challengeType === 'PUBLIC' ? (enrollment.challenge?.creator?.fullName || 'Talenta') : (enrollment.challenge?.company?.companyName || 'Perusahaan Mitra');
             const logoUrl = enrollment.challenge?.challengeType === 'PUBLIC' ? enrollment.challenge?.creator?.avatarUrl : enrollment.challenge?.company?.logoUrl;
+            const summary = enrollment.challenge?.summary || '';
+            const title = enrollment.challenge?.title || '';
+            const type = enrollment.challenge?.challengeType || 'COMPANY';
+
+            const theme = type === 'COMPANY' ? {
+              bgClass: 'bg-[#3B3669]',
+              rewardClass: 'text-[#3B3669] dark:text-[#615FFF] font-extrabold',
+              btnClass: 'bg-white border border-[#3B3669] text-[#3B3669] hover:bg-[#3B3669] hover:text-white dark:bg-card dark:border-indigo-400 dark:text-indigo-400 dark:hover:bg-indigo-500 dark:hover:text-white shadow-sm',
+              bookmarkBtnClass: 'bg-[#3B3669] border-transparent text-white hover:bg-[#3B3669]/80 dark:bg-indigo-500 dark:hover:bg-indigo-400 shadow-sm',
+              cardBorderHoverClass: 'group-hover:border-[#3B3669]/30 dark:group-hover:border-indigo-500/30',
+              cardBgClass: 'bg-[#3B3669]/10 dark:bg-[#3B3669]/20',
+            } : {
+              bgClass: 'bg-[#1E7F4D]',
+              rewardClass: 'text-[#1E7F4D] dark:text-[#00BC7D] font-extrabold',
+              btnClass: 'bg-white border border-[#1E7F4D] text-[#1E7F4D] hover:bg-[#1E7F4D] hover:text-white dark:bg-card dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white shadow-sm',
+              bookmarkBtnClass: 'bg-[#1E7F4D] border-transparent text-white hover:bg-[#1E7F4D]/80 dark:bg-emerald-500 dark:hover:bg-emerald-400 shadow-sm',
+              cardBorderHoverClass: 'group-hover:border-[#1E7F4D]/30 dark:group-hover:border-emerald-500/30',
+              cardBgClass: 'bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20',
+            };
 
             return (
-              <Link key={enrollment.id} href={`/workspace/${enrollment.id}`} className="group">
-                <div className="bg-card border border-border rounded-3xl p-6 shadow-xl flex flex-col justify-between h-full hover:border-emerald-500/50 transition-all relative overflow-hidden space-y-6">
-                  <div className="space-y-4 relative z-10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-foreground/5 border border-foreground/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                          {logoUrl ? (
-                            <img src={logoUrl} alt={companyName} className="w-full h-full object-cover" />
-                          ) : (
-                            <Building2 className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors line-clamp-1">
-                            {companyName}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider border flex-shrink-0 ${statusColor}`}>
-                        {enrollment.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="font-display font-bold text-foreground text-lg group-hover:text-emerald-400 transition-colors line-clamp-2">
-                        {enrollment.challenge?.title}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-2 font-mono">Diambil pada: {new Date(enrollment.startedAt).toLocaleDateString('id-ID')}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-border relative z-10">
-                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
-                      <Timer className="h-4 w-4" /> Masuk ke LMS
-                    </span>
-                    <div className="h-8 w-8 rounded-full bg-foreground/5 flex items-center justify-center group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-colors">
-                      <ArrowRight className="h-4 w-4" />
+              <motion.div
+                key={enrollment.id}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="relative flex flex-col h-full group"
+              >
+                {/* Top Tab (Outside main box, overlapping border with -mb-[1px]) */}
+                <div className="flex justify-end w-full relative z-20 -mb-[1px]">
+                  <div className="relative w-[55%] sm:w-[50%] h-8 sm:h-9 flex">
+                    {/* Slanted left edge with rounded top-left */}
+                    <div className={`absolute top-0 bottom-0 left-0 right-10 ${theme.bgClass} -skew-x-[20deg] origin-bottom rounded-tl-[12px]`} />
+                    {/* Straight right edge with rounded top-right */}
+                    <div className={`absolute top-0 bottom-0 right-0 w-[80%] ${theme.bgClass} rounded-tr-[24px]`} />
+                    
+                    {/* Content */}
+                    <div className="relative z-10 w-full h-full flex items-center justify-center gap-2 px-4 pb-0.5">
+                      {type === 'COMPANY' ? (
+                        <>
+                          <Building2 className="h-4 w-4 text-white" strokeWidth={2.5} />
+                          <span className="text-white text-[11px] sm:text-[12px] font-bold uppercase tracking-wider">Perusahaan</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="h-4 w-4 text-white" strokeWidth={2.5} />
+                          <span className="text-white text-[11px] sm:text-[12px] font-bold uppercase tracking-wider">Talenta</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
-              </Link>
+
+                {/* Main Content Area (White Box) */}
+                <div className={`bg-white dark:bg-card border border-border shadow-sm rounded-[24px] rounded-tr-none p-5 sm:p-6 flex flex-col flex-grow relative z-10 transition-all group-hover:shadow-xl overflow-hidden ${theme.cardBorderHoverClass}`}>
+                  
+                  {/* Background Radial Gradient */}
+                  <div 
+                    className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-20 dark:opacity-30 z-0" 
+                    style={{ background: `radial-gradient(circle at top right, ${type === 'COMPANY' ? '#3B3669' : '#1E7F4D'}, transparent 70%)` }} 
+                  />
+
+                  {/* 1. Judul (Fixed height for 2 lines max) */}
+                  <div className="relative h-14 sm:h-16 mb-2 z-10">
+                    <h3 className="text-lg sm:text-[1.2rem] font-extrabold text-foreground leading-snug line-clamp-2">
+                      {title}
+                    </h3>
+                  </div>
+
+                  {/* 2. Diambil pada */}
+                  <div className="h-5 mb-2.5 flex items-center">
+                    <span className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
+                      Diambil pada: {new Date(enrollment.startedAt).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+
+                  {/* 3. Deskripsi (Fixed height 1 line, truncate with ...) */}
+                  <div className="h-5 mb-4 flex items-center">
+                    {summary ? (
+                      <p className="text-base text-foreground font-semibold truncate">
+                        {summary}
+                      </p>
+                    ) : (
+                      <p className="text-base text-muted-foreground italic truncate">Tidak ada deskripsi</p>
+                    )}
+                  </div>
+
+                  {/* 4. Status Tag (Fixed height 1 line) */}
+                  <div className="h-7 mb-5 flex items-center gap-2 overflow-hidden">
+                    <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${statusColor}`}>
+                      {enrollment.status.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  {/* 5. Divider */}
+                  <div className="border-t border-border w-full mb-4" />
+
+                  {/* 6. Profil Uploader */}
+                  <div className="h-12 mb-5 flex items-center gap-3">
+                    <div className="relative h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-orange-500 border border-border flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt={companyName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-bold text-sm tracking-widest">
+                          {companyName.substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm sm:text-base font-bold text-foreground line-clamp-1 flex items-center gap-1.5">
+                      <span>{companyName}</span>
+                      {type === 'COMPANY' && (
+                        <span title="Perusahaan Resmi" className="inline-flex flex-shrink-0">
+                          <BadgeCheck className="h-4 w-4 text-blue-500" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 7. Footer Buttons */}
+                  <div className="h-12 sm:h-10 flex items-center mt-auto">
+                    <div className="w-full h-12 sm:h-10">
+                      <Link href={`/workspace/${enrollment.id}`} className={`w-full h-full rounded-full text-sm font-bold flex items-center justify-center transition-all hover:scale-[1.02] ${theme.btnClass}`}>
+                        Masuk ke LMS <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             );
           })}
         </div>
