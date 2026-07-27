@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, ShieldCheck, Pencil } from 'lucide-react';
+import { User, ShieldCheck, Pencil, Lock } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface ProfileHeaderProps {
@@ -52,9 +52,18 @@ export const ProfileHeader = ({
           </div>
           
           {/* Privat Photo */}
+          {/* Foto liveness disimpan terenkripsi (format "iv:authTag:ciphertext")
+              dan tidak pernah didekripsi untuk ditampilkan — memasangnya
+              sebagai src hanya menghasilkan gambar rusak. Yang ditampilkan
+              cukup penanda bahwa datanya tersimpan dan terkunci. */}
           {isTalent && talentProfile?.encryptedPrivateFace && (
             <div className="relative h-20 w-20 rounded-full flex flex-col items-center justify-center overflow-hidden flex-shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-black mt-8">
-              <img src={talentProfile.encryptedPrivateFace} alt="Foto Privat" className="w-full h-full object-cover opacity-80" />
+              <div className="flex flex-col items-center justify-center gap-1 text-emerald-400">
+                <Lock className="w-6 h-6" aria-hidden="true" />
+                <span className="text-[8px] font-semibold text-center leading-tight px-1">
+                  Terenkripsi
+                </span>
+              </div>
               <div className="absolute bottom-0 inset-x-0 bg-emerald-900/90 text-emerald-300 text-[8px] font-bold uppercase flex items-center justify-center py-0.5 z-20">
                 Privat
               </div>

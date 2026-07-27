@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify knowledge graph (build artifact, regenerate with `graphify extract . --code-only`)
+graphify-out/
+.graphify_analysis.json
+.graphify_labels.json
+
+# Claude Code local config (contains machine-specific absolute paths)
+.claude/

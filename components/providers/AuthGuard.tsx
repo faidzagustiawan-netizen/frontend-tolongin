@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
+import { setSessionExpiredHandler } from '@/services/api';
 
 const publicRoutes = ['/', '/login', '/register'];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loadUserFromStorage } = useUserStore();
+  const { isAuthenticated, loadUserFromStorage, refreshFromServer, logout } =
+    useUserStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
@@ -16,6 +18,25 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     loadUserFromStorage();
     setIsReady(true);
   }, [loadUserFromStorage]);
+
+  // localStorage hanya menyimpan potret saat login. Nilai seperti
+  // subscriptionTier bisa berubah setelah pembayaran, jadi profil disegarkan
+  // dari server sekali saat aplikasi dibuka.
+  useEffect(() => {
+    if (isReady && isAuthenticated) {
+      void refreshFromServer();
+    }
+  }, [isReady, isAuthenticated, refreshFromServer]);
+
+  // Sesi kedaluwarsa ditangani lewat router agar tidak memuat ulang halaman
+  // penuh dan membuang state yang belum tersimpan.
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      logout();
+      router.replace('/login?expired=true');
+    });
+    return () => setSessionExpiredHandler(null);
+  }, [logout, router]);
 
   useEffect(() => {
     if (isReady) {

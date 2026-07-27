@@ -33,9 +33,31 @@ const PUBLISHERS = [
   { id: 'PUBLIC', name: 'Talenta' },
 ];
 
+/**
+ * Membangun deretan nomor halaman dengan elipsis, agar jumlah tombol tetap
+ * konstan berapa pun banyaknya halaman. Sebelumnya seluruh nomor dirender
+ * sekaligus — 500 studi kasus berarti 56 tombol berjejer dalam satu baris.
+ */
+function buildPageWindow(current: number, total: number): (number | 'gap')[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages: (number | 'gap')[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+
+  if (start > 2) pages.push('gap');
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < total - 1) pages.push('gap');
+
+  pages.push(total);
+  return pages;
+}
+
 export default function ChallengesDirectoryPage() {
   const { user, loadUserFromStorage } = useUserStore();
-  
+
   // Search & Multi-Select Filters State (Default is ALL selected)
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -54,22 +76,28 @@ export default function ChallengesDirectoryPage() {
   }, [loadUserFromStorage]);
 
   useEffect(() => {
+    let frame = 0;
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setItemsPerPage(4);
-      } else {
-        setItemsPerPage(9);
-      }
+      // Event resize menyala tiap piksel saat jendela diseret. Tanpa peredam,
+      // setiap frame memicu setState dan memaksa render ulang seluruh grid.
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        setItemsPerPage(window.innerWidth < 768 ? 4 : 9);
+      });
     };
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   useEffect(() => {
+    // 250 ms sudah cukup untuk menahan ketikan beruntun tanpa terasa lambat.
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 500);
+    }, 250);
     return () => clearTimeout(handler);
   }, [search]);
 
@@ -77,88 +105,62 @@ export default function ChallengesDirectoryPage() {
     setCurrentPage(1);
   }, [debouncedSearch, selectedCategories, selectedDifficulties, selectedPublishers, sortBy, itemsPerPage]);
 
-  // Fetch ALL challenges unconditionally for Client-Side Filtering
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['challenges_all'],
-    queryFn: () => challengesService.getAll({}),
+  // Filter dan penomoran halaman dikerjakan di server. Sebelumnya seluruh
+  // direktori diunduh sekaligus lalu disaring di peramban, sehingga muatan
+  // permintaan tumbuh sebanding dengan jumlah studi kasus.
+  const isAllCategories = selectedCategories.length === CATEGORIES.length;
+  const isAllDifficulties = selectedDifficulties.length === DIFFICULTIES.length;
+  const isAllPublishers = selectedPublishers.length === PUBLISHERS.length;
+
+  const queryParams = {
+    search: debouncedSearch.trim() || undefined,
+    // Tidak ada satu pun kotak tercentang diperlakukan sama dengan "semua",
+    // mengikuti kebiasaan umum filter. Sebelumnya hasilnya justru kosong dan
+    // pengguna harus menebak sendiri kenapa daftarnya hilang.
+    category:
+      isAllCategories || selectedCategories.length === 0
+        ? undefined
+        : selectedCategories.join(','),
+    difficulty:
+      isAllDifficulties || selectedDifficulties.length === 0
+        ? undefined
+        : selectedDifficulties.join(','),
+    challengeType:
+      isAllPublishers || selectedPublishers.length === 0
+        ? undefined
+        : selectedPublishers.join(','),
+    sort: sortBy,
+    page: currentPage,
+    limit: itemsPerPage,
+  };
+
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
+    queryKey: ['challenges', queryParams],
+    queryFn: () => challengesService.getAll(queryParams),
+    // Data halaman sebelumnya tetap tampil selama halaman baru diambil,
+    // sehingga grid tidak berkedip menjadi kerangka kosong tiap pindah halaman.
+    placeholderData: (previous) => previous,
   });
 
-  const allChallenges = data?.data || [];
+  const challenges = data?.data ?? [];
+  const totalItems = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
   const isCompanyOrAdmin = user && (user.role === 'COMPANY' || user.role === 'ADMIN');
   const userProfile = useUserStore((state) => state.user?.profile);
   const isStartupTier = userProfile?.subscriptionTier === 'STARTUP';
 
-  // Client-Side Advanced Filtering & Sorting
-  const filteredChallenges = useMemo(() => {
-    let result = [...allChallenges];
+  const pageWindow = useMemo(
+    () => buildPageWindow(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
 
-    // 1. Keyword Mapping & Search
-    if (debouncedSearch.trim() !== '') {
-      const query = debouncedSearch.toLowerCase().trim();
-      
-      const matchedCategoryIds = CATEGORIES
-        .filter(c => {
-          const catName = c.name.toLowerCase();
-          return catName.includes(query) || 
-                 (query.includes('ui') && c.id === 'UI_UX') ||
-                 (query.includes('ux') && c.id === 'UI_UX') ||
-                 (query.includes('riset') && c.id === 'UI_UX') ||
-                 (query.includes('desain') && c.id === 'UI_UX') ||
-                 (query.includes('data') && c.id === 'DATA_SCIENCE') ||
-                 (query.includes('ai') && c.id === 'DATA_SCIENCE') ||
-                 (query.includes('seo') && c.id === 'MARKETING') ||
-                 (query.includes('api') && c.id === 'BACKEND');
-        })
-        .map(c => c.id);
-
-      result = result.filter(challenge => {
-        const titleMatch = challenge.title?.toLowerCase().includes(query);
-        const summaryMatch = challenge.summary?.toLowerCase().includes(query);
-        const descMatch = challenge.description?.toLowerCase().includes(query); 
-        const categoryMatch = matchedCategoryIds.includes(challenge.category);
-        
-        return titleMatch || summaryMatch || descMatch || categoryMatch;
-      });
-    }
-
-    // 2. Category Filter (Only filter if not ALL selected)
-    if (selectedCategories.length < CATEGORIES.length) {
-      if (selectedCategories.length === 0) {
-        result = []; // If literally none selected, show nothing
-      } else {
-        result = result.filter(challenge => selectedCategories.includes(challenge.category));
-      }
-    }
-
-    // 3. Difficulty Filter (Only filter if not ALL selected)
-    if (selectedDifficulties.length < DIFFICULTIES.length) {
-      if (selectedDifficulties.length === 0) {
-        result = [];
-      } else {
-        result = result.filter(challenge => selectedDifficulties.includes(challenge.difficulty));
-      }
-    }
-
-    // 4. Publisher Filter (Only filter if not ALL selected)
-    if (selectedPublishers.length < PUBLISHERS.length) {
-      if (selectedPublishers.length === 0) {
-        result = [];
-      } else {
-        result = result.filter(challenge => selectedPublishers.includes(challenge.challengeType));
-      }
-    }
-
-    // 5. Sorting
-    result.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (sortBy === 'TERBARU') return dateB - dateA;
-      if (sortBy === 'TERLAMA') return dateA - dateB;
-      return 0; 
-    });
-
-    return result;
-  }, [allChallenges, debouncedSearch, selectedCategories, selectedDifficulties, selectedPublishers, sortBy]);
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(totalPages, Math.max(1, page)));
+    // Langsung digulir, tanpa setTimeout. Penundaan sebelumnya membuat konten
+    // sudah berganti lebih dulu sementara halaman baru naik setelahnya.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
@@ -226,13 +228,13 @@ export default function ChallengesDirectoryPage() {
             <RefreshCw className="h-4 w-4 mr-2" /> Coba Lagi
           </Button>
         </div>
-      ) : filteredChallenges.length > 0 ? (
-        <div className="space-y-12">
-          <StaggerContainer 
-            key={filteredChallenges.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((c: any) => c.id).join('-')} 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {filteredChallenges.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((challenge: any) => (
+      ) : challenges.length > 0 ? (
+        <div className={`space-y-12 transition-opacity ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
+          {/* key sengaja dilepas: sebelumnya berisi gabungan seluruh id kartu,
+              sehingga tiap pindah halaman seluruh grid dibongkar-pasang ulang
+              alih-alih hanya menukar isinya. */}
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {challenges.map((challenge: any) => (
               <StaggerItem key={challenge.id}>
                 <ChallengeCard
                   id={challenge.id}
@@ -253,42 +255,44 @@ export default function ChallengesDirectoryPage() {
           </StaggerContainer>
 
           {/* Pagination Controls */}
-          {Math.ceil(filteredChallenges.length / itemsPerPage) > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 pt-4">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setCurrentPage(p => Math.max(1, p - 1));
-                  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                }}
+                onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
                 className="rounded-xl border-border text-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D] hover:border-[#1E7F4D]/50 transition-colors"
               >
                 Sebelumnya
               </Button>
               <div className="flex items-center gap-1.5 px-4">
-                {Array.from({ length: Math.ceil(filteredChallenges.length / itemsPerPage) }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setCurrentPage(i + 1);
-                      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                    }}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${currentPage === i + 1 ? 'bg-[#1E7F4D] text-white shadow-md' : 'text-muted-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D]'}`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+                {pageWindow.map((page, i) =>
+                  page === 'gap' ? (
+                    <span
+                      key={`gap-${i}`}
+                      className="w-8 h-8 flex items-center justify-center text-sm text-muted-foreground select-none"
+                    >
+                      &hellip;
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      aria-label={`Halaman ${page}`}
+                      aria-current={currentPage === page ? 'page' : undefined}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${currentPage === page ? 'bg-[#1E7F4D] text-white shadow-md' : 'text-muted-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D]'}`}
+                    >
+                      {page}
+                    </button>
+                  ),
+                )}
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setCurrentPage(p => Math.min(Math.ceil(filteredChallenges.length / itemsPerPage), p + 1));
-                  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                }}
-                disabled={currentPage === Math.ceil(filteredChallenges.length / itemsPerPage)}
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
                 className="rounded-xl border-border text-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D] hover:border-[#1E7F4D]/50 transition-colors"
               >
                 Selanjutnya

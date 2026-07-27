@@ -14,7 +14,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function TeamWorkspacePage() {
-  const { user } = useUserStore();
+  const { user, refreshFromServer } = useUserStore();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -44,6 +44,9 @@ export default function TeamWorkspacePage() {
     onSuccess: () => {
       toast.success('Kode undangan berhasil diperbarui');
       queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      // Kode yang ditampilkan berasal dari profil di store, bukan dari query
+      // di atas. Tanpa penyegaran ini, kode baru tidak pernah muncul di layar.
+      void refreshFromServer();
     },
     onError: () => {
       toast.error('Gagal memperbarui kode undangan');
@@ -60,10 +63,18 @@ export default function TeamWorkspacePage() {
     );
   }
 
-  const inviteCode = user?.profile?.inviteCode || '...';
+  const rawInviteCode = user?.profile?.inviteCode;
+  const inviteExpiresAt = user?.profile?.inviteCodeExpiresAt
+    ? new Date(user.profile.inviteCodeExpiresAt as string)
+    : null;
+  const isInviteExpired = !!inviteExpiresAt && inviteExpiresAt.getTime() < Date.now();
+  // Kode kini sekali pakai dan berumur pendek, jadi akun baru memang belum
+  // punya kode sampai pemilik menerbitkannya.
+  const hasActiveInvite = !!rawInviteCode && !isInviteExpired;
+  const inviteCode = hasActiveInvite ? rawInviteCode : 'Belum ada kode aktif';
 
   const copyToClipboard = () => {
-    if (inviteCode && inviteCode !== '...') {
+    if (hasActiveInvite) {
       navigator.clipboard.writeText(inviteCode as string);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -150,10 +161,10 @@ export default function TeamWorkspacePage() {
           <div>
             <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Kode Undangan Tim</p>
             <div className="flex items-center gap-2">
-              <code className="font-mono font-bold text-lg text-foreground px-2 py-0.5 bg-background rounded border border-border">
+              <code className={`font-mono font-bold text-lg px-2 py-0.5 bg-background rounded border border-border ${hasActiveInvite ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {String(inviteCode)}
               </code>
-              <Button size="sm" variant="outline" className="h-8 px-3" onClick={copyToClipboard}>
+              <Button size="sm" variant="outline" className="h-8 px-3" onClick={copyToClipboard} disabled={!hasActiveInvite}>
                 {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
               </Button>
               <Button 
@@ -166,6 +177,11 @@ export default function TeamWorkspacePage() {
                 Generate Baru
               </Button>
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              {hasActiveInvite
+                ? `Berlaku sekali pakai, hangus ${inviteExpiresAt!.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}.`
+                : 'Tekan "Generate Baru" untuk menerbitkan kode. Kode hanya bisa dipakai satu orang dan berlaku 48 jam.'}
+            </p>
           </div>
         </Card>
       </div>
