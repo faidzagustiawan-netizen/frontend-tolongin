@@ -28,10 +28,26 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: storageHost },
       { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
+
+      // Avatar dan logo bawaan. Seluruh talenta dan perusahaan yang belum
+      // mengunggah gambar sendiri memakai host ini, jadi menghapusnya membuat
+      // hampir semua profil gagal dirender oleh next/image.
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+      // Ikon badge gamifikasi.
+      { protocol: 'https', hostname: 'placehold.co' },
+
       // Avatar pihak ketiga yang lazim dipakai profil talenta.
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'media.licdn.com' },
+
+      // Host tambahan tanpa perlu mengubah berkas ini. Isi dengan daftar
+      // dipisah koma, misal: "cdn.contoh.com,img.contoh.id"
+      ...(process.env.NEXT_PUBLIC_EXTRA_IMAGE_HOSTS || '')
+        .split(',')
+        .map((host) => host.trim())
+        .filter(Boolean)
+        .map((hostname) => ({ protocol: 'https' as const, hostname })),
     ],
   },
   async rewrites() {
