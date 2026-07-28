@@ -20,6 +20,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getLearningRecommendation } from '@/lib/learning-taxonomy';
 import { RubricTable } from '@/components/challenge/RubricTable';
+import { ChallengeStages } from '@/components/challenge/ChallengeStages';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
@@ -507,12 +508,13 @@ export default function EnrollmentWorkspacePage() {
   const latestSubmission = submissions[submissions.length - 1];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 font-[var(--font-plus-jakarta)]">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
 
-      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+      {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
+      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full">
         {/* Banner Image */}
         <div className="h-48 w-full relative overflow-hidden bg-blue-600">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-90"></div>
@@ -591,10 +593,11 @@ export default function EnrollmentWorkspacePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        <div className="space-y-8 lg:col-span-1 order-2 lg:order-1">
-
-
+      {/* 2. FLEX CONTAINER: Kriteria (setelah Hero di mobile) -> Challenge Tahapan & Workspace */}
+      <div className="flex flex-col lg:flex-row items-start gap-8 w-full">
+        
+        {/* Kolom Kiri: Sidebar Kriteria (Persentase Fluid: w-full lg:w-1/3 xl:w-1/4 shrink-0) */}
+        <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0 space-y-6 lg:sticky lg:top-24 self-start">
           {/* Kriteria & Bobot Penilaian AI */}
           {selectedEnrollment.challenge.gradingRubric && (
             <div className="rounded-3xl shadow-xl overflow-hidden bg-card border border-border">
@@ -616,124 +619,12 @@ export default function EnrollmentWorkspacePage() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-8 order-1 lg:order-2">
-          {/* Tahapan & Struktur Ujian - Inline */}
-          {sections.length > 0 && (() => {
-            const getStageIcon = (type: string) => {
-              switch (type) {
-                case 'MULTIPLE_CHOICE': return <CheckCircle2 className="h-4 w-4 text-cyan-400" />;
-                case 'ESSAY': return <FileText className="h-4 w-4 text-emerald-400" />;
-                case 'LIVE_CODING': return <Code2 className="h-4 w-4 text-amber-400" />;
-                case 'FILE_UPLOAD': return <FileText className="h-4 w-4 text-purple-400" />;
-                case 'VIDEO_UPLOAD': return <Video className="h-4 w-4 text-rose-400" />;
-                case 'URL_SUBMISSION': return <Link2 className="h-4 w-4 text-blue-400" />;
-                default: return <FileText className="h-4 w-4 text-muted-foreground" />;
-              }
-            };
-            const getStageLabel = (type: string) => {
-              switch (type) {
-                case 'MULTIPLE_CHOICE': return 'Pilihan Ganda';
-                case 'ESSAY': return 'Uraian (Essay)';
-                case 'LIVE_CODING': return 'Live Coding / Praktik';
-                case 'FILE_UPLOAD': return 'Unggah Berkas';
-                case 'VIDEO_UPLOAD': return 'Rekaman Video';
-                case 'URL_SUBMISSION': return 'Tautan Eksternal';
-                default: return 'Tugas Umum';
-              }
-            };
-            const estimateDur = (type: string) => {
-              switch (type) {
-                case 'MULTIPLE_CHOICE': return 3;
-                case 'ESSAY': return 10;
-                case 'LIVE_CODING': return 30;
-                case 'FILE_UPLOAD': return 45;
-                case 'VIDEO_UPLOAD': return 15;
-                case 'URL_SUBMISSION': return 5;
-                default: return 5;
-              }
-            };
-            let totalDuration = 0;
-            return (
-              <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl space-y-8">
-                <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg">
-                    <Layers className="h-6 w-6 text-emerald-400" />
-                  </div>
-                  <h3 className="font-display text-2xl font-bold text-foreground">
-                    Tahapan & Struktur Ujian
-                  </h3>
-                </div>
+        {/* Kolom Kanan: Challenge Tahapan & Workspace (w-full lg:w-2/3 xl:w-3/4 flex-1) */}
+        <div className="w-full lg:w-2/3 xl:w-3/4 flex-1 min-w-0 space-y-8">
+          {/* Tahapan & Struktur Ujian */}
+          <ChallengeStages sections={sections} />
 
-                <div className="space-y-8">
-                  {sections.length > 0 && (() => {
-                    const section = sections[activeTahapanPage];
-                    return (
-                      <div className="relative pl-6 sm:pl-8 border-l-2 border-border">
-                        <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-card border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                        <div className="space-y-4 -mt-1.5">
-                          <div>
-                            <h4 className="text-lg font-bold text-foreground">Tahap {activeTahapanPage + 1}: {section.title}</h4>
-                            {section.description && (
-                              <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-3xl">{section.description}</p>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {section.components?.map((comp: any, cIdx: number) => {
-                              const duration = estimateDur(comp.type);
-                              totalDuration += duration;
-                              return (
-                                <div key={cIdx} className="bg-background border border-border rounded-xl p-4 flex items-start gap-4 hover:border-emerald-500/30 transition-colors">
-                                  <div className="mt-0.5 flex-shrink-0 p-2 bg-foreground/5 dark:bg-black/40 rounded-lg border border-border dark:border-white/5">
-                                    {getStageIcon(comp.type)}
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-sm font-bold text-foreground">Soal {cIdx + 1}</span>
-                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                        {comp.points} Poin
-                                      </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground font-medium">{getStageLabel(comp.type)} • ~{duration} Menit</p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {sections.length > 0 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-border mt-8">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setActiveTahapanPage(Math.max(0, activeTahapanPage - 1))}
-                      disabled={activeTahapanPage === 0}
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Sebelumnya
-                    </Button>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Tahap {activeTahapanPage + 1} dari {sections.length}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setActiveTahapanPage(Math.min(sections.length - 1, activeTahapanPage + 1))}
-                      disabled={activeTahapanPage === sections.length - 1}
-                    >
-                      Selanjutnya
-                      <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
+          {/* Sesi Pengerjaan */}
           <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
               <div>
@@ -1427,8 +1318,6 @@ export default function EnrollmentWorkspacePage() {
               </div>
             ) : null}
           </div>
-
-
         </div>
       </div>
     </div>

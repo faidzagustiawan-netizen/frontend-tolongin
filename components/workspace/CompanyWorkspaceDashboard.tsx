@@ -31,43 +31,25 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 sm:p-12 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="
-              M38 0
-              C55 5 72 18 100 32
-              L100 100
-              L0 100
-              L0 0
-              Z
-            "
-            fill="#1e7f4d"
-          />
-        </svg>
-        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
-
-        <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Dashboard Studi Kasus Aktif
+      {/* Header Section - Clean 2 Column Layout (like /challenges) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start font-jakarta mb-2">
+        {/* Left Column: Title & Subtitle */}
+        <div className="lg:col-span-7 space-y-3">
+          <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
+            Dashboard Studi Kasus<span className="text-[#1E7F4D]">.</span>
           </h1>
-          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
-            Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat.
-            Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-xl">
+            Pilih studi kasus untuk meninjau dan menilai pekerjaan dari para kandidat. Perhatikan peringatan batas SLA agar Trust Score Anda tetap terjaga.
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
-          <div className="flex gap-2">
+        {/* Right Column: Action Buttons */}
+        <div className="lg:col-span-5 space-y-4 lg:pt-2 max-w-md ml-auto flex flex-col sm:items-end">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
             <Link href="/challenges/create">
               <Button
                 size="sm"
-                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+                className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-extrabold shadow-md hover:scale-105 transition-all flex items-center gap-2 text-xs"
               >
                 <Briefcase className="h-4 w-4" />
                 Buat Studi Kasus Baru
@@ -76,24 +58,16 @@ export function CompanyWorkspaceDashboard({ challenges, refetchStats }: { challe
             <Link href="/company/team">
               <Button
                 size="sm"
-                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
+                variant="outline"
+                className="border-border text-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D] font-bold shadow-sm flex items-center gap-2 text-xs"
               >
-                <Users className="h-4 w-4" />
+                <Users className="h-4 w-4 text-[#1E7F4D]" />
                 Kelola Tim
               </Button>
             </Link>
           </div>
-          <Button
-            onClick={() => refetchStats()}
-            size="sm"
-            className="bg-white/15 text-white border border-white/20 hover:bg-white/20 font-bold flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh Data
-          </Button>
         </div>
       </div>
-
       {/* Recruiter Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xl flex items-center justify-between">

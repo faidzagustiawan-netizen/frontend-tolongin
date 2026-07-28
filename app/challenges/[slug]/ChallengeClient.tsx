@@ -85,7 +85,8 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
+      {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
       <ChallengeDetailHeader
         challenge={challenge}
         isAuthenticated={isAuthenticated}
@@ -94,8 +95,32 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
         onLoginClick={() => router.push(`/login?redirect=/challenges/${slug}`)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        <div className="lg:col-span-2 space-y-12">
+      {/* 2. FLEX CONTAINER: Kriteria (setelah Hero di mobile) -> Challenge Tahapan & Specs */}
+      <div className="flex flex-col lg:flex-row items-start gap-8 w-full">
+        
+        {/* Kolom Kiri: Sidebar Kriteria (Persentase Fluid: w-full lg:w-1/3 xl:w-1/4 shrink-0) */}
+        <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0 space-y-6 lg:sticky lg:top-24 self-start">
+          {challenge.gradingRubric && (
+            <div className="rounded-3xl shadow-xl overflow-hidden bg-card border border-border">
+              <RubricTable rubric={challenge.gradingRubric} />
+            </div>
+          )}
+
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">Informasi & Bantuan</h4>
+            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
+              <Clock className="h-4 w-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <p>Waktu pengerjaan disarankan adalah 3-7 hari setelah Anda menyetujui Digital NDA.</p>
+            </div>
+            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
+              <FileText className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p>Pastikan Anda mencantumkan tautan repositori GitHub dan demo langsung yang dapat diakses publik.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Kolom Kanan: Challenge Tahapan & Specs (w-full lg:w-2/3 xl:w-3/4 flex-1) */}
+        <div className="w-full lg:w-2/3 xl:w-3/4 flex-1 min-w-0 space-y-8">
           <ChallengeStages sections={challenge.sections} />
 
           <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl">
@@ -158,30 +183,13 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
               </div>
             </div>
           )}
-        </div>
-        </div>
+          </div>
 
-        <div className="space-y-8">
-          {challenge.gradingRubric && (
-            <RubricTable rubric={challenge.gradingRubric} />
-          )}
-
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
-            <h4 className="text-sm font-semibold text-foreground mb-2">Informasi & Bantuan</h4>
-            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
-              <Clock className="h-4 w-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <p>Waktu pengerjaan disarankan adalah 3-7 hari setelah Anda menyetujui Digital NDA.</p>
-            </div>
-            <div className="flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
-              <FileText className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <p>Pastikan Anda mencantumkan tautan repositori GitHub dan demo langsung yang dapat diakses publik.</p>
-            </div>
+          {/* Diskusi */}
+          <div className="border-t border-border pt-12">
+            <DiscussionThread challengeId={challenge.id} discussions={discussions} onNewComment={handleNewComment} />
           </div>
         </div>
-      </div>
-
-      <div className="border-t border-border pt-12">
-        <DiscussionThread challengeId={challenge.id} discussions={discussions} onNewComment={handleNewComment} />
       </div>
 
       <EnrollChallengeModal

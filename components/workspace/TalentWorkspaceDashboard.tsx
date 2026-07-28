@@ -9,68 +9,54 @@ import { Button } from '../common/Button';
 export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      <div className="relative overflow-hidden rounded-3xl bg-[#1E7F4D] p-8 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="
-              M38 0
-              C55 5 72 18 100 32
-              L100 100
-              L0 100
-              L0 0
-              Z
-            "
-            fill="#1e7f4d"
-          />
-        </svg>
-        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
-
-        <div className="relative z-10 space-y-2">
-          <h1 className="font-display text-3xl font-extrabold text-white tracking-tight">
-            Workspace Talenta
+      {/* Header Section - Clean 2 Column Layout (like /challenges) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start font-jakarta mb-2">
+        {/* Left Column: Title & Subtitle */}
+        <div className="lg:col-span-7 space-y-3">
+          <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
+            Workspace Talenta<span className="text-[#1E7F4D]">.</span>
           </h1>
-          <p className="text-sm text-white/90 max-w-xl leading-relaxed">
-            Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah
-            selesai dievaluasi akan muncul di sini. Pilih salah satu untuk
-            melanjutkan pengerjaan.
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-xl">
+            Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah selesai dievaluasi akan muncul di sini. Pilih salah satu untuk melanjutkan pengerjaan.
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col items-end gap-4 flex-shrink-0">
-          <div className="bg-white/15 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl flex flex-col items-end">
-            <p className="text-[10px] text-white/70 font-bold uppercase tracking-wider mb-1">
-              Saldo Token
-            </p>
-            <div className="flex items-center gap-2">
-              <Coins className="h-6 w-6 text-amber-300" />
-              <span className="font-display text-2xl font-extrabold text-white font-mono">
-                {tokenData?.tokenBalance || 0}
-              </span>
+        {/* Right Column: Token Balance & Action Buttons */}
+        <div className="lg:col-span-5 space-y-4 lg:pt-2 max-w-md ml-auto flex flex-col sm:items-end">
+          {/* Token Balance Card */}
+          <div className="bg-card border border-border px-5 py-3 rounded-2xl flex items-center justify-between sm:justify-end gap-5 shadow-sm w-full sm:w-auto">
+            <div className="text-left sm:text-right">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
+                Saldo Token
+              </p>
+              <div className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-amber-400" />
+                <span className="font-display text-2xl font-extrabold text-foreground font-mono">
+                  {tokenData?.tokenBalance || 0}
+                </span>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link href="/challenges/create">
-              <Button
-                size="sm"
-                className="bg-white text-[#1E7F4D] hover:bg-gray-100 font-bold shadow-xl flex items-center gap-2"
-              >
-                <Code2 className="h-4 w-4" />
-                Buat Public Challenge (-50)
-              </Button>
-            </Link>
             <Link href="/talent/tokens">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl flex items-center gap-2 text-white"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md flex items-center gap-1.5 text-white text-xs font-bold"
               >
-                <Plus className="h-4 w-4" />
-                Top-Up Token
+                <Plus className="h-3.5 w-3.5" />
+                Top-Up
+              </Button>
+            </Link>
+          </div>
+
+          {/* Action Button */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <Link href="/challenges/create">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-border text-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D] hover:border-[#1E7F4D]/50 font-bold shadow-sm flex items-center gap-2 text-xs"
+              >
+                <Code2 className="h-4 w-4 text-[#1E7F4D]" />
+                Buat Public Challenge (-50)
               </Button>
             </Link>
           </div>
