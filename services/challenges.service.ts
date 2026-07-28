@@ -42,9 +42,14 @@ export interface CreateDiscussionPayload {
 }
 
 export const challengesService = {
-  getAll: async (params?: { category?: string; difficulty?: string; search?: string; companyId?: string; includeDrafts?: boolean }) => {
+  getAll: async (params?: { category?: string; difficulty?: string; challengeType?: string; search?: string; companyId?: string; includeDrafts?: boolean; sort?: string; page?: number; limit?: number }) => {
     const { data } = await apiClient.get('/challenges', { params });
-    return { data };
+    // Backend mengembalikan { data, total, page, limit }. Cabang array
+    // dipertahankan agar klien lama tidak pecah bila endpoint belum ter-deploy.
+    if (Array.isArray(data)) {
+      return { data, total: data.length, page: 1, limit: data.length };
+    }
+    return data as { data: any[]; total: number; page: number; limit: number };
   },
   getOne: async (slugOrId: string) => {
     const { data } = await apiClient.get(`/challenges/${slugOrId}`);

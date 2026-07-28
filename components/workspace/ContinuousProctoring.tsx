@@ -5,13 +5,21 @@ import { CameraOff, UserX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { verificationService } from '../../services/verification.service';
 
+/**
+ * Pencocokan wajah dilakukan sepenuhnya di server lewat verifyExecution:
+ * frame dikirim, server membandingkannya dengan selfie terverifikasi.
+ *
+ * Karena itu komponen ini tidak menerima template biometrik apa pun. Prop
+ * `biometricVector` yang dulu ada tidak pernah dipakai dalam perbandingan —
+ * satu-satunya efeknya adalah mengirim acuan biometrik ke peramban tanpa
+ * alasan.
+ */
 interface ContinuousProctoringProps {
-  biometricVector: number[] | null;
   onViolation: (message: string) => void;
   intervalMs?: number;
 }
 
-export function ContinuousProctoring({ biometricVector, onViolation, intervalMs = 30000 }: ContinuousProctoringProps) {
+export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: ContinuousProctoringProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '@/services/submissions.service';
 import { verificationService } from '@/services/verification.service';
@@ -51,6 +51,8 @@ export default function EnrollmentWorkspacePage() {
   // Auto-Save State
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  const [hasUnsavedDraft, setHasUnsavedDraft] = useState<boolean>(false);
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null);
   const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // State untuk Eksekusi Live Coding
@@ -174,30 +176,81 @@ export default function EnrollmentWorkspacePage() {
   useEffect(() => {
     if (selectedEnrollment && !isHydrated) {
       if (selectedEnrollment.draftData) {
-        setComponentResponses(selectedEnrollment.draftData.componentResponses || {});
-        setCustomInputs(selectedEnrollment.draftData.customInputs || {});
-        setNotes(selectedEnrollment.draftData.notes || '');
+        const draft = selectedEnrollment.draftData;
+        setComponentResponses(draft.componentResponses || {});
+        setCustomInputs(draft.customInputs || {});
+        setNotes(draft.notes || '');
+
+        // Status pengawasan ikut dipulihkan. Tanpa ini, memuat ulang halaman
+        // mengembalikan hitungan ke nol sehingga batas perpindahan tab bisa
+        // dilewati hanya dengan menekan F5.
+        setTabSwitchCount(draft.tabSwitchCount || 0);
+        setProctoringEvents(draft.proctoringEvents || []);
+        setIsLockedOut(!!draft.isLockedOut);
       }
       setIsHydrated(true);
     }
   }, [selectedEnrollment, isHydrated]);
+
+  // Payload draf terbaru disimpan di ref agar bisa dikirim dari event handler
+  // (beforeunload, unmount) tanpa ikut memicu render ulang.
+  const draftPayloadRef = useRef<Record<string, unknown>>({});
+  useEffect(() => {
+    draftPayloadRef.current = {
+      componentResponses,
+      customInputs,
+      notes,
+      tabSwitchCount,
+      proctoringEvents,
+      isLockedOut,
+    };
+  }, [componentResponses, customInputs, notes, tabSwitchCount, proctoringEvents, isLockedOut]);
+
+  const flushDraft = useCallback(async () => {
+    if (!isHydrated || !selectedEnrollmentId) return;
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+    try {
+      setIsSavingDraft(true);
+      await submissionsService.saveDraft(
+        selectedEnrollmentId,
+        draftPayloadRef.current as any,
+      );
+      setLastDraftSavedAt(new Date());
+    } catch (err) {
+      console.error('Gagal menyimpan draf:', err);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [isHydrated, selectedEnrollmentId]);
 
   // Debounced Auto-Save (Server-Side)
   useEffect(() => {
     if (!isHydrated || currentStep !== 'QUESTIONS' || isExpired) return;
 
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
-    
-    setIsSavingDraft(true);
+
+    // Penanda hanya menyala saat permintaan benar-benar berjalan. Sebelumnya
+    // dinyalakan di awal jeda, sehingga selama pengguna mengetik terus
+    // indikatornya menampilkan "menyimpan" padahal belum ada yang terkirim.
+    setHasUnsavedDraft(true);
     draftTimerRef.current = setTimeout(async () => {
       try {
+        setIsSavingDraft(true);
         await submissionsService.saveDraft(selectedEnrollmentId, {
           componentResponses,
           customInputs,
-          notes
+          notes,
+          tabSwitchCount,
+          proctoringEvents,
+          isLockedOut,
         });
+        setLastDraftSavedAt(new Date());
+        setHasUnsavedDraft(false);
       } catch (err) {
-        console.error("Gagal auto-save:", err);
+        console.error('Gagal auto-save:', err);
       } finally {
         setIsSavingDraft(false);
       }
@@ -206,7 +259,20 @@ export default function EnrollmentWorkspacePage() {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [componentResponses, customInputs, notes, isHydrated, currentStep, isExpired, selectedEnrollmentId]);
+  }, [componentResponses, customInputs, notes, tabSwitchCount, proctoringEvents, isLockedOut, isHydrated, currentStep, isExpired, selectedEnrollmentId]);
+
+  // Simpan sisa perubahan saat komponen dilepas (mis. pengguna berpindah
+  // halaman). Tanpa ini, ketikan dalam 3 detik terakhir hilang tanpa jejak.
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        void submissionsService
+          .saveDraft(selectedEnrollmentId, draftPayloadRef.current as any)
+          .catch(() => undefined);
+      }
+    };
+  }, [selectedEnrollmentId]);
 
   // LMS Timer
   useEffect(() => {
@@ -225,7 +291,12 @@ export default function EnrollmentWorkspacePage() {
 
       const diff = expiresAtMs - now;
       if (diff <= 0) {
-        setIsExpired(true);
+        setIsExpired((wasExpired) => {
+          // Auto-save dimatikan begitu waktu habis, jadi perubahan terakhir
+          // harus didorong sekali di sini agar tidak hangus bersama tenggat.
+          if (!wasExpired) void flushDraft();
+          return true;
+        });
         setTimeLeftString('00h 00m 00s');
       } else {
         setIsExpired(false);
@@ -241,7 +312,7 @@ export default function EnrollmentWorkspacePage() {
     updateTimer();
     const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
-  }, [selectedEnrollment]);
+  }, [selectedEnrollment, flushDraft]);
 
   // Tab Switching Listener (Proctoring)
   useEffect(() => {
@@ -806,8 +877,7 @@ export default function EnrollmentWorkspacePage() {
               >
                 {/* CONTINUOUS PROCTORING BACKGROUND COMPONENT */}
                 {continuousTracking && !isExpired && (
-                  <ContinuousProctoring 
-                    biometricVector={(user as any)?.profile?.biometricFeatureVector}
+                  <ContinuousProctoring
                     onViolation={(msg) => {
                       const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                       setProctoringEvents((list) => [...list, `[${timestamp}] ${msg}`]);
@@ -900,15 +970,31 @@ export default function EnrollmentWorkspacePage() {
                     <h4 className="font-display font-bold text-foreground text-lg flex items-center gap-2">
                       <Briefcase className="w-5 h-5 text-emerald-400" /> Instruksi & Spesifikasi Studi Kasus
                     </h4>
-                    {/* INDIKATOR AUTO-SAVE */}
-                    <div className="flex items-center gap-2 text-xs font-mono">
+                    {/* INDIKATOR AUTO-SAVE
+                        Tiga keadaan terpisah. Sebelumnya apa pun yang bukan
+                        "sedang menyimpan" ditampilkan sebagai "tersimpan",
+                        termasuk saat masih ada ketikan yang belum terkirim —
+                        jaminan palsu yang berbahaya di tengah ujian. */}
+                    <div className="flex items-center gap-2 text-xs font-mono" aria-live="polite">
                       {isSavingDraft ? (
                         <span className="text-muted-foreground flex items-center gap-2">
                           <Timer className="w-3 h-3 animate-spin-slow" /> Menyimpan draf...
                         </span>
-                      ) : (
+                      ) : hasUnsavedDraft ? (
+                        <span className="text-amber-400 flex items-center gap-1">
+                          <Timer className="w-3 h-3" /> Perubahan belum tersimpan
+                        </span>
+                      ) : lastDraftSavedAt ? (
                         <span className="text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Tersimpan di awan
+                          <CheckCircle2 className="w-3 h-3" /> Tersimpan{' '}
+                          {lastDraftSavedAt.toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Draf tersinkron
                         </span>
                       )}
                     </div>
