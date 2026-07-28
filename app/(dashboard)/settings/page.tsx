@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
+import { verificationService } from '@/services/verification.service';
 import { Button } from '@/components/common/Button';
 import { AlertCircle } from 'lucide-react';
 
@@ -25,6 +27,7 @@ import { PublicProfileCard } from '@/components/profile/PublicProfileCard';
 export default function ProfilePage() {
   const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [isEditIntroOpen, setIsEditIntroOpen] = useState(false);
   const [isEditAboutOpen, setIsEditAboutOpen] = useState(false);
@@ -37,6 +40,70 @@ export default function ProfilePage() {
   // KYC specific states
   const [showLivenessCam, setShowLivenessCam] = useState(false);
   const [showTestFaceCam, setShowTestFaceCam] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  /**
+   * Menguji apakah wajah di kamera cocok dengan acuan biometrik yang tersimpan.
+   *
+   * Sebelumnya handler ini berupa `async () => {}` kosong, sehingga pemindaian
+   * menampilkan "Wajah berhasil dipindai!" lalu menggantung selamanya: tombol
+   * sudah terkunci oleh keadaan sukses, tidak ada permintaan yang dikirim, dan
+   * tidak ada apa pun yang menutup kameranya.
+   */
+  const handleFaceTestComplete = async (
+    _descriptor: number[],
+    imageDataUrl?: string,
+  ) => {
+    if (!imageDataUrl) {
+      toast.error('Gagal mengambil gambar dari kamera.');
+      setShowTestFaceCam(false);
+      return;
+    }
+
+    setVerificationError(null);
+    const toastId = toast.loading('Mencocokkan wajah dengan data terdaftar...');
+
+    try {
+      const result = await verificationService.verifyExecution({
+        livePhotoUrl: imageDataUrl,
+      });
+
+      if (result?.verified) {
+        toast.success(result.message || 'Wajah cocok dengan data terdaftar.', {
+          id: toastId,
+        });
+      } else {
+        toast.error(result?.message || 'Wajah tidak cocok dengan data terdaftar.', {
+          id: toastId,
+        });
+        setVerificationError(result?.message ?? null);
+      }
+    } catch (error: any) {
+      const message =
+        error?.message || 'Gagal menghubungi layanan verifikasi. Coba lagi.';
+      toast.error(message, { id: toastId });
+      setVerificationError(message);
+    } finally {
+      // Kamera selalu ditutup, apa pun hasilnya. Membiarkannya terbuka akan
+      // mengulang gejala lama: layar diam tanpa jalan keluar.
+      setShowTestFaceCam(false);
+    }
+  };
+
+  /**
+   * Perekaman ulang wajah diarahkan ke alur KYC penuh, bukan ditangani di sini.
+   *
+   * Mengganti acuan biometrik tanpa mencocokkannya kembali ke KTP akan membuka
+   * kembali celah anti-joki: kandidat bisa menyetel wajah joki sebagai acuan.
+   * Karena itu perekaman ulang harus melewati pencocokan KTP.
+   */
+  const handleFaceCaptureComplete = async () => {
+    setShowLivenessCam(false);
+    toast('Perekaman ulang wajah dilakukan bersama verifikasi KTP.', {
+      icon: 'ℹ️',
+    });
+    router.push('/settings/kyc');
+  };
 
   useEffect(() => {
     loadUserFromStorage();
@@ -193,8 +260,8 @@ export default function ProfilePage() {
               setShowLivenessCam={setShowLivenessCam}
               showTestFaceCam={showTestFaceCam}
               setShowTestFaceCam={setShowTestFaceCam}
-              handleFaceCaptureComplete={async () => {}} 
-              handleFaceTestComplete={async () => {}}
+              handleFaceCaptureComplete={handleFaceCaptureComplete}
+              handleFaceTestComplete={handleFaceTestComplete}
               handleKybSubmit={async () => {}}
               kybEntityName=""
               setKybEntityName={() => {}}
@@ -203,7 +270,7 @@ export default function ProfilePage() {
               kybDocUrl=""
               setKybDocUrl={() => {}}
               isVerifyingKyb={false}
-              verificationError={null}
+              verificationError={verificationError}
             />
           )}
 
