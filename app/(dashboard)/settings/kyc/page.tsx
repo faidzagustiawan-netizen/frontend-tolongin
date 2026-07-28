@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { verificationService } from '@/services/verification.service';
-import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut } from 'lucide-react';
+import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import dynamic from 'next/dynamic';
@@ -64,20 +64,36 @@ export default function KycVerificationPage() {
     return canvas.toDataURL('image/jpeg');
   };
 
+  // Di bawah lebar ini, tulisan pada KTP tidak terbaca OCR dan wajah pada
+  // kartu terlalu kecil untuk dicocokkan. Menahannya di sini jauh lebih baik
+  // daripada membiarkan verifikasi gagal beberapa menit kemudian dengan alasan
+  // yang terdengar seperti menyalahkan penggunanya.
+  const LEBAR_KTP_MINIMUM = 600;
+
   const handleKtpContinue = async () => {
-    if (ktpPreview && croppedAreaPixels) {
-      setIsProcessing(true);
-      try {
-        const croppedImage = await getCroppedImg(ktpPreview, croppedAreaPixels);
-        setKtpPreview(croppedImage); // Save the cropped image
-        setStep('LIVENESS');
-      } catch (e) {
-        toast.error('Gagal memotong gambar');
-      } finally {
-        setIsProcessing(false);
-      }
-    } else {
+    if (!ktpPreview || !croppedAreaPixels) {
+      toast.error('Atur dulu posisi KTP di dalam bingkai hijau.');
+      return;
+    }
+
+    if (croppedAreaPixels.width < LEBAR_KTP_MINIMUM) {
+      setKtpFileError(
+        `Hasil potongan hanya ${Math.round(croppedAreaPixels.width)} piksel — terlalu kecil untuk dibaca. ` +
+          'Kurangi zoom, atau unggah foto KTP dengan resolusi lebih tinggi.',
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const croppedImage = await getCroppedImg(ktpPreview, croppedAreaPixels);
+      setKtpPreview(croppedImage);
+      setKtpFileError(null);
       setStep('LIVENESS');
+    } catch (e) {
+      toast.error('Gagal memotong gambar');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -193,7 +209,7 @@ export default function KycVerificationPage() {
             1. Unggah KTP
           </div>
           <div className={`flex-1 p-4 text-center text-sm font-semibold border-r border-border transition-colors ${step === 'LIVENESS' ? 'bg-emerald-500/10 text-emerald-500 border-b-2 border-b-emerald-500' : 'text-muted-foreground'}`}>
-            2. Cek Liveness Cam
+            2. Foto Wajah
           </div>
           <div className={`flex-1 p-4 text-center text-sm font-semibold transition-colors ${step === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-500 border-b-2 border-b-emerald-500' : 'text-muted-foreground'}`}>
             3. Selesai
@@ -206,8 +222,26 @@ export default function KycVerificationPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3 text-blue-400">
                 <AlertCircle className="h-5 w-5 shrink-0" />
-                <p className="text-sm leading-relaxed">
-                  Harap unggah foto KTP asli Republik Indonesia Anda. Pastikan tulisan terbaca jelas, tidak terpotong, dan tidak terkena pantulan cahaya berlebih (glare).
+                <div className="space-y-2">
+                  <p className="text-sm leading-relaxed">
+                    Unggah foto KTP asli Republik Indonesia milik Anda sendiri. Sistem membaca
+                    tulisan pada kartu sekaligus membandingkan foto di kartu dengan wajah Anda.
+                  </p>
+                  <ul className="text-xs space-y-1 text-blue-400/80">
+                    <li>• Seluruh kartu masuk, tidak ada sudut yang terpotong</li>
+                    <li>• Difoto tegak lurus, bukan miring</li>
+                    <li>• Tanpa pantulan cahaya di atas foto atau tulisan</li>
+                    <li>• Gunakan kartu fisik, bukan fotokopi atau foto dari layar</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-foreground/5 border border-border rounded-lg p-3 flex gap-2.5 text-xs text-muted-foreground leading-relaxed">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
+                <p>
+                  Foto KTP Anda disimpan dalam keadaan terenkripsi dan tidak pernah tampil di
+                  profil publik. Hanya mesin pencocokan dan petugas verifikasi yang dapat
+                  mengaksesnya.
                 </p>
               </div>
 
@@ -324,8 +358,35 @@ export default function KycVerificationPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold font-display text-foreground">Sedang Diproses (AI Latar Belakang)</h3>
-                    <p className="text-muted-foreground">KTP dan foto wajah Anda sedang diverifikasi oleh AI DeepFace secara ketat. Hal ini memakan waktu beberapa saat.<br/>Anda bebas menutup halaman ini, kami akan mengirimkan notifikasi saat selesai.</p>
+                    <h3 className="text-2xl font-bold font-display text-foreground">Sedang Diperiksa</h3>
+                    <p className="text-muted-foreground">
+                      KTP dan foto wajah Anda sedang dicocokkan. Prosesnya memakan waktu
+                      beberapa saat, dan Anda bebas menutup halaman ini — notifikasi akan
+                      dikirim begitu selesai.
+                    </p>
+                  </div>
+
+                  {/* Pemeriksaan ini punya tiga kemungkinan akhir, bukan dua.
+                      Menjanjikan "terverifikasi" di sini membuat hasil PENDING
+                      terasa seperti kegagalan yang tidak dijelaskan. */}
+                  <div className="bg-foreground/5 border border-border rounded-2xl p-5 text-left max-w-md mx-auto space-y-3">
+                    <p className="text-xs font-bold text-foreground">Tiga kemungkinan hasilnya:</p>
+                    <div className="space-y-2.5 text-xs text-muted-foreground leading-relaxed">
+                      <p className="flex gap-2.5">
+                        <span className="text-emerald-400 font-bold shrink-0">Cocok</span>
+                        Akun langsung terverifikasi dan lencana muncul di profil Anda.
+                      </p>
+                      <p className="flex gap-2.5">
+                        <span className="text-amber-400 font-bold shrink-0">Ragu</span>
+                        Petugas kami memeriksanya secara manual. Ini bukan penolakan — kami
+                        sengaja tidak meloloskan kasus meragukan secara otomatis.
+                      </p>
+                      <p className="flex gap-2.5">
+                        <span className="text-red-400 font-bold shrink-0">Tidak</span>
+                        Wajah tidak cocok dengan KTP, atau identitasnya sudah dipakai akun lain.
+                        Anda bisa mencoba lagi.
+                      </p>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -333,7 +394,7 @@ export default function KycVerificationPage() {
                   <div className="mx-auto w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center">
                     <CheckCircle2 className="h-10 w-10 text-emerald-500" />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <h3 className="text-2xl font-bold font-display text-foreground">Identitas Terverifikasi!</h3>
                     <p className="text-muted-foreground">KTP dan wajah Anda telah lolos uji biometrik Tolongin. Lencana *Verified* telah ditambahkan ke profil Anda.</p>

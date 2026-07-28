@@ -1,12 +1,42 @@
 import React from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { ShieldCheck, AlertCircle, User, CheckCircle2, RefreshCw } from 'lucide-react';
+import { ShieldCheck, AlertCircle, User, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import Link from 'next/link';
 
 const FaceScanner = dynamic(() => import('../workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
+
+type StatusKyc = 'VERIFIED' | 'PENDING' | 'FAILED' | 'UNVERIFIED';
+
+/**
+ * Status mentah dari basis data tidak layak ditampilkan apa adanya. "PENDING"
+ * saja tidak memberi tahu pengguna apakah dia ditolak, sedang diproses mesin,
+ * atau menunggu manusia — dan ketiganya menuntut tindakan berbeda.
+ */
+const STATUS_KYC: Record<StatusKyc, { label: string; ringkas: string; warna: string }> = {
+  VERIFIED: {
+    label: 'TERVERIFIKASI',
+    ringkas: 'Identitas Anda sudah terverifikasi penuh',
+    warna: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+  },
+  PENDING: {
+    label: 'MENUNGGU TINJAUAN',
+    ringkas: 'Sedang diperiksa petugas kami',
+    warna: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+  },
+  FAILED: {
+    label: 'BELUM BERHASIL',
+    ringkas: 'Verifikasi terakhir tidak lolos',
+    warna: 'bg-red-500/10 border-red-500/30 text-red-400',
+  },
+  UNVERIFIED: {
+    label: 'BELUM DIVERIFIKASI',
+    ringkas: 'Verifikasi KTP & wajah belum dilakukan',
+    warna: 'bg-muted-foreground/10 border-border text-muted-foreground',
+  },
+};
 
 interface LivenessKycTabProps {
   isTalent: boolean;
@@ -49,6 +79,11 @@ export const LivenessKycTab = ({
   setKybDocUrl,
   isVerifyingKyb,
 }: LivenessKycTabProps) => {
+  const statusKyc: StatusKyc =
+    (talentProfile?.faceVerificationStatus as StatusKyc) in STATUS_KYC
+      ? (talentProfile.faceVerificationStatus as StatusKyc)
+      : 'UNVERIFIED';
+
   return (
     <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
       <h3 className="font-display text-xl font-bold text-foreground">Status Verifikasi Identitas</h3>
@@ -66,22 +101,85 @@ export const LivenessKycTab = ({
           )}
           <div className="bg-background border border-border rounded-2xl p-5 flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-bold text-foreground mb-1">AI Liveness Check</h4>
-              <p className="text-xs text-muted-foreground">Verifikasi wajah mandiri (Tanpa KTP)</p>
+              <h4 className="text-sm font-bold text-foreground mb-1">Verifikasi KTP &amp; Wajah</h4>
+              <p className="text-xs text-muted-foreground">{STATUS_KYC[statusKyc].ringkas}</p>
             </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
-              talentProfile?.faceVerificationStatus === 'VERIFIED'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-            }`}>
-              {talentProfile?.faceVerificationStatus || 'UNVERIFIED'}
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUS_KYC[statusKyc].warna}`}>
+              {STATUS_KYC[statusKyc].label}
             </span>
           </div>
 
-          {!showLivenessCam && (
+          {/* Status PENDING paling mudah disalahpahami sebagai penolakan, jadi
+              dijelaskan panjang: apa yang terjadi, kenapa, dan apa yang bisa
+              dilakukan pengguna. */}
+          {statusKyc === 'PENDING' && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold text-amber-300">
+                    Menunggu peninjauan tim kami
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Dokumen dan selfie Anda sudah kami terima. Tingkat kemiripannya berada di
+                    rentang yang tidak bisa diputuskan mesin sendiri, jadi seorang petugas akan
+                    memeriksanya langsung. <b className="text-foreground">Ini bukan penolakan</b> —
+                    kami sengaja tidak meloloskan kasus yang meragukan secara otomatis.
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1.5 pt-1">
+                    <li className="flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      Anda akan menerima notifikasi begitu keputusannya keluar.
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      Selama menunggu, Anda belum bisa mengumpulkan hasil ujian yang memerlukan
+                      verifikasi wajah.
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      Bila foto Anda kurang terang atau wajah tertutup sebagian, mengulang
+                      verifikasi dengan foto yang lebih baik biasanya langsung lolos.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <Link href="/settings/kyc" className="block">
+                <Button variant="outline" className="w-full text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/10">
+                  <RefreshCw className="h-4 w-4 mr-2" /> Ulangi dengan Foto Lebih Baik
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {statusKyc === 'FAILED' && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold text-red-300">Verifikasi belum berhasil</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Wajah pada selfie tidak cocok dengan foto di KTP yang Anda unggah, atau
+                    identitas itu sudah terdaftar pada akun lain. Anda dapat mencoba lagi dengan
+                    KTP asli milik Anda sendiri dan pencahayaan yang cukup. Bila Anda yakin ini
+                    keliru, hubungi dukungan agar ditinjau petugas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saat PENDING tombol ini disembunyikan: blok penjelasan di atas
+              sudah memuat ajakan yang lebih tepat sasaran, dan dua tombol
+              dengan maksud sama hanya membingungkan. */}
+          {!showLivenessCam && statusKyc !== 'PENDING' && (
             <Link href="/settings/kyc" className="block w-full">
-              <Button className="w-full shadow-xl" variant={talentProfile?.faceVerificationStatus === 'VERIFIED' ? 'outline' : 'primary'}>
-                {talentProfile?.faceVerificationStatus === 'VERIFIED' ? 'Perbarui Verifikasi KTP & Wajah' : 'Mulai Verifikasi Identitas (KYC & Liveness)'}
+              <Button className="w-full shadow-xl" variant={statusKyc === 'VERIFIED' ? 'outline' : 'primary'}>
+                {statusKyc === 'VERIFIED'
+                  ? 'Perbarui Verifikasi KTP & Wajah'
+                  : statusKyc === 'FAILED'
+                    ? 'Coba Verifikasi Ulang'
+                    : 'Mulai Verifikasi Identitas (KYC & Liveness)'}
               </Button>
             </Link>
           )}
