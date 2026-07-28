@@ -10,9 +10,22 @@ interface GeneralFormProps {
 }
 
 export default function GeneralForm({ manualData, setManualData }: GeneralFormProps) {
-  const rubricKeys = Object.keys(manualData.gradingRubric || {}).filter(k => 
+  const rubricKeys = Object.keys(manualData.gradingRubric || {}).filter(k =>
     !['proctoringSettings', 'customOutputs', 'durationHours', 'requireProctoring'].includes(k)
   );
+
+  // Studi kasus lama masih menyimpan pengaturan ini di dalam gradingRubric.
+  // Dibaca dari sana sebagai cadangan supaya draf lama tetap tampil benar.
+  const proctoringSettings = (manualData.proctoringSettings
+    || (manualData.gradingRubric as any)?.proctoringSettings
+    || {}) as Record<string, any>;
+
+  const updateProctoring = (patch: Record<string, unknown>) => {
+    setManualData({
+      ...manualData,
+      proctoringSettings: { ...proctoringSettings, ...patch },
+    });
+  };
 
   const calculateTotalWeight = () => {
     return rubricKeys.reduce((acc, key) => acc + ((manualData.gradingRubric as any)[key] || 0), 0);
@@ -215,20 +228,8 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
               <input
                 type="checkbox"
                 id={setting.id}
-                checked={!!(manualData.gradingRubric as any)?.proctoringSettings?.[setting.id]}
-                onChange={(e) => {
-                  const currentSettings = (manualData.gradingRubric as any)?.proctoringSettings || {};
-                  setManualData({
-                    ...manualData,
-                    gradingRubric: {
-                      ...manualData.gradingRubric,
-                      proctoringSettings: {
-                        ...currentSettings,
-                        [setting.id]: e.target.checked
-                      }
-                    }
-                  });
-                }}
+                checked={!!proctoringSettings[setting.id]}
+                onChange={(e) => updateProctoring({ [setting.id]: e.target.checked })}
                 className="mt-1 w-4 h-4 text-emerald-500 bg-background border-border rounded focus:ring-emerald-500 focus:ring-offset-bg"
               />
               <label htmlFor={setting.id} className="flex flex-col cursor-pointer">
@@ -239,7 +240,7 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
           ))}
 
           {/* If trackTabSwitches is on, show maxTabSwitches input */}
-          {!!(manualData.gradingRubric as any)?.proctoringSettings?.trackTabSwitches && (
+          {!!proctoringSettings.trackTabSwitches && (
             <div className="ml-7 mt-3">
               <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Batas Toleransi Pindah Tab (0 = Hanya dicatat, tidak diblokir)
@@ -248,20 +249,8 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
                 type="number"
                 min="0"
                 max="10"
-                value={(manualData.gradingRubric as any)?.proctoringSettings?.maxTabSwitches || 0}
-                onChange={(e) => {
-                  const currentSettings = (manualData.gradingRubric as any)?.proctoringSettings || {};
-                  setManualData({
-                    ...manualData,
-                    gradingRubric: {
-                      ...manualData.gradingRubric,
-                      proctoringSettings: {
-                        ...currentSettings,
-                        maxTabSwitches: parseInt(e.target.value) || 0
-                      }
-                    }
-                  });
-                }}
+                value={proctoringSettings.maxTabSwitches || 0}
+                onChange={(e) => updateProctoring({ maxTabSwitches: parseInt(e.target.value) || 0 })}
                 className="w-24 bg-background border border-border rounded-md px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-emerald-500"
               />
             </div>

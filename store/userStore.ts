@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { UserProfile } from '../types';
+import { clearAllChallengeDrafts } from '../lib/challengeDraftStorage';
 
 export interface UserData {
   id: string;
@@ -36,6 +37,9 @@ export const useUserStore = create<UserStore>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user_data');
+      // Draf pembuatan challenge berisi isi soal beserta kunci jawabannya.
+      // Peramban bersama tidak boleh menyimpannya setelah pemiliknya keluar.
+      clearAllChallengeDrafts();
     }
     set({ user: null, isAuthenticated: false });
   },
