@@ -9,6 +9,7 @@ import { Input, Textarea } from '@/components/common/Input';
 import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from './components/ManualBuilder';
+import { aiDraftKey, clearDraft, manualDraftKey, readDraft, writeDraft } from '@/lib/challengeDraftStorage';
 export default function CreateChallengePage() {
   const router = useRouter();
   const { user, loadUserFromStorage, isAuthenticated } = useUserStore();
@@ -96,48 +97,43 @@ export default function CreateChallengePage() {
     sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
   });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedData = localStorage.getItem('draftChallenge');
-      if (savedData) {
-        try {
-          setManualData(JSON.parse(savedData));
-        } catch (e) {
-          console.error("Failed to parse saved draft", e);
-        }
-      }
-
-      const savedAiState = localStorage.getItem('aiDraftState');
-      if (savedAiState) {
-        try {
-          const parsed = JSON.parse(savedAiState);
-          if (parsed.aiPrompt) setAiPrompt(parsed.aiPrompt);
-          if (parsed.aiCategory) setAiCategory(parsed.aiCategory);
-          if (parsed.aiDifficulty) setAiDifficulty(parsed.aiDifficulty);
-          if (parsed.aiBlueprint) setAiBlueprint(parsed.aiBlueprint);
-        } catch (e) {
-          console.error("Failed to parse saved AI draft", e);
-        }
-      }
-    }
-  }, []);
+  // Draf disimpan per pengguna. Sebelum identitas diketahui tidak ada yang
+  // dimuat maupun ditulis, supaya pekerjaan satu akun tidak pernah mendarat di
+  // kunci milik akun lain.
+  const draftOwnerId = user?.id ?? null;
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('draftChallenge', JSON.stringify(manualData));
+    if (!draftOwnerId) return;
+
+    const savedData = readDraft<CreateChallengePayload>(manualDraftKey(draftOwnerId));
+    if (savedData) setManualData(savedData);
+
+    const savedAiState = readDraft<any>(aiDraftKey(draftOwnerId));
+    if (savedAiState) {
+      if (savedAiState.aiPrompt) setAiPrompt(savedAiState.aiPrompt);
+      if (savedAiState.aiCategory) setAiCategory(savedAiState.aiCategory);
+      if (savedAiState.aiDifficulty) setAiDifficulty(savedAiState.aiDifficulty);
+      if (savedAiState.aiBlueprint) setAiBlueprint(savedAiState.aiBlueprint);
     }
-  }, [manualData]);
+
+    setIsDraftLoaded(true);
+  }, [draftOwnerId]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('aiDraftState', JSON.stringify({
-        aiPrompt,
-        aiCategory,
-        aiDifficulty,
-        aiBlueprint,
-      }));
-    }
-  }, [aiPrompt, aiCategory, aiDifficulty, aiBlueprint]);
+    if (!draftOwnerId || !isDraftLoaded) return;
+    writeDraft(manualDraftKey(draftOwnerId), manualData);
+  }, [manualData, draftOwnerId, isDraftLoaded]);
+
+  useEffect(() => {
+    if (!draftOwnerId || !isDraftLoaded) return;
+    writeDraft(aiDraftKey(draftOwnerId), {
+      aiPrompt,
+      aiCategory,
+      aiDifficulty,
+      aiBlueprint,
+    });
+  }, [aiPrompt, aiCategory, aiDifficulty, aiBlueprint, draftOwnerId, isDraftLoaded]);
 
   const handleGenerateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,13 +205,12 @@ export default function CreateChallengePage() {
         blueprint: aiBlueprint,
       });
       setSuccessMsg('Proses generasi soal dan rubrik sedang berjalan di latar belakang! Silakan cek notifikasi atau Dashboard Anda beberapa saat lagi.');
-      
-      // Bersihkan cache dan redirect langsung ke dashboard
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('aiDraftState');
-      }
+
+      // Bersihkan cache dan arahkan ke daftar challenge milik pengguna, tempat
+      // draf hasil AI akan muncul begitu selesai diproses.
+      if (draftOwnerId) clearDraft(aiDraftKey(draftOwnerId));
       setTimeout(() => {
-        router.push(`/`);
+        router.push('/challenges/mine');
       }, 3000); // Beri waktu 3 detik agar user bisa membaca pesan sukses
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal memproses AI generator. Pastikan API key backend telah terkonfigurasi.');
@@ -251,8 +246,8 @@ export default function CreateChallengePage() {
       
       setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
       setTimeout(() => {
-        localStorage.removeItem('draftChallenge');
-        router.push('/');
+        if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+        router.push('/challenges/mine');
       }, 2000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');

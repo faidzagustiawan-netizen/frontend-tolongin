@@ -120,7 +120,10 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div className="relative aspect-video rounded-xl overflow-hidden border border-emerald-500/50 shadow-md">
-            <Image src={selfiePhoto!} alt="Selfie" fill className="object-cover transform scale-x-[-1]" />
+            {/* Tanpa scale-x: kanvasnya memang tidak mencerminkan, jadi
+                membalik tampilan di sini akan memperlihatkan gambar yang
+                berbeda arah dari yang benar-benar dikirim ke server. */}
+            <Image src={selfiePhoto!} alt="Selfie" fill className="object-cover" />
             <div className="absolute bottom-2 left-2 bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Wajah
             </div>

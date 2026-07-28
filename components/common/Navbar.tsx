@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3 } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -176,12 +176,14 @@ export const Navbar = () => {
   const talentNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },
     { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
+    { name: 'Challenge Saya', href: '/challenges/mine', icon: FileEdit },
     { name: 'Perusahaan Mitra', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
   const companyNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },
+    { name: 'Challenge Saya', href: '/challenges/mine', icon: FileEdit },
     { name: 'Leaderboard Talenta', href: '/leaderboard', icon: Trophy },
   ];
 

@@ -49,6 +49,10 @@ export default function EditChallengePage() {
             difficulty: found.difficulty,
             sections: found.sections || [],
             gradingRubric: found.gradingRubric,
+            // Ikut dimuat supaya penyimpanan ulang tidak menghapusnya.
+            proctoringSettings: found.proctoringSettings ?? undefined,
+            deadlineAt: found.deadlineAt ?? undefined,
+            isPrivate: found.isPrivate ?? undefined,
             status: found.status,
           });
         }
@@ -89,7 +93,7 @@ export default function EditChallengePage() {
       
       setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
       setTimeout(() => {
-        router.push('/');
+        router.push('/challenges/mine');
       }, 2000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');

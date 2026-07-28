@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, ShieldAlert, BarChart3, CreditCard, LifeBuoy, FileText, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldAlert, BarChart3, CreditCard, LifeBuoy, FileText, Megaphone, ScanFace } from 'lucide-react';
 import { useUserStore } from '@/store/userStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Analitik & Laporan', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Finansial (Billing)', href: '/admin/billing', icon: CreditCard },
     { name: 'Manajemen Pengguna', href: '/admin/users', icon: Users },
+    { name: 'Tinjauan Identitas', href: '/admin/identity-reviews', icon: ScanFace },
     { name: 'Moderasi Tantangan', href: '/admin/challenges', icon: ShieldAlert },
     { name: 'Tiket Bantuan', href: '/admin/tickets', icon: LifeBuoy },
     { name: 'Pengumuman (CMS)', href: '/admin/cms', icon: Megaphone },

@@ -71,10 +71,12 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            context.translate(canvas.width, 0);
-            context.scale(-1, 1);
+            // Disalin apa adanya, tanpa pencerminan. Foto acuan yang tersimpan
+            // saat pendaftaran juga tidak dicerminkan; membalik salah satu sisi
+            // saja menambah jarak biometrik pada orang yang sebenarnya sama,
+            // dan pada gerbang anti-joki itu berarti pengguna sah diblokir.
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
+
             const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
             // Using Backend Verification

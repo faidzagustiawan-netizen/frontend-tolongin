@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Camera, AlertCircle, CheckCircle2, RefreshCw, Sun, Glasses, ScanFace } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface FaceScannerProps {
@@ -11,158 +11,266 @@ interface FaceScannerProps {
   description?: string;
 }
 
-export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian Wajah", description = "Arahkan wajah Anda ke kamera dan pastikan pencahayaan cukup." }: FaceScannerProps) {
+/**
+ * Pengambilan foto wajah.
+ *
+ * CATATAN PENTING soal cermin. Pratinjau langsung sengaja dicerminkan karena
+ * itulah yang terasa wajar saat orang melihat dirinya sendiri — gerak ke kanan
+ * tampak ke kanan. Tetapi foto yang DIKIRIM tidak boleh ikut dicerminkan.
+ *
+ * Sebelumnya canvas membalik gambar saat menyalin dari video, lalu hasilnya
+ * ditampilkan dengan scale-x-[-1] sekali lagi. Dua pembalikan itu membuat foto
+ * yang dilihat pengguna berlawanan arah dengan foto yang benar-benar dikirim,
+ * dan itulah yang terasa seperti "kok jadi mirror setelah diambil".
+ *
+ * Efeknya bukan cuma soal rasa. Foto KTP tidak pernah dicerminkan, jadi selfie
+ * yang tercermin dibandingkan dengan KTP yang tidak — ketidakcocokan arah itu
+ * menambah jarak biometrik pada pasangan yang sebenarnya sah.
+ */
+export function FaceScanner({
+  onCaptureComplete,
+  onCancel,
+  title = 'Pemindaian Wajah',
+  description = 'Arahkan wajah Anda ke kamera dan pastikan pencahayaan cukup.',
+}: FaceScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [isCapturing, setIsCapturing] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [selfieImg, setSelfieImg] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const stopVideo = React.useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  }, [stream]);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }, []);
 
-  const startVideo = React.useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 320, facingMode: "user" } })
-      .then((mediaStream) => {
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      })
-      .catch((err) => {
-        console.error("Gagal mengakses webcam:", err);
-        setError("Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin kamera.");
+  const startVideo = React.useCallback(async () => {
+    setError(null);
+    setIsReady(false);
+    try {
+      // Resolusi diminta lebih tinggi daripada bingkai tampilan: pencocokan
+      // wajah bekerja pada piksel asli, bukan pada ukuran elemen di layar.
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 720 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+        },
       });
+      streamRef.current = mediaStream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err: any) {
+      const ditolak =
+        err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
+      const tidakAda =
+        err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError';
+
+      setError(
+        ditolak
+          ? 'Izin kamera ditolak. Klik ikon gembok di address bar browser, izinkan kamera, lalu muat ulang halaman ini.'
+          : tidakAda
+            ? 'Kamera tidak terdeteksi. Pastikan perangkat Anda punya kamera dan tidak sedang dipakai aplikasi lain.'
+            : 'Tidak dapat mengakses kamera. Tutup aplikasi lain yang sedang memakainya, lalu coba lagi.',
+      );
+    }
   }, []);
 
   useEffect(() => {
     startVideo();
-    return () => {
-      stopVideo();
-    };
-  }, []); // Only run once on mount
-
-  // Cleanup on unmount separately to ensure stream is latest
-  useEffect(() => {
     return () => stopVideo();
-  }, [stopVideo]);
+  }, [startVideo, stopVideo]);
 
-  const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    setIsCapturing(true);
+  const ambilFoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!video || !canvas || !video.videoWidth) {
+      setError('Kamera belum siap. Tunggu gambar muncul lalu coba lagi.');
+      setIsCapturing(false);
+      setCountdown(null);
+      return;
+    }
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      setError('Gagal menyiapkan kanvas untuk mengambil gambar.');
+      setIsCapturing(false);
+      setCountdown(null);
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Disalin apa adanya. Tidak ada translate/scale di sini — lihat catatan
+    // cermin di atas.
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    setSelfieImg(canvas.toDataURL('image/jpeg', 0.92));
+    setIsCapturing(false);
+    setCountdown(null);
+    stopVideo();
+  };
+
+  const mulaiHitungMundur = () => {
     setError(null);
-    setSuccess(null);
+    setIsCapturing(true);
+    setCountdown(3);
+  };
 
-    // Simulate active liveness check delay
-    setTimeout(() => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas) {
-        // Keluar tanpa melepas isCapturing akan meninggalkan tombol dalam
-        // keadaan memuat selamanya, tanpa pesan apa pun ke pengguna.
-        setError('Kamera tidak lagi tersedia. Coba mulai ulang pemindaian.');
-        setIsCapturing(false);
-        return;
-      }
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      ambilFoto();
+      return;
+    }
+    const timer = setTimeout(() => setCountdown((n) => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
 
-      const context = canvas.getContext('2d');
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.translate(canvas.width, 0);
-        context.scale(-1, 1);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setSelfieImg(imageDataUrl);
-        setSuccess("Wajah berhasil dipindai!");
-        
-        setTimeout(() => {
-          stopVideo();
-          // We pass an empty array for descriptor since we no longer use local face-api
-          onCaptureComplete([], imageDataUrl);
-        }, 1000);
-      } else {
-         setError("Gagal memindai wajah (Canvas context error).");
-         setIsCapturing(false);
-      }
-    }, 1500); // 1.5s scanning effect
+  const ulangi = () => {
+    setSelfieImg(null);
+    setError(null);
+    startVideo();
+  };
+
+  const gunakan = () => {
+    if (!selfieImg) return;
+    // Descriptor kosong: pencocokan dilakukan di server, bukan di peramban.
+    onCaptureComplete([], selfieImg);
   };
 
   return (
     <div className="bg-card border border-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
-      <div className="text-center mb-6">
+      <div className="text-center mb-5">
         <h3 className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
           <Camera className="w-5 h-5 text-emerald-400" /> {title}
         </h3>
         <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{description}</p>
       </div>
 
-      <div className="relative mx-auto w-[240px] h-[240px] md:w-[320px] md:h-[320px] rounded-full overflow-hidden border-4 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] bg-black">
+      {!selfieImg && !error && (
+        <div className="mb-5 grid grid-cols-3 gap-2 max-w-md mx-auto">
+          {[
+            { icon: Sun, text: 'Cahaya dari depan' },
+            { icon: ScanFace, text: 'Wajah penuh di bingkai' },
+            { icon: Glasses, text: 'Lepas masker & topi' },
+          ].map(({ icon: Icon, text }) => (
+            <div
+              key={text}
+              className="flex flex-col items-center gap-1.5 text-center bg-background border border-border rounded-xl p-2.5"
+            >
+              <Icon className="h-4 w-4 text-emerald-400" />
+              <span className="text-[10px] leading-tight text-muted-foreground">{text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative mx-auto w-[260px] h-[260px] md:w-[340px] md:h-[340px] rounded-full overflow-hidden border-4 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] bg-black">
         {selfieImg ? (
-           <img src={selfieImg} alt="Selfie" className="w-full h-full object-cover transform scale-x-[-1]" />
+          // Ditampilkan apa adanya, tanpa scale-x. Yang dilihat pengguna di
+          // sini persis foto yang dikirim ke server.
+          <img src={selfieImg} alt="Hasil foto" className="w-full h-full object-cover" />
         ) : (
-           <video 
-             ref={videoRef} 
-             autoPlay 
-             muted 
-             playsInline
-             className="w-full h-full object-cover transform scale-x-[-1]"
-           />
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            onLoadedMetadata={() => setIsReady(true)}
+            className="w-full h-full object-cover transform scale-x-[-1]"
+          />
         )}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* MASKING OVAL */}
-        <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-           <div className="w-[60%] h-[75%] border-[3px] border-white/50 rounded-[100%] shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
-        </div>
-
-        {/* SCANNING LINE ANIMATION */}
-        {isCapturing && (
-          <div className="absolute top-0 left-0 w-full h-[4px] bg-emerald-400 shadow-[0_0_15px_#34d399] z-20 animate-[scan_2s_ease-in-out_infinite]" />
+        {!selfieImg && (
+          <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+            <div className="w-[62%] h-[78%] border-[3px] border-white/50 rounded-[100%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
+          </div>
         )}
-        
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes scan {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-          }
-        `}} />
+
+        {countdown !== null && countdown > 0 && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40">
+            <span className="text-7xl font-black text-white drop-shadow-lg tabular-nums">
+              {countdown}
+            </span>
+          </div>
+        )}
+
+        {!isReady && !selfieImg && !error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
+            <span className="text-xs text-white/80">Menyalakan kamera…</span>
+          </div>
+        )}
       </div>
+
+      {selfieImg && (
+        <p className="mt-3 text-center text-[11px] text-muted-foreground max-w-sm mx-auto leading-relaxed">
+          Foto ini tampil sesuai aslinya, bukan pantulan cermin — jadi tulisan apa pun
+          akan terbaca normal. Inilah gambar yang dibandingkan dengan foto pada KTP Anda.
+        </p>
+      )}
 
       {error && (
         <div className="mt-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-red-400">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">{error}</p>
+          <div className="space-y-2">
+            <p className="text-xs font-medium leading-relaxed">{error}</p>
+            <button
+              onClick={startVideo}
+              className="text-xs font-bold underline underline-offset-2 hover:text-red-300"
+            >
+              Coba nyalakan kamera lagi
+            </button>
+          </div>
         </div>
       )}
 
-      {success && (
-        <div className="mt-6 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-start gap-3 text-emerald-400">
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="text-xs font-medium leading-relaxed">{success}</p>
-        </div>
-      )}
-
-      <div className="mt-8 flex flex-col sm:flex-row gap-4">
-        {onCancel && (
-          <Button variant="outline" onClick={() => { stopVideo(); onCancel(); }} className="flex-1" disabled={isCapturing || !!success}>
-            Batal
-          </Button>
+      <div className="mt-7 flex flex-col sm:flex-row gap-3">
+        {selfieImg ? (
+          <>
+            <Button variant="outline" onClick={ulangi} className="flex-1">
+              <RefreshCw className="h-4 w-4 mr-2" /> Ambil Ulang
+            </Button>
+            <Button
+              onClick={gunakan}
+              className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Gunakan Foto Ini
+            </Button>
+          </>
+        ) : (
+          <>
+            {onCancel && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  stopVideo();
+                  onCancel();
+                }}
+                className="flex-1"
+                disabled={isCapturing}
+              >
+                Batal
+              </Button>
+            )}
+            <Button
+              onClick={mulaiHitungMundur}
+              disabled={!isReady || isCapturing || !!error}
+              className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+            >
+              {isCapturing ? 'Bersiap…' : 'Ambil Foto'}
+            </Button>
+          </>
         )}
-        <Button onClick={handleCapture} isLoading={isCapturing} disabled={!!success || !!error} className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
-          {isCapturing ? 'Memindai...' : 'Ambil Pemindaian'}
-        </Button>
       </div>
     </div>
   );

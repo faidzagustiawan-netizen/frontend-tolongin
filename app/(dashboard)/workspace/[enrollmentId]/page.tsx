@@ -127,8 +127,14 @@ export default function EnrollmentWorkspacePage() {
   const selectedEnrollment = enrollments.find((e: any) => e.id === selectedEnrollmentId);
   const isProctored = selectedEnrollment?.challenge?.gradingRubric?.requireProctoring ?? true;
   
-  // Ambil pengaturan spesifik dari proctoringSettings (opsional)
-  const proctoringSettings = selectedEnrollment?.challenge?.gradingRubric?.proctoringSettings || {};
+  // Ambil pengaturan spesifik dari proctoringSettings (opsional).
+  // Kolom `proctoringSettings` adalah tempat sebenarnya; pembacaan dari
+  // gradingRubric dipertahankan sebagai cadangan untuk challenge yang dibuat
+  // sebelum kolomnya dipisahkan.
+  const proctoringSettings =
+    selectedEnrollment?.challenge?.proctoringSettings
+    || selectedEnrollment?.challenge?.gradingRubric?.proctoringSettings
+    || {};
   const requireFaceScan = proctoringSettings.requireFaceScan !== false && isProctored; // Default true jika isProctored
   const trackTabSwitches = proctoringSettings.trackTabSwitches ?? isProctored;
   const maxTabSwitches = proctoringSettings.maxTabSwitches || 0;

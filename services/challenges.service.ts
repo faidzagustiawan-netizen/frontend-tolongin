@@ -22,8 +22,12 @@ export interface CreateChallengePayload {
   mockApiUrl?: string;
   brandGuidelineUrl?: string;
   rewardDescription?: string;
+  startsAt?: string;
   deadlineAt?: string;
   gradingRubric?: Record<string, unknown>;
+  /** Pengaturan anti-kecurangan. Kolom tersendiri di backend, bukan bagian rubrik. */
+  proctoringSettings?: Record<string, unknown>;
+  isPrivate?: boolean;
   sections?: Section[];
   status?: 'DRAFT' | 'PUBLISHED';
 }
@@ -41,8 +45,45 @@ export interface CreateDiscussionPayload {
   parentId?: string;
 }
 
+/**
+ * Backend memakai ValidationPipe global dengan `forbidNonWhitelisted: true`,
+ * jadi satu properti asing saja membuat seluruh permintaan ditolak 400.
+ * Section dan komponen yang dimuat kembali dari API membawa kolom milik
+ * database (`challengeId`, `sectionId`, `createdAt`, `updatedAt`) yang tidak
+ * ada di DTO, dan builder menyimpan state UI di objek yang sama. Payload
+ * karena itu disusun ulang secara eksplisit sebelum dikirim.
+ */
+const sanitizeComponent = (comp: ComponentData) => ({
+  type: comp.type,
+  question: comp.question ?? '',
+  description: comp.description,
+  options: comp.options,
+  metadata: comp.metadata,
+  points: comp.points,
+  order: comp.order,
+});
+
+const sanitizeSection = (section: SectionPayload, idx: number) => ({
+  title: section.title,
+  description: section.description,
+  order: section.order ?? idx,
+  stageType: section.stageType,
+  timeLimit: section.timeLimit,
+  components: (section.components || []).map(sanitizeComponent),
+});
+
+const sanitizePayload = <T extends Partial<CreateChallengePayload>>(payload: T) => {
+  // `id` hanya penanda internal untuk memilih create vs update, bukan bagian
+  // dari badan permintaan.
+  const { id: _id, sections, ...rest } = payload;
+  return {
+    ...rest,
+    ...(sections ? { sections: sections.map(sanitizeSection) } : {}),
+  };
+};
+
 export const challengesService = {
-  getAll: async (params?: { category?: string; difficulty?: string; challengeType?: string; search?: string; companyId?: string; includeDrafts?: boolean; sort?: string; page?: number; limit?: number }) => {
+  getAll: async (params?: { category?: string; difficulty?: string; challengeType?: string; search?: string; companyId?: string; includeDrafts?: boolean; mine?: boolean; sort?: string; page?: number; limit?: number }) => {
     const { data } = await apiClient.get('/challenges', { params });
     // Backend mengembalikan { data, total, page, limit }. Cabang array
     // dipertahankan agar klien lama tidak pecah bila endpoint belum ter-deploy.
@@ -56,11 +97,11 @@ export const challengesService = {
     return { data };
   },
   create: async (payload: CreateChallengePayload) => {
-    const { data } = await apiClient.post('/challenges', payload);
+    const { data } = await apiClient.post('/challenges', sanitizePayload(payload));
     return { data };
   },
   update: async (id: string, payload: Partial<CreateChallengePayload>) => {
-    const { data } = await apiClient.patch(`/challenges/${id}`, payload);
+    const { data } = await apiClient.patch(`/challenges/${id}`, sanitizePayload(payload));
     return { data };
   },
   generateAiBlueprint: async (payload: GenerateAiChallengePayload) => {
