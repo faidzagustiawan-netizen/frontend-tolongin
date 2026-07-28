@@ -65,7 +65,13 @@ export function FaceScanner({ onCaptureComplete, onCancel, title = "Pemindaian W
     setTimeout(() => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (!video || !canvas) return;
+      if (!video || !canvas) {
+        // Keluar tanpa melepas isCapturing akan meninggalkan tombol dalam
+        // keadaan memuat selamanya, tanpa pesan apa pun ke pengguna.
+        setError('Kamera tidak lagi tersedia. Coba mulai ulang pemindaian.');
+        setIsCapturing(false);
+        return;
+      }
 
       const context = canvas.getContext('2d');
       if (context) {
