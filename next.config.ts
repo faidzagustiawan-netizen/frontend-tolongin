@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'media.licdn.com' },
+      { protocol: 'https', hostname: 'i.pravatar.cc' },
 
       // Host tambahan tanpa perlu mengubah berkas ini. Isi dengan daftar
       // dipisah koma, misal: "cdn.contoh.com,img.contoh.id"
