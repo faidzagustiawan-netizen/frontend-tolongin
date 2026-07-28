@@ -469,7 +469,7 @@ export default function EnrollmentWorkspacePage() {
           </h1>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-4 mb-8 max-w-3xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 md:gap-x-20 mb-8 max-w-4xl">
             <div className="flex items-center">
               <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
                 <Grid className="w-4 h-4" />
@@ -482,7 +482,7 @@ export default function EnrollmentWorkspacePage() {
               </div>
             </div>
 
-            <div className="flex items-center md:pl-12">
+            <div className="flex items-center md:pl-16">
               <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-semibold">Batas waktu</span>
@@ -502,7 +502,7 @@ export default function EnrollmentWorkspacePage() {
               </div>
             </div>
 
-            <div className="flex items-center md:pl-12">
+            <div className="flex items-center md:pl-16">
               <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
                 <Sparkles className="w-4 h-4" />
                 <span className="text-sm font-semibold">Evaluasi AI</span>
@@ -634,7 +634,7 @@ export default function EnrollmentWorkspacePage() {
                   })()}
                 </div>
 
-                {sections.length > 1 && (
+                {sections.length > 0 && (
                   <div className="flex items-center justify-between pt-4 border-t border-border mt-8">
                     <Button 
                       variant="outline" 
