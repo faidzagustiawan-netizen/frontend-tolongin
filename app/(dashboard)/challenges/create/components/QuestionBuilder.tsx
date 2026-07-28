@@ -100,7 +100,6 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
       points: 10,
       options: type === 'MULTIPLE_CHOICE' ? [{ id: Date.now().toString(), text: '', isCorrect: true }] : undefined,
       metadata: type === 'LIVE_CODING' ? { language: 'javascript' } : undefined,
-      content: '',
     } as any;
     sec.components = [...(sec.components || []), newComp];
     setManualData({ ...manualData, sections: newSections });

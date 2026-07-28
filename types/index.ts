@@ -20,8 +20,12 @@ export interface UserProfile {
 export interface ComponentData {
   id?: string;
   type: string;
-  content: string;
+  question: string;
+  description?: string;
+  points?: number;
+  order?: number;
   options?: unknown;
+  metadata?: unknown;
   [key: string]: unknown;
 }
 
