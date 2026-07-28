@@ -39,8 +39,27 @@ export const submissionsService = {
     const { data } = await apiClient.put(`/workspace/draft/${enrollmentId}`, { draftData: responses });
     return { data };
   },
-  getCompanySubmissions: async (challengeId?: string) => {
-    const { data } = await apiClient.get('/workspace/company-submissions', { params: { challengeId } });
+  getCompanySubmissions: async (
+    challengeId?: string,
+    pagination?: { page?: number; limit?: number },
+  ) => {
+    const { data } = await apiClient.get('/workspace/company-submissions', {
+      params: { challengeId, ...pagination },
+    });
+    // Endpoint kini berpaginasi. Bentuk lama (array polos) tetap ditangani
+    // agar klien yang belum diperbarui tidak pecah.
+    if (Array.isArray(data)) {
+      return { data, total: data.length, page: 1, limit: data.length };
+    }
+    return {
+      data: data.data,
+      total: data.total,
+      page: data.page,
+      limit: data.limit,
+    };
+  },
+  getCompanySubmission: async (submissionId: string) => {
+    const { data } = await apiClient.get(`/workspace/company-submissions/${submissionId}`);
     return { data };
   },
   getChallengeStats: async () => {

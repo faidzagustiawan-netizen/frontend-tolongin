@@ -1,8 +1,16 @@
 import { apiClient } from './api';
 
+/**
+ * Penyesuaian paket secara manual — khusus admin.
+ *
+ * Perusahaan meningkatkan paketnya lewat pembayaran Midtrans
+ * (`PaymentsService.subscribePremium`), bukan lewat sini.
+ */
 export interface UpgradeSubscriptionPayload {
+  companyId: string;
   tier: 'STARTUP' | 'KONGLOMERAT' | 'CUSTOM';
   durationInMonths?: number;
+  reason?: string;
 }
 
 export const subscriptionsService = {

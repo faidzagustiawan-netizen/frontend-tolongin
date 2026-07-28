@@ -1,9 +1,12 @@
 import { apiClient } from './api';
 
 export const companiesService = {
-  getAll: async () => {
-    const response = await apiClient.get('/companies');
-    return response.data;
+  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await apiClient.get('/companies', { params });
+    // Endpoint kini berpaginasi dan mengembalikan { data, total, page, limit }.
+    // Cabang array dipertahankan agar klien lama tidak pecah bila backend
+    // belum ter-deploy.
+    return Array.isArray(response.data) ? response.data : response.data.data;
   },
 
   getById: async (id: string) => {

@@ -25,13 +25,18 @@ export default function ChallengeSubmissionsPage() {
     }
   }, [isAuthenticated, user, router]);
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
+
   const { data: response, isLoading } = useQuery({
-    queryKey: ['company-submissions', challengeId],
-    queryFn: () => submissionsService.getCompanySubmissions(challengeId),
+    queryKey: ['company-submissions', challengeId, page],
+    queryFn: () => submissionsService.getCompanySubmissions(challengeId, { page, limit: PAGE_SIZE }),
     enabled: isAuthenticated && !!challengeId && (user?.role === 'COMPANY' || user?.role === 'ADMIN'),
   });
 
   const submissions = response?.data || [];
+  const totalSubmissions = response?.total ?? submissions.length;
+  const totalPages = Math.max(1, Math.ceil(totalSubmissions / PAGE_SIZE));
   const challengeInfo = submissions.length > 0 ? submissions[0].challenge : null;
 
   const filteredSubmissions = submissions.filter((sub: any) =>
@@ -151,6 +156,28 @@ export default function ChallengeSubmissionsPage() {
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              Sebelumnya
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Halaman {page} dari {totalPages} &middot; {totalSubmissions} kandidat
+            </span>
+            <Button variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              Berikutnya
+            </Button>
+          </div>
+        )}
+
+        {/* Pencarian menyaring halaman yang sedang tampil, bukan seluruh
+            kandidat. Disebutkan agar tidak disangka hasilnya nihil. */}
+        {searchTerm && totalPages > 1 && (
+          <p className="text-xs text-muted-foreground mt-3 text-center">
+            Pencarian berlaku pada halaman ini saja.
+          </p>
+        )}
       </div>
     </div>
   );

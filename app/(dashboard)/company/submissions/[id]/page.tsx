@@ -31,15 +31,20 @@ export default function SubmissionDetailPage() {
     }
   }, [isAuthenticated, user, router]);
 
+  // Diambil satu per satu. Sebelumnya seluruh daftar submisi perusahaan
+  // ditarik lalu dicari id-nya di sisi klien — cara yang berhenti bekerja
+  // begitu daftarnya berpaginasi, dan boros sejak awal.
   const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['company-submissions'],
-    queryFn: () => submissionsService.getCompanySubmissions(),
-    enabled: isAuthenticated && !!user,
+    queryKey: ['company-submission', submissionId],
+    queryFn: () => submissionsService.getCompanySubmission(submissionId),
+    enabled: isAuthenticated && !!user && !!submissionId,
   });
 
-  const submission = response?.data?.find((s: any) => s.id === submissionId);
+  const submission = response?.data;
 
-  const hasProctoringViolations = 
+  const isAlreadyGraded = !!submission?.evaluatedAt;
+
+  const hasProctoringViolations =
     submission?.notes?.includes('Pelanggaran Fatal') || 
     submission?.notes?.includes('Jendela peramban ditutup') || 
     submission?.notes?.includes('Wajah tidak terdeteksi') ||
@@ -277,6 +282,52 @@ export default function SubmissionDetailPage() {
         <div className="lg:col-span-1 print:hidden">
           <div className="bg-card border border-border rounded-2xl p-6 sticky top-24">
             <h2 className="text-lg font-bold text-foreground mb-6">Penilaian Manual</h2>
+
+            {isAlreadyGraded ? (
+              /* Penilaian memberi XP dan token ke talenta, jadi hanya boleh
+                 sekali. Backend juga menolak penilaian ulang; formulirnya
+                 disembunyikan agar penolakan itu tidak muncul sebagai galat
+                 setelah rekruter terlanjur mengetik ulang semuanya. */
+              <div className="space-y-4">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+                  <p className="text-sm text-emerald-400 font-medium leading-relaxed">
+                    Submisi ini sudah dinilai pada{' '}
+                    {new Date(submission.evaluatedAt).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                    . Hasilnya sudah dikirim ke kandidat beserta XP dan token-nya,
+                    jadi penilaian tidak dapat diulang.
+                  </p>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nilai akhir</span>
+                    <span className="font-bold text-foreground">{submission.finalScore ?? '-'}/100</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="font-bold text-foreground">{submission.status}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status rekrutmen</span>
+                    <span className="font-bold text-foreground">{submission.hiringStatus || 'NONE'}</span>
+                  </div>
+                </div>
+                {submission.reviewerFeedback && (
+                  <div>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Catatan reviewer</p>
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      {submission.reviewerFeedback}
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Perlu koreksi? Hubungi admin.
+                </p>
+              </div>
+            ) : (
             <form onSubmit={handleGrade} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Nilai Akhir (0-100) <span className="text-red-500">*</span></label>
@@ -355,6 +406,7 @@ export default function SubmissionDetailPage() {
                 </Button>
               </div>
             </form>
+            )}
           </div>
         </div>
 
