@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   role: 'TALENT' | 'COMPANY' | 'ADMIN';
+  /** Pemilik akun perusahaan; akun undangan selalu false. */
+  isCompanyOwner?: boolean;
   profile?: UserProfile;
 }
 

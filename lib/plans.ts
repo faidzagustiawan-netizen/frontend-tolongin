@@ -98,6 +98,21 @@ export const PLANS: Plan[] = [
 export const getPlan = (tier?: string | null): Plan =>
   PLANS.find((p) => p.tier === tier) ?? PLANS[0];
 
+/**
+ * Apakah batas paket sedang ditegakkan.
+ *
+ * Pasangan layar dari `subscriptionLimitsEnforced()` di
+ * `backend/src/common/dev-flags.ts`. Selama pengembangan keduanya mati, dan
+ * peringatan "kuota paket sudah penuh" tidak boleh muncul untuk batas yang
+ * memang tidak sedang ditegakkan backend — perusahaan diberi tahu bahwa
+ * penyimpanannya akan ditolak, padahal tidak.
+ *
+ * Nyalakan bersamaan dengan sisi backend lewat
+ * `NEXT_PUBLIC_ENFORCE_SUBSCRIPTION_LIMITS=true`.
+ */
+export const subscriptionLimitsEnforced = (): boolean =>
+  process.env.NEXT_PUBLIC_ENFORCE_SUBSCRIPTION_LIMITS === 'true';
+
 /** "Rp 2.500.000" — dipakai bila label perlu dirakit dari angka. */
 export const formatRupiah = (value: number) =>
   new Intl.NumberFormat('id-ID', {
