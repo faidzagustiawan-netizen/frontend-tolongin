@@ -14,30 +14,39 @@ import {
   ChevronRight,
   Lock,
   Sparkles,
+  Archive,
 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { Button } from '../common/Button';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import { useUserStore } from '../../store/userStore';
-import { getPlan } from '../../lib/plans';
+import { challengesService } from '../../services/challenges.service';
+import { getPlan, subscriptionLimitsEnforced } from '../../lib/plans';
 
-type StatusFilter = 'ALL' | 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
+// Nama statusnya `CLOSED`, bukan `ARCHIVED`. Enum di basis data hanya mengenal
+// DRAFT, PUBLISHED, dan CLOSED — penyaring "Arsip" yang lama mencocokkan
+// string yang tidak pernah ada, jadi tabnya selalu kosong dan studi kasus yang
+// betul-betul tertutup malah tampil sebagai teks mentah "CLOSED".
+type StatusFilter = 'ALL' | 'PUBLISHED' | 'DRAFT' | 'CLOSED';
 
 const statusStyles: Record<string, string> = {
   DRAFT: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   PUBLISHED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-  ARCHIVED: 'bg-foreground/10 text-muted-foreground border-border',
+  CLOSED: 'bg-foreground/10 text-muted-foreground border-border',
 };
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Draf',
   PUBLISHED: 'Terbit',
-  ARCHIVED: 'Diarsipkan',
+  CLOSED: 'Diarsipkan',
 };
 
 const filterTabs: { key: StatusFilter; label: string }[] = [
   { key: 'ALL', label: 'Semua' },
   { key: 'PUBLISHED', label: 'Terbit' },
   { key: 'DRAFT', label: 'Draf' },
-  { key: 'ARCHIVED', label: 'Arsip' },
+  { key: 'CLOSED', label: 'Arsip' },
 ];
 
 /**
@@ -59,9 +68,24 @@ export function CompanyWorkspaceDashboard({
 }) {
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [pendingArchive, setPendingArchive] = useState<any | null>(null);
   const { user } = useUserStore();
+  const queryClient = useQueryClient();
 
-  const isCompanyOwner = !user?.profile?.isTeamMember;
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => challengesService.archive(id),
+    onSuccess: () => {
+      toast.success('Studi kasus diarsipkan. Slot kuota kembali tersedia.');
+      setPendingArchive(null);
+      void queryClient.invalidateQueries({ queryKey: ['challenge-stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Gagal mengarsipkan studi kasus.');
+    },
+  });
+
+  const isCompanyOwner = user?.isCompanyOwner === true;
 
   const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
 
@@ -124,7 +148,9 @@ export function CompanyWorkspaceDashboard({
     (c: any) => c.status === 'PUBLISHED',
   ).length;
   const isQuotaFull =
-    plan.activeChallengeQuota !== null && quotaUsed >= plan.activeChallengeQuota;
+    subscriptionLimitsEnforced() &&
+    plan.activeChallengeQuota !== null &&
+    quotaUsed >= plan.activeChallengeQuota;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
@@ -389,6 +415,7 @@ export function CompanyWorkspaceDashboard({
                 {filteredChallenges.map((challenge: any, index: number) => {
                   const sla = calculateSlaStatus(challenge.stats?.nearestSlaDate);
                   const isDraft = challenge.status === 'DRAFT';
+                  const isClosed = challenge.status === 'CLOSED';
 
                   return (
                     <motion.tr
@@ -466,15 +493,21 @@ export function CompanyWorkspaceDashboard({
                           dengan keyboard. */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Link href={`/challenges/${challenge.id}/edit`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={isDraft ? 'text-amber-500 hover:text-amber-400' : 'text-cyan-400 hover:text-cyan-300'}
-                            >
-                              {isDraft ? 'Lanjutkan Draf' : 'Sunting'}
-                            </Button>
-                          </Link>
+                          {/* Studi kasus yang sudah terbit ditolak backend saat
+                              disunting, jadi tombolnya hanya muncul untuk draf.
+                              Sebelumnya "Sunting" tetap ditawarkan dan selalu
+                              berakhir dengan galat 403. */}
+                          {isDraft && (
+                            <Link href={`/challenges/${challenge.id}/edit`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-amber-500 hover:text-amber-400"
+                              >
+                                Lanjutkan Draf
+                              </Button>
+                            </Link>
+                          )}
                           {!isDraft && (
                             <Link href={`/company/submissions/challenge/${challenge.id}`}>
                               <Button
@@ -485,6 +518,16 @@ export function CompanyWorkspaceDashboard({
                                 Lihat Kandidat <ChevronRight className="w-4 h-4 ml-1" />
                               </Button>
                             </Link>
+                          )}
+                          {!isClosed && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={() => setPendingArchive(challenge)}
+                            >
+                              <Archive className="w-4 h-4 mr-1" /> Arsipkan
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -517,6 +560,26 @@ export function CompanyWorkspaceDashboard({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingArchive}
+        title="Arsipkan studi kasus ini?"
+        confirmLabel="Ya, arsipkan"
+        cancelLabel="Batal"
+        isBusy={archiveMutation.isPending}
+        onCancel={() => setPendingArchive(null)}
+        onConfirm={() => archiveMutation.mutate(pendingArchive.id)}
+      >
+        <p>
+          <strong>{pendingArchive?.title}</strong> akan ditutup dan hilang dari
+          direktori publik. Slot kuota paket Anda kembali tersedia.
+        </p>
+        <p>
+          Kandidat tidak bisa lagi mendaftar atau mengerjakannya, dan tindakan
+          ini tidak dapat dibatalkan sendiri. Pengiriman yang sudah masuk tetap
+          tersimpan dan masih bisa dinilai.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

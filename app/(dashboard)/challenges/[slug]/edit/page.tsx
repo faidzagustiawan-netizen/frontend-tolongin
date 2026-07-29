@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { challengesService, CreateChallengePayload } from '@/services/challenges.service';
-import { ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from '../../create/components/ManualBuilder';
 import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
@@ -17,7 +18,6 @@ export default function EditChallengePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [manualData, setManualData] = useState<CreateChallengePayload>({
     title: '',
@@ -71,53 +71,45 @@ export default function EditChallengePage() {
       setErrorMsg("Harap isi Judul, Ringkasan, dan Deskripsi Studi Kasus.");
       return;
     }
+
+    // Halaman ini hanya menyunting sesuatu yang sudah ada. Cabang `create()`
+    // yang lama berarti setiap kegagalan pemuatan berujung pada challenge
+    // kedua — duplikat yang ikut memakan kuota paket.
+    if (!manualData.id) {
+      setErrorMsg(
+        'Studi kasus ini belum termuat sepenuhnya. Muat ulang halaman sebelum menyimpan.',
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
-    setSuccessMsg(null);
 
     try {
-      const payload = {
+      await challengesService.update(manualData.id, {
         ...manualData,
         status,
         gradingRubric: manualData.gradingRubric || {
           completeness: 30,
           quality: 40,
           efficiency: 30,
-        }
-      };
+        },
+      });
 
-      if (manualData.id) {
-        await challengesService.update(manualData.id, payload);
-      } else {
-        await challengesService.create(payload);
-      }
-      
-      setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
-      setTimeout(() => {
-        router.push('/challenges/mine');
-      }, 2000);
+      // Jeda dua detik sebelum berpindah hanya menahan pengguna di layar yang
+      // pekerjaannya sudah selesai; toast menyampaikan hasilnya di halaman
+      // tujuan.
+      toast.success(
+        status === 'DRAFT'
+          ? 'Draf berhasil disimpan.'
+          : 'Studi kasus berhasil dipublikasikan.',
+      );
+      router.push(user?.role === 'COMPANY' ? '/' : '/challenges/mine');
+      return;
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleGlobalKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
-      
-      if (!e.currentTarget.contains(target)) return;
-
-      e.preventDefault();
-      const focusableElements = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
-      const elements = Array.from(e.currentTarget.querySelectorAll(focusableElements)) as HTMLElement[];
-      const index = elements.indexOf(target);
-      
-      if (index > -1 && index < elements.length - 1) {
-        elements[index + 1].focus();
-      }
     }
   };
 
@@ -127,10 +119,11 @@ export default function EditChallengePage() {
 
   return (
     <CompanyAccessGate>
-    <div
-      className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10"
-      onKeyDown={handleGlobalKeyDown}
-    >
+    {/* Pembajakan tombol Enter dihapus, sama seperti di halaman pembuatan:
+        handler lama menyulapnya jadi "pindah ke field berikutnya" memakai
+        urutan DOM, sehingga formulir tidak pernah terkirim dan tombol
+        dilewati. Perilaku bawaan peramban sudah benar. */}
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
       <button 
         onClick={() => router.back()} 
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -157,15 +150,8 @@ export default function EditChallengePage() {
         </div>
       </div>
 
-      {successMsg && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
-          <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium leading-relaxed">{successMsg}</p>
-        </motion.div>
-      )}
-
       {errorMsg && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
+        <motion.div role="alert" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
           <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" />
           <p className="text-sm font-medium leading-relaxed">{errorMsg}</p>
         </motion.div>

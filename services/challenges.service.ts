@@ -29,7 +29,9 @@ export interface CreateChallengePayload {
   proctoringSettings?: Record<string, unknown>;
   isPrivate?: boolean;
   sections?: Section[];
-  status?: 'DRAFT' | 'PUBLISHED';
+  // CLOSED hanya bisa datang dari server (lewat `archive`), tidak pernah
+  // dikirim oleh formulir — tetapi draf yang dimuat ulang bisa membawanya.
+  status?: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 }
 
 export interface GenerateAiChallengePayload {
@@ -102,6 +104,15 @@ export const challengesService = {
   },
   update: async (id: string, payload: Partial<CreateChallengePayload>) => {
     const { data } = await apiClient.patch(`/challenges/${id}`, sanitizePayload(payload));
+    return { data };
+  },
+  /**
+   * Menutup studi kasus. Statusnya menjadi CLOSED dan slot kuota paket kembali
+   * bebas — satu-satunya jalan pemilik melepas kuotanya sendiri, sebab studi
+   * kasus yang sudah terbit tidak bisa disunting maupun dihapus.
+   */
+  archive: async (id: string) => {
+    const { data } = await apiClient.patch(`/challenges/${id}/archive`);
     return { data };
   },
   generateAiBlueprint: async (payload: GenerateAiChallengePayload) => {

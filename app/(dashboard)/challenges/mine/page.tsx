@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { challengesService } from '@/services/challenges.service';
 import { Button } from '@/components/common/Button';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import {
   AlertCircle,
+  Archive,
   ArrowLeft,
   FileEdit,
   Loader2,
@@ -19,22 +22,39 @@ import {
 
 const PAGE_SIZE = 12;
 
+// Enum di basis data adalah DRAFT | PUBLISHED | CLOSED. Kunci `ARCHIVED` yang
+// lama tidak pernah cocok dengan apa pun, sehingga studi kasus tertutup tampil
+// sebagai teks mentah "CLOSED".
 const statusStyles: Record<string, string> = {
   DRAFT: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   PUBLISHED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-  ARCHIVED: 'bg-foreground/10 text-muted-foreground border-border',
+  CLOSED: 'bg-foreground/10 text-muted-foreground border-border',
 };
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Draf',
   PUBLISHED: 'Terbit',
-  ARCHIVED: 'Diarsipkan',
+  CLOSED: 'Diarsipkan',
 };
 
 export default function MyChallengesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loadUserFromStorage } = useUserStore();
   const [page, setPage] = useState(1);
+  const [pendingArchive, setPendingArchive] = useState<any | null>(null);
+  const queryClient = useQueryClient();
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => challengesService.archive(id),
+    onSuccess: () => {
+      toast.success('Challenge diarsipkan. Slot Public Challenge kembali bebas.');
+      setPendingArchive(null);
+      void queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Gagal mengarsipkan challenge.');
+    },
+  });
 
   useEffect(() => {
     loadUserFromStorage();
@@ -118,6 +138,7 @@ export default function MyChallengesPage() {
         <div className="space-y-4">
           {challenges.map((challenge: any) => {
             const isDraft = challenge.status === 'DRAFT';
+            const isClosed = challenge.status === 'CLOSED';
             // Draf belum punya halaman publik yang berarti, jadi diarahkan
             // langsung ke editornya.
             const href = isDraft
@@ -125,10 +146,12 @@ export default function MyChallengesPage() {
               : `/challenges/${challenge.slug || challenge.id}`;
 
             return (
-              <Link
+              // Kartunya bukan lagi satu <Link> raksasa: tombol arsip perlu
+              // hidup di dalamnya, dan tombol di dalam tautan bukan markah yang
+              // sah maupun bisa dioperasikan dengan keyboard.
+              <div
                 key={challenge.id}
-                href={href}
-                className="block bg-card border border-border rounded-2xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
+                className="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
               >
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span
@@ -156,19 +179,35 @@ export default function MyChallengesPage() {
                   )}
                 </div>
 
-                <h2 className="text-lg font-bold text-foreground mb-1">
-                  {challenge.title}
-                </h2>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {challenge.summary}
-                </p>
-
-                {isDraft && (
-                  <p className="text-xs text-amber-500 font-medium mt-4">
-                    Klik untuk melanjutkan penyuntingan draf ini.
+                <Link href={href} className="block group">
+                  <h2 className="text-lg font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
+                    {challenge.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {challenge.summary}
                   </p>
-                )}
-              </Link>
+                </Link>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+                  {isDraft ? (
+                    <p className="text-xs text-amber-500 font-medium">
+                      Klik judulnya untuk melanjutkan penyuntingan draf ini.
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+
+                  {!isClosed && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPendingArchive(challenge)}
+                    >
+                      <Archive className="h-4 w-4 mr-2" /> Arsipkan
+                    </Button>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
@@ -195,6 +234,25 @@ export default function MyChallengesPage() {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingArchive}
+        title="Arsipkan challenge ini?"
+        confirmLabel="Ya, arsipkan"
+        cancelLabel="Batal"
+        isBusy={archiveMutation.isPending}
+        onCancel={() => setPendingArchive(null)}
+        onConfirm={() => archiveMutation.mutate(pendingArchive.id)}
+      >
+        <p>
+          <strong>{pendingArchive?.title}</strong> akan ditutup dan hilang dari
+          direktori publik. Slot Public Challenge Anda kembali tersedia.
+        </p>
+        <p>
+          Token yang sudah dipakai untuk membuatnya tidak dikembalikan, dan
+          tindakan ini tidak dapat dibatalkan sendiri.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

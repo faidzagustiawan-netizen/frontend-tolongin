@@ -3,22 +3,34 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { challengesService, CreateChallengePayload } from '@/services/challenges.service';
 import { submissionsService } from '@/services/submissions.service';
-import { getPlan } from '@/lib/plans';
+import { getPlan, subscriptionLimitsEnforced } from '@/lib/plans';
 import { Button } from '@/components/common/Button';
 import { Textarea } from '@/components/common/Input';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info, Lock } from 'lucide-react';
+import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info, Lock, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from './components/ManualBuilder';
 import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
 import { aiDraftKey, clearDraft, manualDraftKey, readDraft, writeDraft } from '@/lib/challengeDraftStorage';
+
+/** Keadaan awal formulir manual, dipakai juga saat pengguna membuang drafnya. */
+const EMPTY_MANUAL_DATA: CreateChallengePayload = {
+  title: '',
+  summary: '',
+  description: '',
+  category: 'FRONTEND',
+  difficulty: 'INTERMEDIATE',
+  sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
+};
+
 export default function CreateChallengePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loadUserFromStorage, isAuthenticated, isHydrated } = useUserStore();
   const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'MANUAL' | 'AI'>('TEMPLATES');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,12 +39,19 @@ export default function CreateChallengePage() {
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [cloningTemplateId, setCloningTemplateId] = useState<string | null>(null);
   const [isAssetWarningOpen, setIsAssetWarningOpen] = useState(false);
+  const [isDiscardOpen, setIsDiscardOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const isCompany = user?.role === 'COMPANY';
   const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
-  const isAiLocked = false; // DEV_MODE: isCompany && user?.profile?.subscriptionTier === 'STARTUP';
+  // Batas paket mati secara bawaan selama pengembangan; lihat
+  // `subscriptionLimitsEnforced` di lib/plans.ts. Aturannya tetap utuh di sini
+  // supaya menyalakannya kembali cukup lewat satu variabel environment.
+  const isAiLocked =
+    subscriptionLimitsEnforced() &&
+    isCompany &&
+    user?.profile?.subscriptionTier === 'STARTUP';
 
   // Kuota dihitung dari DRAFT + PUBLISHED, sama persis dengan
   // assertCompanyQuota di backend.
@@ -45,11 +64,11 @@ export default function CreateChallengePage() {
   const quotaUsed = (statsData?.data ?? []).filter(
     (c: any) => c.status === 'DRAFT' || c.status === 'PUBLISHED',
   ).length;
-  const isQuotaFull = false;
-  // DEV_MODE: 
-  //   isCompany &&
-  //   plan.activeChallengeQuota !== null &&
-  //   quotaUsed >= plan.activeChallengeQuota;
+  const isQuotaFull =
+    subscriptionLimitsEnforced() &&
+    isCompany &&
+    plan.activeChallengeQuota !== null &&
+    quotaUsed >= plan.activeChallengeQuota;
 
   const loadTemplates = React.useCallback(async () => {
     setIsLoadingTemplates(true);
@@ -115,14 +134,7 @@ export default function CreateChallengePage() {
   const [refinementPrompt, setRefinementPrompt] = useState('');
 
   // States for Manual Form
-  const [manualData, setManualData] = useState<CreateChallengePayload>({
-    title: '',
-    summary: '',
-    description: '',
-    category: 'FRONTEND',
-    difficulty: 'INTERMEDIATE',
-    sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
-  });
+  const [manualData, setManualData] = useState<CreateChallengePayload>(EMPTY_MANUAL_DATA);
 
   // Draf disimpan per pengguna. Sebelum identitas diketahui tidak ada yang
   // dimuat maupun ditulis, supaya pekerjaan satu akun tidak pernah mendarat di
@@ -130,11 +142,25 @@ export default function CreateChallengePage() {
   const draftOwnerId = user?.id ?? null;
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
 
+  const hasLocalDraft =
+    !!manualData.title ||
+    !!manualData.summary ||
+    !!manualData.description ||
+    !!manualData.id;
+
   useEffect(() => {
     if (!draftOwnerId) return;
 
     const savedData = readDraft<CreateChallengePayload>(manualDraftKey(draftOwnerId));
-    if (savedData) setManualData(savedData);
+    // Draf yang menunjuk studi kasus yang sudah terbit atau diarsipkan dibuang
+    // begitu saja. Menyalin template menaruh `id` di dalam draf; bila studi
+    // kasus itu kemudian diterbitkan dari layar lain, memulihkannya di sini
+    // hanya menjebak pengguna di mode baca-saja tanpa jalan keluar.
+    if (savedData && (savedData.status === 'PUBLISHED' || savedData.status === 'CLOSED')) {
+      clearDraft(manualDraftKey(draftOwnerId));
+    } else if (savedData) {
+      setManualData(savedData);
+    }
 
     const savedAiState = readDraft<any>(aiDraftKey(draftOwnerId));
     if (savedAiState) {
@@ -281,18 +307,40 @@ export default function CreateChallengePage() {
       // Draf lokal dibuang lalu langsung berpindah. Jeda dua detik sebelumnya
       // hanya menahan pengguna di layar yang pekerjaannya sudah selesai.
       if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+      // Hitungan kuota berasal dari cache React Query; tanpa disegarkan,
+      // spanduk "kuota penuh" masih memakai angka sebelum penyimpanan ini.
+      void queryClient.invalidateQueries({ queryKey: ['challenge-stats'] });
       toast.success(
         status === 'DRAFT'
           ? 'Draf berhasil disimpan.'
           : 'Studi kasus berhasil dipublikasikan.',
       );
-      router.push('/challenges/mine');
+      // /challenges/mine khusus talenta dan memantulkan akun perusahaan ke
+      // dasbor. Mengirim semua orang ke sana membuat perusahaan mental dua
+      // kali setelah menekan Publikasikan.
+      router.push(isCompany ? '/' : '/challenges/mine');
       return;
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  /**
+   * Membuang draf lokal dan mengembalikan formulir ke keadaan kosong.
+   *
+   * Tanpa ini pekerjaan yang sudah dimulai tidak punya jalan keluar: draf
+   * dipulihkan otomatis setiap kali halaman dibuka, termasuk salinan template
+   * yang ternyata tidak jadi dipakai.
+   */
+  const handleDiscardDraft = () => {
+    if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+    setManualData(EMPTY_MANUAL_DATA);
+    setIsDiscardOpen(false);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    toast.success('Draf lokal dibuang. Formulir dikosongkan.');
   };
 
   // Pembajakan tombol Enter dihapus.
@@ -474,7 +522,7 @@ export default function CreateChallengePage() {
           <div className="space-y-3">
             <p className="text-sm font-medium leading-relaxed">{successMsg}</p>
             <Link
-              href="/challenges/mine"
+              href={isCompany ? '/' : '/challenges/mine'}
               className="inline-block text-sm font-bold underline underline-offset-4"
             >
               Buka daftar studi kasus saya
@@ -670,7 +718,7 @@ export default function CreateChallengePage() {
                           <p className="text-foreground text-sm mt-2 leading-relaxed opacity-90">
                             Anda memiliki dua opsi: <br/>
                             1. Jelaskan struktur kolom/data Anda di kotak revisi di bawah agar AI dapat memahami konteksnya.<br/>
-                            2. Lanjutkan tanpa merevisi, tetapi pastikan Anda mengunggah URL Dataset tersebut di pengaturan Lanjutan (Mode Manual) sebelum mempublikasikan studi kasus ini.
+                            2. Lanjutkan tanpa merevisi, tetapi pastikan Anda mengisi tautannya di bagian <strong>Aset &amp; Sumber Daya</strong> pada langkah Informasi Umum sebelum mempublikasikan studi kasus ini.
                           </p>
                         </div>
                       )}
@@ -752,8 +800,24 @@ export default function CreateChallengePage() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <ManualBuilder 
-              manualData={manualData} 
+            {hasLocalDraft && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border rounded-2xl px-5 py-4">
+                <p className="text-xs text-muted-foreground">
+                  Pekerjaan Anda tersimpan otomatis di peramban ini dan dipulihkan
+                  setiap kali halaman dibuka.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDiscardOpen(true)}
+                  className="flex-shrink-0"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Buang draf & mulai baru
+                </Button>
+              </div>
+            )}
+            <ManualBuilder
+              manualData={manualData}
               setManualData={setManualData}
               handleManualSubmit={handleManualSubmit}
               isSubmitting={isSubmitting}
@@ -783,6 +847,24 @@ export default function CreateChallengePage() {
           Tanpa rincian aset atau strukturnya, soal yang dihasilkan besar
           kemungkinan meleset dari yang Anda maksud. Anda bisa kembali dan
           menjelaskannya di kotak revisi.
+        </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={isDiscardOpen}
+        title="Buang draf lokal ini?"
+        confirmLabel="Ya, buang draf"
+        cancelLabel="Batal"
+        onCancel={() => setIsDiscardOpen(false)}
+        onConfirm={handleDiscardDraft}
+      >
+        <p>
+          Seluruh isi formulir manual akan dikosongkan dan salinan otomatis di
+          peramban ini dihapus.
+        </p>
+        <p>
+          Studi kasus yang sudah tersimpan di server — draf maupun yang sudah
+          terbit — tidak ikut terhapus.
         </p>
       </ConfirmDialog>
     </div>

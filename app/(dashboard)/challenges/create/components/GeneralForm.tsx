@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ShieldAlert, Plus, Trash2, PieChart } from 'lucide-react';
+import { ShieldAlert, Plus, Trash2, PieChart, Paperclip } from 'lucide-react';
 import { Input, Textarea } from '@/components/common/Input';
 import { DateTimePicker } from '@/components/common/DateTimePicker';
 import { CreateChallengePayload } from '@/services/challenges.service';
@@ -115,15 +115,29 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
         </div>
       </div>
 
-      <div className="w-full md:w-1/2">
-        <DateTimePicker
-          label="Batas Akhir / Deadline Global"
-          value={manualData.deadlineAt}
-          onChange={(isoString) => setManualData({ ...manualData, deadlineAt: isoString })}
-          placeholder="Tentukan batas akhir..."
-          required
-        />
-        <p className="text-xs text-muted-foreground mt-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tanggal mulai sebelumnya tidak punya input sama sekali, padahal
+            kolomnya ada di basis data dan backend menolak batas akhir yang
+            lebih awal daripadanya — aturan yang mustahil dipicu dari sini. */}
+        <div>
+          <DateTimePicker
+            label="Tanggal Mulai (Opsional)"
+            value={manualData.startsAt}
+            onChange={(isoString) => setManualData({ ...manualData, startsAt: isoString })}
+            placeholder="Mulai segera setelah terbit..."
+          />
+          <p className="text-xs text-muted-foreground mt-2">Kosongkan bila challenge langsung dibuka begitu diterbitkan.</p>
+        </div>
+        <div>
+          <DateTimePicker
+            label="Batas Akhir / Deadline Global"
+            value={manualData.deadlineAt}
+            onChange={(isoString) => setManualData({ ...manualData, deadlineAt: isoString })}
+            placeholder="Tentukan batas akhir..."
+            required
+          />
+          <p className="text-xs text-muted-foreground mt-2">Menentukan kapan challenge ini ditutup secara keseluruhan.</p>
+        </div>
       </div>
 
       <Textarea
@@ -143,6 +157,42 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
         rows={8}
         required
       />
+
+      {/* "Pengaturan Lanjutan" yang selama ini hanya disebut-sebut.
+          Peringatan aset dari blueprint AI menyuruh pengguna mengunggah URL
+          dataset "di pengaturan Lanjutan (Mode Manual)", tetapi tidak ada satu
+          pun input untuk ketiga kolom ini — instruksinya berakhir buntu. */}
+      <div className="pt-6 mt-8 border-t border-border">
+        <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+          <Paperclip className="w-5 h-5 text-cyan-500" />
+          Aset & Sumber Daya (Opsional)
+        </h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Tautan yang dibutuhkan kandidat untuk mengerjakan studi kasus ini.
+          Wajib diisi bila AI menandai studi kasus Anda membutuhkan aset eksternal.
+        </p>
+
+        <div className="space-y-6">
+          <Input
+            label="URL Dataset"
+            placeholder="https://drive.google.com/... atau tautan CSV/JSON publik"
+            value={manualData.datasetUrl || ''}
+            onChange={(e) => setManualData({ ...manualData, datasetUrl: e.target.value })}
+          />
+          <Input
+            label="URL Mock API"
+            placeholder="https://api.contoh.com/mock atau koleksi Postman"
+            value={manualData.mockApiUrl || ''}
+            onChange={(e) => setManualData({ ...manualData, mockApiUrl: e.target.value })}
+          />
+          <Input
+            label="URL Panduan Merek / Desain"
+            placeholder="https://figma.com/file/... atau tautan brand guideline"
+            value={manualData.brandGuidelineUrl || ''}
+            onChange={(e) => setManualData({ ...manualData, brandGuidelineUrl: e.target.value })}
+          />
+        </div>
+      </div>
 
       <div className="pt-6 mt-8 border-t border-border">
         <div className="flex items-center justify-between mb-1">

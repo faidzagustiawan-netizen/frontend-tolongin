@@ -37,15 +37,53 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
     if (!isFirstStep) setActiveTab(tabs[currentTabIndex - 1].id as Tab);
   };
 
+  // Backend menolak penyuntingan untuk PUBLISHED maupun CLOSED. Sebelumnya
+  // hanya PUBLISHED yang dikunci di sini, sehingga studi kasus yang sudah
+  // diarsipkan tetap menawarkan tombol simpan yang pasti berakhir 403.
   const isPublished = manualData.status === 'PUBLISHED';
+  const isClosed = manualData.status === 'CLOSED';
+  const isLocked = isPublished || isClosed;
+
+  // Rubrik holistik hanya berlaku ketika tidak ada soal berpoin; di situ
+  // backend mewajibkan totalnya 100%. Diperiksa di sini juga supaya penolakan
+  // tidak baru datang setelah seluruh formulir panjang selesai diisi.
+  const totalComponents = (manualData.sections || []).reduce(
+    (acc, sec) => acc + (sec.components?.length || 0),
+    0,
+  );
+  const rubricWeights = Object.entries(manualData.gradingRubric || {}).filter(
+    ([key]) =>
+      !['proctoringSettings', 'customOutputs', 'durationHours', 'requireProctoring'].includes(key),
+  );
+  const rubricTotal = rubricWeights.reduce(
+    (acc, [, value]) => acc + (Number(value) || 0),
+    0,
+  );
+  const rubricBlocksPublish =
+    totalComponents === 0 && rubricWeights.length > 0 && rubricTotal !== 100;
+
+  const missingBasics =
+    !manualData.title || !manualData.summary || !manualData.description;
+  const hasSection = (manualData.sections || []).length > 0;
+
+  const publishBlockReason = missingBasics
+    ? 'Judul, Ringkasan, dan Deskripsi wajib diisi.'
+    : !hasSection
+      ? 'Tambahkan minimal satu tahap sebelum menerbitkan.'
+      : rubricBlocksPublish
+        ? `Total bobot rubrik harus 100%, saat ini ${rubricTotal}%.`
+        : null;
 
   return (
     <div className="flex flex-col gap-6">
-      {isPublished && (
+      {isLocked && (
         <div className="bg-amber-500/10 border border-amber-500/50 rounded-xl p-4 flex items-start gap-3 shadow-sm">
           <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="text-amber-400 text-sm leading-relaxed">
-            <strong>Mode Baca-Saja (Read-Only)</strong>: Studi kasus ini telah dipublikasikan. Anda dapat melihat dan mereview seluruh strukturnya, namun Anda tidak dapat lagi mengubah atau menyimpannya.
+            <strong>Mode Baca-Saja (Read-Only)</strong>:{' '}
+            {isClosed
+              ? 'Studi kasus ini sudah diarsipkan. Anda masih dapat meninjau strukturnya, namun tidak dapat mengubah atau menyimpannya.'
+              : 'Studi kasus ini telah dipublikasikan. Anda dapat melihat dan mereview seluruh strukturnya, namun Anda tidak dapat lagi mengubah atau menyimpannya.'}
           </div>
         </div>
       )}
@@ -131,30 +169,47 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
                 </div>
               </div>
 
-              {!isPublished && (
-                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
-                  <Button
-                    type="button"
-                    onClick={() => handleManualSubmit('DRAFT')}
-                    isLoading={isSubmitting}
-                    disabled={!manualData.title || !manualData.summary || !manualData.description}
-                    variant="secondary"
-                    className="w-full sm:w-auto px-8 py-3 font-bold bg-background border border-border hover:border-foreground/20"
-                  >
-                    <Save className="h-5 w-5 mr-2" /> Simpan ke Draf
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleManualSubmit('PUBLISHED')}
-                    isLoading={isSubmitting}
-                    disabled={!manualData.title || !manualData.summary || !manualData.description}
-                    className="w-full sm:w-auto px-8 py-3 font-bold bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20"
-                  >
-                    <CheckCircle2 className="h-5 w-5 mr-2" /> Publikasikan Sekarang
-                  </Button>
+              {!isLocked && (
+                <div className="space-y-4">
+                  {/* Alasan penolakan disebut di layar, bukan hanya disiratkan
+                      lewat tombol mati. Sebelumnya tombol Publikasikan tetap
+                      hidup dan galatnya baru datang dari backend. */}
+                  {publishBlockReason && (
+                    <div
+                      role="status"
+                      className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3"
+                    >
+                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-500 leading-relaxed">
+                        Belum bisa diterbitkan: {publishBlockReason}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                    <Button
+                      type="button"
+                      onClick={() => handleManualSubmit('DRAFT')}
+                      isLoading={isSubmitting}
+                      disabled={missingBasics}
+                      variant="secondary"
+                      className="w-full sm:w-auto px-8 py-3 font-bold bg-background border border-border hover:border-foreground/20"
+                    >
+                      <Save className="h-5 w-5 mr-2" /> Simpan ke Draf
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => handleManualSubmit('PUBLISHED')}
+                      isLoading={isSubmitting}
+                      disabled={!!publishBlockReason}
+                      className="w-full sm:w-auto px-8 py-3 font-bold bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/20"
+                    >
+                      <CheckCircle2 className="h-5 w-5 mr-2" /> Publikasikan Sekarang
+                    </Button>
+                  </div>
                 </div>
               )}
-              {isPublished && (
+              {isLocked && (
                 <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
                   <Button
                     type="button"
@@ -162,7 +217,7 @@ export default function ManualBuilder({ manualData, setManualData, handleManualS
                     variant="secondary"
                     className="w-full sm:w-auto px-8 py-3 font-bold opacity-50 cursor-not-allowed"
                   >
-                    Tantangan Telah Dipublikasi
+                    {isClosed ? 'Tantangan Telah Diarsipkan' : 'Tantangan Telah Dipublikasi'}
                   </Button>
                 </div>
               )}
