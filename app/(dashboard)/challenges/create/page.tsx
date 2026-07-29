@@ -306,7 +306,17 @@ export default function CreateChallengePage() {
       // Pengalihan tidak lagi dipaksakan lewat setTimeout. Menunggu tiga detik
       // tanpa cara melewatinya membuat pesan sukses terasa seperti aplikasi
       // yang menggantung; sekarang pesannya menyediakan tautannya sendiri.
-      if (draftOwnerId) clearDraft(aiDraftKey(draftOwnerId));
+      // Sama seperti penyimpanan manual: pekerjaannya sudah diserahkan, jadi
+      // konteks pembukanya ikut ditutup supaya kunjungan berikutnya mulai
+      // bersih, bukan melanjutkan peran yang barusan selesai.
+      if (draftOwnerId) {
+        clearDraft(aiDraftKey(draftOwnerId));
+        clearDraft(contextDraftKey(draftOwnerId));
+      }
+      setAiPrompt('');
+      setAiBlueprint(null);
+      setContext(EMPTY_CONTEXT);
+      setPhase('CONTEXT');
       setIsSubmitting(false);
       return;
     } catch (err: any) {
@@ -341,9 +351,25 @@ export default function CreateChallengePage() {
         await challengesService.create(payload);
       }
       
-      // Draf lokal dibuang lalu langsung berpindah. Jeda dua detik sebelumnya
-      // hanya menahan pengguna di layar yang pekerjaannya sudah selesai.
-      if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+      // Seluruh draf lokal dibuang, bukan hanya formulirnya.
+      //
+      // Konteks pembuka dan keadaan AI dulu tertinggal, sehingga membuka
+      // /challenges/create berikutnya langsung mendarat di langkah "Cara
+      // membuat" dengan peran yang dicari dari studi kasus yang barusan
+      // selesai — seolah pekerjaan lama belum ditutup.
+      if (draftOwnerId) {
+        clearDraft(manualDraftKey(draftOwnerId));
+        clearDraft(contextDraftKey(draftOwnerId));
+        clearDraft(aiDraftKey(draftOwnerId));
+      }
+      // State ikut dikosongkan, bukan hanya localStorage. Efek autosave
+      // menulis ulang setiap kali state berubah, jadi membersihkan kuncinya
+      // saja akan langsung tertimpa oleh isi formulir yang barusan dikirim.
+      setManualData(EMPTY_MANUAL_DATA);
+      setContext(EMPTY_CONTEXT);
+      setAiPrompt('');
+      setAiBlueprint(null);
+      setPhase('CONTEXT');
       // Hitungan kuota berasal dari cache React Query; tanpa disegarkan,
       // spanduk "kuota penuh" masih memakai angka sebelum penyimpanan ini.
       void queryClient.invalidateQueries({ queryKey: ['challenge-stats'] });

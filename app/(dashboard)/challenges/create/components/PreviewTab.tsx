@@ -9,10 +9,13 @@ const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loadi
 
 interface PreviewTabProps {
   manualData: CreateChallengePayload;
+  /** Kembali ke penyuntingan soal. */
   onClose: () => void;
+  /** Pratinjau dianggap sesuai; langsung ke langkah publikasi. */
+  onApprove: () => void;
 }
 
-export default function PreviewTab({ manualData, onClose }: PreviewTabProps) {
+export default function PreviewTab({ manualData, onClose, onApprove }: PreviewTabProps) {
   // null means showing timeline/dashboard. Otherwise showing active stage index.
   const [activeStageIdx, setActiveStageIdx] = useState<number | null>(null);
   
@@ -442,12 +445,27 @@ export default function PreviewTab({ manualData, onClose }: PreviewTabProps) {
             Mode Preview
           </span>
         </div>
-        <button 
-          onClick={onClose}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm transition-colors shadow-lg shadow-red-500/20"
-        >
-          Tutup Preview
-        </button>
+        {/* Dua jalan keluar, bukan satu. Sebelumnya pratinjau hanya bisa
+            ditutup kembali ke tempat asal, sehingga meninjau lalu menerbitkan
+            berarti mencari sendiri langkah publikasi di stepper. */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-border text-muted-foreground hover:text-foreground font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+          >
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            Kembali ke Tahapan &amp; Soal
+          </button>
+          <button
+            type="button"
+            onClick={onApprove}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-lg text-sm transition-colors shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+            Sudah Sesuai, Lanjut Publikasi
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}
