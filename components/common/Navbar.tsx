@@ -188,12 +188,14 @@ export const Navbar = () => {
   // adalah pekerjaan utama seorang rekruter, tetapi sebelumnya hanya bisa
   // dicapai lewat tombol di dalam dasbor atau menu di balik foto profil —
   // sementara menu tetapnya berisi direktori sesama perusahaan.
+  const isCompanyOwner = user?.role === 'COMPANY' && !user?.profile?.isTeamMember;
+
   const companyNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },
     { name: 'Kandidat', href: '/company/submissions', icon: ClipboardList },
     { name: 'Buat Studi Kasus', href: '/challenges/create', icon: Briefcase },
     { name: 'Cari Talenta', href: '/talents', icon: UserSearch },
-    { name: 'Kelola Tim', href: '/company/team', icon: Users },
+    ...(isCompanyOwner ? [{ name: 'Kelola Tim', href: '/company/team', icon: Users }] : []),
   ];
 
   const adminNavLinks = [
@@ -386,7 +388,9 @@ export const Navbar = () => {
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-medium text-foreground max-w-[120px] truncate">{(user?.profile as any)?.fullName || (user?.profile as any)?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
-                      <p className="text-[10px] text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
+                      <p className="text-[10px] text-emerald-400 font-semibold capitalize">
+                        {user?.role === 'COMPANY' ? (user?.profile?.isTeamMember ? 'Anggota Tim' : 'Company Owner') : user?.role?.toLowerCase()}
+                      </p>
                     </div>
                   </button>
 
@@ -420,7 +424,7 @@ export const Navbar = () => {
                             <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{tokenBalance} Token</span>
                           </Link>
                         )}
-                        {user?.role === 'COMPANY' && (
+                        {isCompanyOwner && (
                           <>
                             <Link
                               href="/company/billing"
@@ -554,7 +558,9 @@ export const Navbar = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{(user?.profile as any)?.fullName || (user?.profile as any)?.companyName || user?.fullName || user?.email?.split('@')[0]}</p>
-                        <p className="text-xs text-emerald-400 font-semibold capitalize">{user?.role?.toLowerCase()}</p>
+                        <p className="text-xs text-emerald-400 font-semibold capitalize">
+                          {user?.role === 'COMPANY' ? (user?.profile?.isTeamMember ? 'Anggota Tim' : 'Company Owner') : user?.role?.toLowerCase()}
+                        </p>
                       </div>
                     </div>
                     <div className="p-2 rounded-lg text-muted-foreground">
@@ -594,7 +600,7 @@ export const Navbar = () => {
                             <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{tokenBalance} Token</span>
                           </Link>
                         )}
-                        {user?.role === 'COMPANY' && (
+                        {isCompanyOwner && (
                           <>
                             <Link
                               href="/company/billing"

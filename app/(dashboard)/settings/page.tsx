@@ -51,6 +51,8 @@ export default function ProfilePage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  const isCompanyOwner = user?.role === 'COMPANY' && !user?.profile?.isTeamMember;
+
   // Legalitas bisnis (KYB).
   const [kybEntityName, setKybEntityName] = useState('');
   const [kybNumber, setKybNumber] = useState('');
@@ -294,23 +296,29 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {!isEditingProfile ? (
-                  <Button size="sm" variant="outline" onClick={handleStartEditCompany}>
-                    Edit Profil
-                  </Button>
+                {isCompanyOwner ? (
+                  !isEditingProfile ? (
+                    <Button size="sm" variant="outline" onClick={handleStartEditCompany}>
+                      Edit Profil
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingProfile(false)}
+                        disabled={isSavingProfile}
+                      >
+                        Batal
+                      </Button>
+                      <Button size="sm" onClick={handleSaveCompany} isLoading={isSavingProfile}>
+                        Simpan
+                      </Button>
+                    </div>
+                  )
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setIsEditingProfile(false)}
-                      disabled={isSavingProfile}
-                    >
-                      Batal
-                    </Button>
-                    <Button size="sm" onClick={handleSaveCompany} isLoading={isSavingProfile}>
-                      Simpan
-                    </Button>
+                  <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-medium border border-amber-500/20">
+                    Mode Anggota (Hanya Baca)
                   </div>
                 )}
               </div>

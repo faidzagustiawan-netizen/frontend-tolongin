@@ -61,7 +61,7 @@ export function CompanyWorkspaceDashboard({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const { user } = useUserStore();
 
-  const isCompanyAdmin = !user?.profile?.isTeamMember || user?.profile?.memberRole === 'ADMIN' || user?.profile?.memberRole === 'OWNER';
+  const isCompanyOwner = !user?.profile?.isTeamMember;
 
   const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
 
@@ -328,7 +328,7 @@ export function CompanyWorkspaceDashboard({
               </p>
             </div>
           </div>
-            {isCompanyAdmin && (
+            {isCompanyOwner && (
               <Link href="/company/billing" className="flex-shrink-0">
                 <Button size="sm" className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4" /> Lihat Paket

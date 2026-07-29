@@ -107,7 +107,7 @@ export default function TeamWorkspacePage() {
   const hasActiveInvite = !!rawInviteCode && !isInviteExpired;
   const inviteCode = hasActiveInvite ? rawInviteCode : 'Belum ada kode aktif';
 
-  const isCompanyAdmin = !user?.profile?.isTeamMember || user?.profile?.memberRole === 'ADMIN' || user?.profile?.memberRole === 'OWNER';
+  const isCompanyOwner = !user?.profile?.isTeamMember;
 
   const copyToClipboard = () => {
     if (hasActiveInvite) {
@@ -190,7 +190,7 @@ export default function TeamWorkspacePage() {
         </div>
         
         {/* INVITE CODE CARD */}
-        {isCompanyAdmin && (
+        {isCompanyOwner && (
           <Card className="p-4 flex items-center gap-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/20 shadow-emerald-500/5">
             <div className="p-2.5 bg-emerald-500/20 text-emerald-600 rounded-xl">
               <Key size={20} />
@@ -322,7 +322,7 @@ export default function TeamWorkspacePage() {
                           {new Date(member.joinedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {member.status === 'PENDING' && isCompanyAdmin && (
+                          {member.status === 'PENDING' && isCompanyOwner && (
                             <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"
