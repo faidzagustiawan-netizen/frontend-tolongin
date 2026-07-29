@@ -32,7 +32,7 @@ export default function CreateChallengePage() {
 
   const isCompany = user?.role === 'COMPANY';
   const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
-  const isAiLocked = isCompany && user?.profile?.subscriptionTier === 'STARTUP';
+  const isAiLocked = false; // DEV_MODE: isCompany && user?.profile?.subscriptionTier === 'STARTUP';
 
   // Kuota dihitung dari DRAFT + PUBLISHED, sama persis dengan
   // assertCompanyQuota di backend.
@@ -45,10 +45,11 @@ export default function CreateChallengePage() {
   const quotaUsed = (statsData?.data ?? []).filter(
     (c: any) => c.status === 'DRAFT' || c.status === 'PUBLISHED',
   ).length;
-  const isQuotaFull =
-    isCompany &&
-    plan.activeChallengeQuota !== null &&
-    quotaUsed >= plan.activeChallengeQuota;
+  const isQuotaFull = false;
+  // DEV_MODE: 
+  //   isCompany &&
+  //   plan.activeChallengeQuota !== null &&
+  //   quotaUsed >= plan.activeChallengeQuota;
 
   const loadTemplates = React.useCallback(async () => {
     setIsLoadingTemplates(true);
