@@ -12,11 +12,26 @@ import { getPlan, subscriptionLimitsEnforced } from '@/lib/plans';
 import { Button } from '@/components/common/Button';
 import { Textarea } from '@/components/common/Input';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info, Lock, Trash2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertCircle, ArrowLeft, Info, Lock, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from './components/ManualBuilder';
+import ContextForm from './components/ContextForm';
+import PathPicker from './components/PathPicker';
+import {
+  CATEGORY_SHORT_LABELS,
+  DIFFICULTY_SHORT_LABELS,
+  ChallengeContext,
+  EMPTY_CONTEXT,
+} from './components/options';
 import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
-import { aiDraftKey, clearDraft, manualDraftKey, readDraft, writeDraft } from '@/lib/challengeDraftStorage';
+import {
+  aiDraftKey,
+  clearDraft,
+  contextDraftKey,
+  manualDraftKey,
+  readDraft,
+  writeDraft,
+} from '@/lib/challengeDraftStorage';
 
 /** Keadaan awal formulir manual, dipakai juga saat pengguna membuang drafnya. */
 const EMPTY_MANUAL_DATA: CreateChallengePayload = {
@@ -28,16 +43,33 @@ const EMPTY_MANUAL_DATA: CreateChallengePayload = {
   sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
 };
 
+/**
+ * Urutan layar pembuatan.
+ *
+ * CONTEXT menanyakan apa yang dicari, PATH menawarkan cara membuatnya dengan
+ * konteks itu sudah terpasang, lalu MANUAL atau AI mengerjakannya. Sebelumnya
+ * tidak ada CONTEXT sama sekali: halaman langsung meminta pengguna memilih
+ * salah satu dari tiga tab sebelum ada dasar untuk memilih.
+ */
+type Phase = 'CONTEXT' | 'PATH' | 'MANUAL' | 'AI';
+
+const STEP_LABELS = ['Konteks', 'Cara membuat', 'Penyusunan'];
+
+/** MANUAL dan AI sama-sama langkah ketiga; keduanya cara menyusun isi. */
+const PHASE_STEP_INDEX: Record<Phase, number> = {
+  CONTEXT: 0,
+  PATH: 1,
+  MANUAL: 2,
+  AI: 2,
+};
+
 export default function CreateChallengePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, loadUserFromStorage, isAuthenticated, isHydrated } = useUserStore();
-  const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'MANUAL' | 'AI'>('TEMPLATES');
+  const [phase, setPhase] = useState<Phase>('CONTEXT');
+  const [context, setContext] = useState<ChallengeContext>(EMPTY_CONTEXT);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
-  const [templatesError, setTemplatesError] = useState<string | null>(null);
-  const [cloningTemplateId, setCloningTemplateId] = useState<string | null>(null);
   const [isAssetWarningOpen, setIsAssetWarningOpen] = useState(false);
   const [isDiscardOpen, setIsDiscardOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -70,50 +102,22 @@ export default function CreateChallengePage() {
     plan.activeChallengeQuota !== null &&
     quotaUsed >= plan.activeChallengeQuota;
 
-  const loadTemplates = React.useCallback(async () => {
-    setIsLoadingTemplates(true);
-    setTemplatesError(null);
-    try {
-      setTemplates(await challengesService.getTemplates());
-    } catch (err: any) {
-      // Kegagalan permintaan tidak lagi menyamar sebagai "belum ada template".
-      setTemplatesError(
-        err?.message || 'Gagal memuat pustaka template. Periksa koneksi Anda.',
-      );
-    } finally {
-      setIsLoadingTemplates(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadTemplates();
-  }, [loadTemplates]);
-
-  const handleCloneTemplate = async (templateId: string) => {
-    if (!isAuthenticated) return;
-    setCloningTemplateId(templateId);
-    try {
-      const data = await challengesService.cloneTemplate(templateId);
-
-      setSuccessMsg('Template berhasil disalin. Anda dapat menyesuaikannya sekarang.');
-      // Load the cloned challenge into manual builder
-      setManualData({
-        id: data.id,
-        title: data.title,
-        summary: data.summary,
-        description: data.description,
-        category: data.category,
-        difficulty: data.difficulty,
-        sections: data.sections || [],
-        gradingRubric: data.gradingRubric,
-        status: data.status,
-      });
-      setActiveTab('MANUAL');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menduplikasi template.');
-    } finally {
-      setCloningTemplateId(null);
-    }
+  /**
+   * Membuka formulir manual dengan jawaban langkah konteks sudah terpasang.
+   * Judulnya diusulkan dari peran yang dicari — tetap bisa diubah, tetapi
+   * pengguna tidak lagi menghadapi formulir yang sepenuhnya kosong.
+   */
+  const handleChooseManual = () => {
+    setManualData((prev) => ({
+      ...prev,
+      title: prev.title || `Studi Kasus ${context.role}`,
+      category: context.category,
+      difficulty: context.difficulty,
+      deadlineAt: prev.deadlineAt ?? context.deadlineAt,
+    }));
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setPhase('MANUAL');
   };
 
   useEffect(() => {
@@ -126,12 +130,22 @@ export default function CreateChallengePage() {
     }
   }, [isHydrated, isAuthenticated, user, router]);
 
-  // States for AI Form
+  // States for AI Form.
+  //
+  // Kategori dan tingkat kesulitan tidak lagi punya state sendiri di sini:
+  // keduanya sudah dijawab di langkah konteks, dan menanyakannya ulang berarti
+  // dua sumber kebenaran yang bisa berbeda diam-diam.
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
-  const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('BEGINNER');
   const [aiBlueprint, setAiBlueprint] = useState<any>(null);
   const [refinementPrompt, setRefinementPrompt] = useState('');
+
+  /**
+   * Peran yang dicari disisipkan ke prompt karena endpoint blueprint hanya
+   * menerima prompt bebas beserta kategori dan level — tidak ada field
+   * tersendiri untuk posisi.
+   */
+  const buildAiPrompt = (instruction: string) =>
+    `Posisi yang dicari: ${context.role}.\n\n${instruction}`;
 
   // States for Manual Form
   const [manualData, setManualData] = useState<CreateChallengePayload>(EMPTY_MANUAL_DATA);
@@ -156,7 +170,10 @@ export default function CreateChallengePage() {
     // begitu saja. Menyalin template menaruh `id` di dalam draf; bila studi
     // kasus itu kemudian diterbitkan dari layar lain, memulihkannya di sini
     // hanya menjebak pengguna di mode baca-saja tanpa jalan keluar.
-    if (savedData && (savedData.status === 'PUBLISHED' || savedData.status === 'CLOSED')) {
+    const staleDraft =
+      savedData && (savedData.status === 'PUBLISHED' || savedData.status === 'CLOSED');
+
+    if (staleDraft) {
       clearDraft(manualDraftKey(draftOwnerId));
     } else if (savedData) {
       setManualData(savedData);
@@ -165,9 +182,26 @@ export default function CreateChallengePage() {
     const savedAiState = readDraft<any>(aiDraftKey(draftOwnerId));
     if (savedAiState) {
       if (savedAiState.aiPrompt) setAiPrompt(savedAiState.aiPrompt);
-      if (savedAiState.aiCategory) setAiCategory(savedAiState.aiCategory);
-      if (savedAiState.aiDifficulty) setAiDifficulty(savedAiState.aiDifficulty);
       if (savedAiState.aiBlueprint) setAiBlueprint(savedAiState.aiBlueprint);
+    }
+
+    const savedContext = readDraft<ChallengeContext>(contextDraftKey(draftOwnerId));
+    if (savedContext?.role) setContext({ ...EMPTY_CONTEXT, ...savedContext });
+
+    // Layar pembuka dipilih dari pekerjaan yang tertinggal, bukan selalu dari
+    // awal: yang sedang meninjau blueprint kembali ke layar AI, yang sudah
+    // mengisi formulir kembali ke formulirnya, dan yang baru menjawab konteks
+    // kembali ke daftar pilihan jalur.
+    const hasManualWork =
+      !staleDraft &&
+      !!(savedData?.title || savedData?.summary || savedData?.description || savedData?.id);
+
+    if (savedAiState?.aiBlueprint) {
+      setPhase('AI');
+    } else if (hasManualWork) {
+      setPhase('MANUAL');
+    } else if (savedContext?.role) {
+      setPhase('PATH');
     }
 
     setIsDraftLoaded(true);
@@ -180,13 +214,13 @@ export default function CreateChallengePage() {
 
   useEffect(() => {
     if (!draftOwnerId || !isDraftLoaded) return;
-    writeDraft(aiDraftKey(draftOwnerId), {
-      aiPrompt,
-      aiCategory,
-      aiDifficulty,
-      aiBlueprint,
-    });
-  }, [aiPrompt, aiCategory, aiDifficulty, aiBlueprint, draftOwnerId, isDraftLoaded]);
+    writeDraft(aiDraftKey(draftOwnerId), { aiPrompt, aiBlueprint });
+  }, [aiPrompt, aiBlueprint, draftOwnerId, isDraftLoaded]);
+
+  useEffect(() => {
+    if (!draftOwnerId || !isDraftLoaded) return;
+    writeDraft(contextDraftKey(draftOwnerId), context);
+  }, [context, draftOwnerId, isDraftLoaded]);
 
   const handleGenerateBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,9 +231,9 @@ export default function CreateChallengePage() {
 
     try {
       const res = await challengesService.generateAiBlueprint({
-        prompt: aiPrompt,
-        category: aiCategory,
-        difficulty: aiDifficulty,
+        prompt: buildAiPrompt(aiPrompt),
+        category: context.category,
+        difficulty: context.difficulty,
       });
       setAiBlueprint(res.data);
       setSuccessMsg('Blueprint kerangka soal berhasil dibuat. Silakan tinjau dan konfirmasi untuk melanjutkan.');
@@ -218,9 +252,9 @@ export default function CreateChallengePage() {
 
     try {
       const res = await challengesService.generateAiBlueprint({
-        prompt: refinementPrompt,
-        category: aiCategory,
-        difficulty: aiDifficulty,
+        prompt: buildAiPrompt(refinementPrompt),
+        category: context.category,
+        difficulty: context.difficulty,
         previousBlueprint: aiBlueprint
       });
       setAiBlueprint(res.data);
@@ -255,13 +289,16 @@ export default function CreateChallengePage() {
     setSuccessMsg(null);
 
     try {
-      const res = await challengesService.generateAi({
-        prompt: aiPrompt,
-        category: aiCategory,
-        difficulty: aiDifficulty,
+      await challengesService.generateAi({
+        prompt: buildAiPrompt(aiPrompt),
+        category: context.category,
+        difficulty: context.difficulty,
         blueprint: aiBlueprint,
       });
       setSuccessMsg('Proses generasi soal dan rubrik sedang berjalan di latar belakang. Anda akan menerima notifikasi begitu drafnya siap.');
+      // Draf hasil AI menempati satu slot kuota begitu dibuat, jadi hitungan
+      // di layar harus ikut disegarkan.
+      void queryClient.invalidateQueries({ queryKey: ['challenge-stats'] });
 
       // Bersihkan cache dan arahkan ke daftar challenge milik pengguna, tempat
       // draf hasil AI akan muncul begitu selesai diproses.
@@ -335,12 +372,35 @@ export default function CreateChallengePage() {
    * yang ternyata tidak jadi dipakai.
    */
   const handleDiscardDraft = () => {
-    if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+    if (draftOwnerId) {
+      clearDraft(manualDraftKey(draftOwnerId));
+      clearDraft(aiDraftKey(draftOwnerId));
+      clearDraft(contextDraftKey(draftOwnerId));
+    }
     setManualData(EMPTY_MANUAL_DATA);
+    setContext(EMPTY_CONTEXT);
+    setAiPrompt('');
+    setAiBlueprint(null);
     setIsDiscardOpen(false);
     setErrorMsg(null);
     setSuccessMsg(null);
-    toast.success('Draf lokal dibuang. Formulir dikosongkan.');
+    setPhase('CONTEXT');
+    toast.success('Draf lokal dibuang. Mulai lagi dari awal.');
+  };
+
+  const currentStepIndex = PHASE_STEP_INDEX[phase];
+
+  /**
+   * Penanda langkah bisa dipakai mundur, tidak maju.
+   *
+   * Melompat ke depan akan melewati jawaban yang menyeleksi template dan
+   * mengisi prompt AI, sehingga layar tujuannya kosong tanpa penjelasan.
+   */
+  const handleStepClick = (index: number) => {
+    if (index >= currentStepIndex) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setPhase(index === 0 ? 'CONTEXT' : 'PATH');
   };
 
   // Pembajakan tombol Enter dihapus.
@@ -411,76 +471,62 @@ export default function CreateChallengePage() {
           </h1>
 
           <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
-            Buat tantangan teknis atau bisnis untuk talenta. Anda dapat mendesain
-            secara manual atau membiarkan AI generatif kami merancang spesifikasi
-            dan rubrik secara otomatis.
+            Mulai dengan menyebutkan posisi yang Anda cari. Dari situ kami
+            tunjukkan template yang cocok, atau biarkan AI menyusunkan
+            kerangkanya — Anda tetap yang memutuskan.
           </p>
         </div>
 
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 bg-background p-2 rounded-2xl border border-border w-full sm:w-fit">
-        <button
-            onClick={() => setActiveTab('TEMPLATES')}
-            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
-              activeTab === 'TEMPLATES'
-            ? 'bg-primary text-white shadow-lg border border-primary'
-            : 'text-muted-foreground hover:text-foreground hover:bg-card'
-            }`}
-          >
-            <Briefcase className="h-4 w-4" />
-            <span>Template Library</span>
-          </button>
-        {/* Tab AI tidak lagi `disabled` dengan tooltip yang hanya muncul saat
-            disorot tetikus. Tombol `disabled` hilang dari urutan tab sehingga
-            pengguna keyboard tidak pernah tahu alasannya, dan tooltip hover
-            tidak pernah muncul di layar sentuh. Sekarang tombolnya tetap bisa
-            difokus dan menjelaskan sendiri apa yang harus dilakukan. */}
-        <button
-          onClick={() => {
-            if (isAiLocked) {
-              router.push('/company/billing');
-              return;
-            }
-            setActiveTab('AI');
-          }}
-          aria-describedby={isAiLocked ? 'ai-tab-lock-note' : undefined}
-          className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
-            activeTab === 'AI'
-              ? 'bg-primary text-white shadow-lg border border-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-card'
-          }`}
-        >
-          {isAiLocked ? (
-            <Lock className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-          )}
-          AI Auto-Generate
-          {isAiLocked && <span className="sr-only">— butuh paket Pro</span>}
-        </button>
-        <button
-            onClick={() => setActiveTab('MANUAL')}
-            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
-              activeTab === 'MANUAL'
-            ? 'bg-primary text-white shadow-lg border border-primary'
-            : 'text-muted-foreground hover:text-foreground hover:bg-card'
-            }`}
-          >
-            <PlusCircle className="h-4 w-4" aria-hidden="true" />
-            <span>Pembuatan Manual</span>
-          </button>
-      </div>
+      {/* Penanda langkah menggantikan bar tab.
+          Tab lama menyajikan tiga cara membuat sebagai pilihan sejajar yang
+          harus diambil sebelum apa pun diketahui. Sekarang urutannya
+          dinyatakan: konteks dulu, cara membuat kemudian, baru penyusunan. */}
+      <nav aria-label="Langkah pembuatan">
+        <ol className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm">
+          {STEP_LABELS.map((label, index) => {
+            const isCurrent = index === currentStepIndex;
+            const isDone = index < currentStepIndex;
 
-      {isAiLocked && (
-        <p id="ai-tab-lock-note" className="text-xs text-muted-foreground -mt-6">
-          AI Auto-Generate aktif mulai paket Pro.{' '}
-          <Link href="/company/billing" className="font-semibold text-success underline underline-offset-4">
-            Lihat paket
-          </Link>
-          .
-        </p>
-      )}
+            return (
+              <li key={label} className="flex items-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleStepClick(index)}
+                  disabled={index > currentStepIndex}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl font-bold transition-colors ${
+                    isCurrent
+                      ? 'bg-primary text-white'
+                      : isDone
+                        ? 'text-foreground hover:bg-foreground/5'
+                        : 'text-muted-foreground cursor-not-allowed'
+                  }`}
+                >
+                  <span
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
+                      isCurrent
+                        ? 'bg-white/20'
+                        : isDone
+                          ? 'bg-emerald-500/15 text-emerald-500'
+                          : 'bg-foreground/5'
+                    }`}
+                  >
+                    {isDone ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                  </span>
+                  {label}
+                </button>
+                {index < STEP_LABELS.length - 1 && (
+                  <span className="text-muted-foreground/40" aria-hidden="true">
+                    /
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       {/* Kuota diperiksa sebelum formulir dibuka, bukan setelah seluruh studi
           kasus selesai disusun lalu ditolak backend saat disimpan. */}
@@ -544,84 +590,37 @@ export default function CreateChallengePage() {
       )}
 
       <AnimatePresence mode="wait">
-        {activeTab === 'TEMPLATES' ? (
+        {phase === 'CONTEXT' ? (
           <motion.div
-            key="templates-view"
+            key="context-view"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {isLoadingTemplates ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground" aria-busy="true">
-                <Loader2 className="h-8 w-8 animate-spin mb-4" aria-hidden="true" />
-                <p>Memuat Role-Based Templates...</p>
-              </div>
-            ) : templatesError ? (
-              /* Permintaan yang gagal dibedakan dari pustaka yang memang
-                 kosong. Sebelumnya keduanya menampilkan kalimat yang sama. */
-              <div
-                role="alert"
-                className="col-span-full flex flex-col items-center justify-center py-12 bg-card rounded-2xl border border-danger/30 text-center px-6"
-              >
-                <AlertCircle className="h-12 w-12 mb-4 text-danger" aria-hidden="true" />
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Pustaka template gagal dimuat
-                </p>
-                <p className="text-xs text-muted-foreground mb-4 max-w-sm">{templatesError}</p>
-                <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
-                  Coba muat ulang
-                </Button>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground bg-card rounded-2xl border border-border">
-                <Briefcase className="h-12 w-12 mb-4 opacity-50" aria-hidden="true" />
-                <p>Belum ada template yang tersedia. Anda bisa menggunakan AI Auto-Generate.</p>
-              </div>
-            ) : (
-              templates.map((tpl) => (
-                <div key={tpl.id} className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/50 transition-all flex flex-col">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
-                      {tpl.category}
-                    </span>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {tpl.difficulty}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{tpl.templateRole || tpl.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-6 flex-grow">{tpl.summary}</p>
-                  
-                  <div className="space-y-4">
-                    <div className="text-xs space-y-2">
-                      <div className="flex items-center gap-2 text-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                        <span>Modul Teknis & Live Coding</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                        <span>Soft Skill & Situational Test</span>
-                      </div>
-                    </div>
-                    
-                    {/* Keadaan memuat dilekatkan pada template yang ditekan.
-                        Sebelumnya `isSubmitting` bersama membuat SELURUH tombol
-                        template berputar sekaligus. */}
-                    <Button
-                      onClick={() => handleCloneTemplate(tpl.id)}
-                      disabled={!!cloningTemplateId}
-                      isLoading={cloningTemplateId === tpl.id}
-                      className="w-full font-bold"
-                    >
-                      Gunakan Template Ini
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+            <ContextForm
+              context={context}
+              setContext={setContext}
+              onContinue={() => setPhase('PATH')}
+            />
           </motion.div>
-        ) : activeTab === 'AI' ? (
+        ) : phase === 'PATH' ? (
+          <motion.div
+            key="path-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <PathPicker
+              context={context}
+              isAiLocked={isAiLocked}
+              onEditContext={() => setPhase('CONTEXT')}
+              onChooseAi={() => setPhase('AI')}
+              onChooseManual={handleChooseManual}
+            />
+          </motion.div>
+        ) : phase === 'AI' ? (
           <motion.div
             key="ai-form"
             initial={{ opacity: 0, x: -20 }}
@@ -642,40 +641,34 @@ export default function CreateChallengePage() {
 
                   <Textarea
                     label="Prompt Kebutuhan Bisnis / Teknis"
-                    placeholder="Contoh: Buat studi kasus pengembangan landing page menggunakan React dan integrasi form ke webhook. Tampilannya harus modern dan responsif..."
+                    placeholder={`Contoh: kandidat ${context.role} harus membangun halaman pendaftaran dengan validasi dan integrasi ke webhook internal kami...`}
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     rows={5}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">Kategori Pekerjaan</label>
-                      <select
-                        value={aiCategory}
-                        onChange={(e) => setAiCategory(e.target.value as any)}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
-                      >
-                        <option value="FRONTEND">Frontend Development</option>
-                        <option value="BACKEND">Backend Development</option>
-                        <option value="UI_UX">UI/UX Design</option>
-                        <option value="DATA_SCIENCE">Data Science / ML</option>
-                        <option value="MARKETING">Digital Marketing</option>
-                        <option value="PRODUCT">Product Management</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">Tingkat Kesulitan</label>
-                      <select
-                        value={aiDifficulty}
-                        onChange={(e) => setAiDifficulty(e.target.value as any)}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
-                      >
-                        <option value="BEGINNER">Beginner (Pemanasan untuk pemula yang baru belajar)</option>
-                        <option value="INTERMEDIATE">Intermediate (Tantangan menengah, butuh pemahaman kuat)</option>
-                        <option value="ADVANCED">Advanced (Misi kompleks untuk penyelesaian masalah tingkat tinggi)</option>
-                      </select>
-                    </div>
+                  {/* Kategori dan tingkat kesulitan tidak ditanyakan ulang di
+                      sini — keduanya sudah dijawab di langkah konteks. Yang
+                      dikirim ke AI dinyatakan terbuka supaya tidak ada isi
+                      permintaan yang tersembunyi dari pengguna. */}
+                  <div className="bg-background border border-border rounded-2xl p-4 flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">AI akan menyusun untuk</span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
+                      {context.role}
+                    </span>
+                    <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
+                      {CATEGORY_SHORT_LABELS[context.category] ?? context.category}
+                    </span>
+                    <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
+                      {DIFFICULTY_SHORT_LABELS[context.difficulty] ?? context.difficulty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPhase('CONTEXT')}
+                      className="text-xs font-semibold text-primary underline underline-offset-4 ml-auto"
+                    >
+                      Ubah
+                    </button>
                   </div>
 
                   <div className="pt-6 border-t border-border">

@@ -28,6 +28,11 @@ export interface ComponentData {
   order?: number;
   options?: unknown;
   metadata?: unknown;
+  /**
+   * Jejak asal bila soal ini dipungut dari bank. Isinya sudah disalin ke
+   * kolom di atas — id ini hanya untuk menelusuri soal mana dipakai di mana.
+   */
+  sourceItemId?: string;
   [key: string]: unknown;
 }
 

@@ -63,6 +63,10 @@ const sanitizeComponent = (comp: ComponentData) => ({
   metadata: comp.metadata,
   points: comp.points,
   order: comp.order,
+  // Jejak asal soal yang dipungut dari bank. Harus ikut disebut di sini:
+  // payload disusun ulang secara eksplisit, jadi kolom yang tidak disalin
+  // hilang tanpa jejak.
+  sourceItemId: (comp as { sourceItemId?: string }).sourceItemId,
 });
 
 const sanitizeSection = (section: SectionPayload, idx: number) => ({
@@ -106,6 +110,10 @@ export const challengesService = {
     const { data } = await apiClient.patch(`/challenges/${id}`, sanitizePayload(payload));
     return { data };
   },
+  // getTemplates dan cloneTemplate dihapus bersama konsep templatenya.
+  // Satuan yang bisa dipakai ulang sekarang adalah satu soal di bank, bukan
+  // satu ujian utuh — lihat questionBank.service.ts.
+
   /**
    * Menutup studi kasus. Statusnya menjadi CLOSED dan slot kuota paket kembali
    * bebas — satu-satunya jalan pemilik melepas kuotanya sendiri, sebab studi
@@ -122,22 +130,6 @@ export const challengesService = {
   generateAi: async (payload: GenerateAiChallengePayload) => {
     const { data } = await apiClient.post('/challenges/ai-generate', payload);
     return { data };
-  },
-  /**
-   * Pustaka template studi kasus.
-   *
-   * Dulu dipanggil dengan `fetch` mentah langsung dari komponen halaman:
-   * tanpa header Authorization, tanpa penanganan 401, dan galatnya hanya
-   * masuk ke konsol sehingga layar menampilkan "belum ada template" padahal
-   * permintaannya yang gagal.
-   */
-  getTemplates: async () => {
-    const { data } = await apiClient.get('/templates');
-    return Array.isArray(data) ? data : [];
-  },
-  cloneTemplate: async (templateId: string) => {
-    const { data } = await apiClient.post(`/templates/${templateId}/clone`);
-    return data;
   },
   getDiscussions: async (challengeId: string) => {
     const { data } = await apiClient.get(`/challenges/${challengeId}/discussions`);

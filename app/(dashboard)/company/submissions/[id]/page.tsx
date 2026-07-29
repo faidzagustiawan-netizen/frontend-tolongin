@@ -32,6 +32,7 @@ import {
   Link2,
   Lock,
   Loader2,
+  Compass,
 } from 'lucide-react';
 
 export default function SubmissionDetailPage() {
@@ -364,6 +365,48 @@ export default function SubmissionDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Profil psikotes berdiri sendiri, di luar panel AI.
+              Skornya bukan "seberapa benar" melainkan kecenderungan, dan tidak
+              ikut menyusun nilai akhir — menaruhnya bersama skor AI akan
+              membuatnya terbaca sebagai nilai yang bisa lulus atau gagal. */}
+          {submission.psychometricProfile?.dimensions?.length > 0 && (
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Compass className="w-5 h-5 text-fuchsia-400" aria-hidden="true" />
+                <h2 className="text-lg font-bold text-foreground">Profil Psikotes</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-5">
+                Kecenderungan kandidat pada tiap dimensi, bukan nilai benar-salah.
+                Tidak dihitung ke dalam nilai akhir.
+              </p>
+
+              <div className="space-y-4">
+                {submission.psychometricProfile.dimensions.map((dimension: any) => (
+                  <div key={dimension.name}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-foreground">
+                        {dimension.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {dimension.score}/100 · {dimension.itemCount} soal
+                      </span>
+                    </div>
+                    <div
+                      className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden"
+                      role="img"
+                      aria-label={`${dimension.name}: ${dimension.score} dari 100`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-fuchsia-400"
+                        style={{ width: `${dimension.score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* AI Assessment (If Premium / Available) */}
           {submission.aiScore !== null ? (

@@ -3,6 +3,7 @@ import { ShieldAlert, Plus, Trash2, PieChart, Paperclip } from 'lucide-react';
 import { Input, Textarea } from '@/components/common/Input';
 import { DateTimePicker } from '@/components/common/DateTimePicker';
 import { CreateChallengePayload } from '@/services/challenges.service';
+import { CATEGORY_OPTIONS, DIFFICULTY_OPTIONS } from './options';
 
 interface GeneralFormProps {
   manualData: CreateChallengePayload;
@@ -90,12 +91,11 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
             className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
-            <option value="FRONTEND">Frontend Development</option>
-            <option value="BACKEND">Backend Development</option>
-            <option value="UI_UX">UI/UX Design</option>
-            <option value="DATA_SCIENCE">Data Science / ML</option>
-            <option value="MARKETING">Digital Marketing</option>
-            <option value="PRODUCT">Product Management</option>
+            {CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
         <div>
@@ -108,9 +108,11 @@ export default function GeneralForm({ manualData, setManualData }: GeneralFormPr
             className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
             required
           >
-            <option value="BEGINNER">Beginner (Pemanasan untuk pemula yang baru belajar)</option>
-            <option value="INTERMEDIATE">Intermediate (Tantangan menengah, butuh pemahaman kuat)</option>
-            <option value="ADVANCED">Advanced (Misi kompleks untuk penyelesaian masalah tingkat tinggi)</option>
+            {DIFFICULTY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

@@ -9,11 +9,21 @@
 
 const MANUAL_DRAFT_PREFIX = 'draftChallenge';
 const AI_DRAFT_PREFIX = 'aiDraftState';
+const CONTEXT_DRAFT_PREFIX = 'challengeContext';
 
 export const manualDraftKey = (userId: string) =>
   `${MANUAL_DRAFT_PREFIX}:${userId}`;
 
 export const aiDraftKey = (userId: string) => `${AI_DRAFT_PREFIX}:${userId}`;
+
+/**
+ * Konteks pembuka (posisi, kategori, level, deadline) yang diisi sebelum
+ * pengguna memilih cara membuat. Disimpan terpisah supaya membuang draf
+ * formulir tidak ikut menghapus jawaban yang menyeleksi template dan mengisi
+ * prompt AI.
+ */
+export const contextDraftKey = (userId: string) =>
+  `${CONTEXT_DRAFT_PREFIX}:${userId}`;
 
 export function readDraft<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
@@ -54,7 +64,8 @@ export function clearAllChallengeDrafts() {
       key === MANUAL_DRAFT_PREFIX ||
       key === AI_DRAFT_PREFIX ||
       key.startsWith(`${MANUAL_DRAFT_PREFIX}:`) ||
-      key.startsWith(`${AI_DRAFT_PREFIX}:`),
+      key.startsWith(`${AI_DRAFT_PREFIX}:`) ||
+      key.startsWith(`${CONTEXT_DRAFT_PREFIX}:`),
   );
   stale.forEach((key) => localStorage.removeItem(key));
 }

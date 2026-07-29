@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronRight, CheckCircle2, Clock, Layers, BookmarkPlus } from 'lucide-react';
 import { CreateChallengePayload } from '@/services/challenges.service';
+import {
+  QuestionBankItem,
+  bankItemToComponent,
+  questionBankService,
+} from '@/services/questionBank.service';
+import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { DurationPicker } from '@/components/common/DurationPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionTypeRegistry } from '@/components/question-types';
+import BankPicker from './BankPicker';
 
 interface QuestionBuilderProps {
   manualData: CreateChallengePayload;
@@ -18,6 +26,13 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
   const [expandedCompIdx, setExpandedCompIdx] = useState<number | null>(null);
   const [isEditorExpanded, setIsEditorExpanded] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
+  const [isBankOpen, setIsBankOpen] = useState(false);
+  const [savingCompIdx, setSavingCompIdx] = useState<number | null>(null);
+
+  const { user } = useUserStore();
+  // Hanya perusahaan yang punya koleksi pribadi; talenta tidak punya profil
+  // perusahaan untuk memilikinya, dan backend menolak permintaannya.
+  const canSaveToCollection = user?.role === 'COMPANY';
 
   useEffect(() => {
     setMounted(true);
@@ -97,9 +112,16 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
       type,
       question: '',
       description: '',
-      points: 10,
+      // Soal psikotes tidak menyumbang poin: jawabannya diringkas jadi profil
+      // dimensi, bukan dinilai benar-salah.
+      points: type === 'PSYCHOMETRIC' ? 0 : 10,
       options: type === 'MULTIPLE_CHOICE' ? [{ id: Date.now().toString(), text: '', isCorrect: true }] : undefined,
-      metadata: type === 'LIVE_CODING' ? { language: 'javascript' } : undefined,
+      metadata:
+        type === 'LIVE_CODING'
+          ? { language: 'javascript' }
+          : type === 'PSYCHOMETRIC'
+            ? { dimension: '', scaleMin: 1, scaleMax: 5, reverse: false }
+            : undefined,
     } as any;
     sec.components = [...(sec.components || []), newComp];
     setManualData({ ...manualData, sections: newSections });
@@ -119,6 +141,62 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     const newSections = [...(manualData.sections || [])];
     newSections[secIdx].components[compIdx] = { ...newSections[secIdx].components[compIdx], [field]: value };
     setManualData({ ...manualData, sections: newSections });
+  };
+
+  /**
+   * Menambahkan soal terpilih dari bank ke tahap yang sedang dibuka.
+   *
+   * Isinya disalin, bukan ditautkan: menyunting soal di bank tidak boleh
+   * mengubah ujian yang sedang dikerjakan kandidat. `sourceItemId` yang ikut
+   * terbawa hanya jejak asal.
+   */
+  const addFromBank = (items: QuestionBankItem[]) => {
+    if (selectedSectionIdx === null || items.length === 0) return;
+
+    const newSections = [...(manualData.sections || [])];
+    const section = newSections[selectedSectionIdx];
+    const existing = section.components || [];
+
+    section.components = [
+      ...existing,
+      ...items.map((item, idx) => bankItemToComponent(item, existing.length + idx)),
+    ];
+
+    setManualData({ ...manualData, sections: newSections });
+    setExpandedCompIdx(null);
+    toast.success(
+      `${items.length} soal ditambahkan ke ${section.title || 'tahap ini'}.`,
+    );
+  };
+
+  /** Menyimpan soal yang sedang disusun ke koleksi pribadi perusahaan. */
+  const saveToCollection = async (secIdx: number, compIdx: number) => {
+    const comp: any = manualData.sections?.[secIdx]?.components?.[compIdx];
+    if (!comp) return;
+
+    if (!comp.question?.trim()) {
+      toast.error('Isi pertanyaannya lebih dulu sebelum disimpan ke koleksi.');
+      return;
+    }
+
+    setSavingCompIdx(compIdx);
+    try {
+      await questionBankService.save({
+        type: comp.type,
+        question: comp.question,
+        description: comp.description,
+        options: comp.options,
+        metadata: comp.metadata,
+        defaultPoints: Number(comp.points) || 10,
+        category: manualData.category,
+        difficulty: manualData.difficulty,
+      });
+      toast.success('Soal tersimpan ke koleksi Anda.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyimpan soal ke koleksi.');
+    } finally {
+      setSavingCompIdx(null);
+    }
   };
 
   const totalPoints = (manualData.sections || []).reduce((acc, sec) => {
@@ -276,6 +354,11 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                             {comp.type.replace('_', ' ')}
                           </span>
                           <span className="text-xs text-muted-foreground font-medium">{comp.points} Poin</span>
+                          {comp.sourceItemId && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-cyan-400">
+                              <Layers className="w-3 h-3" aria-hidden="true" /> Dari bank
+                            </span>
+                          )}
                         </div>
                         <h4 className={`text-base font-medium truncate transition-colors ${comp.question ? 'text-white' : 'text-muted-foreground italic'}`}>
                           {comp.question || 'Pertanyaan kosong...'}
@@ -283,7 +366,21 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                       </div>
 
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        <button 
+                        {canSaveToCollection && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void saveToCollection(selectedSectionIdx, compIdx);
+                            }}
+                            disabled={savingCompIdx === compIdx}
+                            title="Simpan ke koleksi soal saya"
+                            aria-label="Simpan ke koleksi soal saya"
+                            className="p-2 text-muted-foreground hover:text-cyan-400 hover:bg-cyan-400/10 rounded-lg transition-colors disabled:opacity-40"
+                          >
+                            <BookmarkPlus className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
+                        <button
                           onClick={(e) => { e.stopPropagation(); removeComponent(selectedSectionIdx, compIdx); }}
                           className="p-2 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                         >
@@ -350,9 +447,27 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
               })
             )}
 
+            {/* Bank soal ditawarkan sebelum daftar tipe soal: menyusun dari
+                bahan yang sudah ada hampir selalu lebih cepat daripada menulis
+                dari nol, dan soal lintas bidang ikut terbawa di sana. */}
+            <div className="pt-6">
+              <button
+                type="button"
+                onClick={() => setIsBankOpen(true)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+              >
+                <Layers className="w-5 h-5" aria-hidden="true" />
+                Ambil dari bank soal
+              </button>
+              <p className="text-[11px] text-muted-foreground text-center mt-2">
+                Soal siap pakai per topik, termasuk soft skill dan wawancara yang
+                berlaku lintas bidang.
+              </p>
+            </div>
+
             {/* Sticky Add Button at the bottom */}
             <div className="pt-6 pb-4">
-              <p className="text-xs text-muted-foreground font-bold mb-3 uppercase tracking-wider text-center">Tambah Pertanyaan Baru</p>
+              <p className="text-xs text-muted-foreground font-bold mb-3 uppercase tracking-wider text-center">Atau Tulis Pertanyaan Baru</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <button onClick={() => addComponent(selectedSectionIdx, 'MULTIPLE_CHOICE')} className="text-xs font-bold text-muted-foreground bg-foreground/5 hover:bg-foreground/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">Pilihan Ganda</button>
                 <button onClick={() => addComponent(selectedSectionIdx, 'ESSAY')} className="text-xs font-bold text-muted-foreground bg-foreground/5 hover:bg-foreground/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">Essay</button>
@@ -360,11 +475,25 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                 <button onClick={() => addComponent(selectedSectionIdx, 'FILE_UPLOAD')} className="text-xs font-bold text-muted-foreground bg-foreground/5 hover:bg-foreground/10 px-3 py-3 rounded-xl transition-colors border border-white/5 flex flex-col items-center justify-center gap-2">File Upload</button>
                 <button onClick={() => addComponent(selectedSectionIdx, 'URL_SUBMISSION')} className="text-xs font-bold text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 px-3 py-3 rounded-xl transition-colors border border-cyan-500/20 flex flex-col items-center justify-center gap-2">Tautan URL</button>
                 <button onClick={() => addComponent(selectedSectionIdx, 'VIDEO_UPLOAD')} className="text-xs font-bold text-purple-400 bg-purple-400/10 hover:bg-purple-400/20 px-3 py-3 rounded-xl transition-colors border border-purple-500/20 flex flex-col items-center justify-center gap-2">Video / Audio</button>
+                <button onClick={() => addComponent(selectedSectionIdx, 'PSYCHOMETRIC')} className="text-xs font-bold text-fuchsia-400 bg-fuchsia-400/10 hover:bg-fuchsia-400/20 px-3 py-3 rounded-xl transition-colors border border-fuchsia-500/20 flex flex-col items-center justify-center gap-2">Psikotes (Skala)</button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <BankPicker
+        open={isBankOpen}
+        onClose={() => setIsBankOpen(false)}
+        defaultCategory={manualData.category}
+        defaultDifficulty={manualData.difficulty}
+        targetSectionTitle={
+          (selectedSectionIdx !== null
+            ? manualData.sections?.[selectedSectionIdx]?.title
+            : '') || 'tahap ini'
+        }
+        onAdd={addFromBank}
+      />
     </div>
   );
 

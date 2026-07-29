@@ -11,7 +11,17 @@ import UrlLinkBuilder from './UrlLink/Builder';
 import UrlLinkSolver from './UrlLink/Solver';
 import VideoRecordingBuilder from './VideoRecording/Builder';
 import VideoRecordingSolver from './VideoRecording/Solver';
+import PsychometricBuilder from './Psychometric/Builder';
+import PsychometricSolver from './Psychometric/Solver';
 
+/**
+ * Kuncinya HARUS sama persis dengan enum `ComponentType` di Prisma.
+ *
+ * Dua di antaranya dulu meleset — `URL_LINK` dan `VIDEO_RECORDING`, sementara
+ * enumnya `URL_SUBMISSION` dan `VIDEO_UPLOAD`. Builder menyimpan tipe versi
+ * enum, jadi pencarian di sini selalu gagal dan kedua tipe soal itu tampil
+ * sebagai "Tipe komponen belum didukung" baik saat disusun maupun dikerjakan.
+ */
 export const QuestionTypeRegistry: Record<string, {
   Builder: React.FC<any>;
   Solver: React.FC<any>;
@@ -32,12 +42,16 @@ export const QuestionTypeRegistry: Record<string, {
     Builder: FileUploadBuilder,
     Solver: FileUploadSolver,
   },
-  URL_LINK: {
+  URL_SUBMISSION: {
     Builder: UrlLinkBuilder,
     Solver: UrlLinkSolver,
   },
-  VIDEO_RECORDING: {
+  VIDEO_UPLOAD: {
     Builder: VideoRecordingBuilder,
     Solver: VideoRecordingSolver,
+  },
+  PSYCHOMETRIC: {
+    Builder: PsychometricBuilder,
+    Solver: PsychometricSolver,
   },
 };
