@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, AlertCircle, CheckCircle2, RefreshCw, Sun, Glasses, ScanFace } from 'lucide-react';
+import { Camera, AlertCircle, CheckCircle2, RefreshCw, Sun, Glasses, ScanFace, Loader2 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface FaceScannerProps {
@@ -9,6 +9,7 @@ interface FaceScannerProps {
   onCancel?: () => void;
   title?: string;
   description?: string;
+  isVerifying?: boolean;
 }
 
 /**
@@ -32,6 +33,7 @@ export function FaceScanner({
   onCancel,
   title = 'Pemindaian Wajah',
   description = 'Arahkan wajah Anda ke kamera dan pastikan pencahayaan cukup.',
+  isVerifying = false,
 }: FaceScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -197,6 +199,16 @@ export function FaceScanner({
           </div>
         )}
 
+        {isVerifying && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm p-4 space-y-3">
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+            <div className="text-center space-y-1">
+              <p className="text-xs font-bold text-emerald-400">Menganalisis Biometrik Wajah AI...</p>
+              <p className="text-[10px] text-muted-foreground">Membandingkan dengan KTP/Identitas terdaftar</p>
+            </div>
+          </div>
+        )}
+
         {countdown !== null && countdown > 0 && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40">
             <span className="text-7xl font-black text-white drop-shadow-lg tabular-nums">
@@ -237,14 +249,22 @@ export function FaceScanner({
       <div className="mt-7 flex flex-col sm:flex-row gap-3">
         {selfieImg ? (
           <>
-            <Button variant="outline" onClick={ulangi} className="flex-1">
+            <Button variant="outline" onClick={ulangi} disabled={isVerifying} className="flex-1">
               <RefreshCw className="h-4 w-4 mr-2" /> Ambil Ulang
             </Button>
             <Button
               onClick={gunakan}
+              disabled={isVerifying}
+              isLoading={isVerifying}
               className="flex-1 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
             >
-              <CheckCircle2 className="h-4 w-4 mr-2" /> Gunakan Foto Ini
+              {isVerifying ? (
+                'Menganalisis Wajah...'
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Gunakan Foto Ini
+                </>
+              )}
             </Button>
           </>
         ) : (

@@ -149,19 +149,6 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
           </span>
         </div>
       )}
-      
-      {/* Total Duration Footer */}
-      <div className="mt-8 pt-6 border-t border-border bg-emerald-500/5 -mx-8 sm:-mx-12 -mb-8 sm:-mb-12 p-8 sm:p-12 rounded-b-3xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h4 className="text-foreground font-bold text-lg mb-1">Estimasi Total Pengerjaan Aktif</h4>
-            <p className="text-sm text-muted-foreground">Total akumulasi waktu dari semua tahapan studi kasus ini.</p>
-          </div>
-          <div className="text-3xl font-display font-extrabold text-emerald-400">
-            ~{Math.floor(totalDuration / 60) > 0 ? `${Math.floor(totalDuration / 60)}j ` : ''}{totalDuration % 60}m
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

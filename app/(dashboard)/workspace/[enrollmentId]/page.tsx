@@ -12,11 +12,12 @@ import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Layers, Code2, Video, Link2
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Layers, Code2, Video, Link2, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { getLearningRecommendation } from '@/lib/learning-taxonomy';
 import { RubricTable } from '@/components/challenge/RubricTable';
@@ -65,6 +66,7 @@ export default function EnrollmentWorkspacePage() {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [examQuestionIdx, setExamQuestionIdx] = useState(0);
   const [activeTahapanPage, setActiveTahapanPage] = useState(0);
+  const [showNotes, setShowNotes] = useState<boolean>(false);
 
   useEffect(() => {
     setExamQuestionIdx(0);
@@ -387,13 +389,13 @@ export default function EnrollmentWorkspacePage() {
   };
 
   const handleFaceVerification = async (scannedDescriptor: number[], imageDataUrl?: string) => {
-    setWebcamOpen(false);
     setIsVerifyingFace(true);
 
     try {
       if (!imageDataUrl) {
         setFaceVerified(false);
         alert('Gagal mengambil gambar wajah dari kamera.');
+        setIsVerifyingFace(false);
         return;
       }
 
@@ -401,10 +403,7 @@ export default function EnrollmentWorkspacePage() {
 
       if (result.verified) {
         setFaceVerified(true);
-        setTimeout(() => {
-           handleEnterFullscreen();
-           setCurrentStep('QUESTIONS');
-        }, 1500); // give time to show success message
+        setWebcamOpen(false);
       } else {
         setFaceVerified(false);
         alert(`${result.message}`);
@@ -522,9 +521,16 @@ export default function EnrollmentWorkspacePage() {
       {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
       <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full">
         {/* Banner Image */}
-        <div className="h-48 w-full relative overflow-hidden bg-blue-600">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-90"></div>
-          {/* Custom illustration matching the reference can go here */}
+        <div className="h-48 w-full relative overflow-hidden bg-background">
+          <Image
+            src={selectedEnrollment.challenge.bannerUrl || '/images/challenge-banner.png'}
+            alt={selectedEnrollment.challenge.title || 'Banner Studi Kasus'}
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-black/20 pointer-events-none"></div>
         </div>
 
         {/* Content Area */}
@@ -532,13 +538,29 @@ export default function EnrollmentWorkspacePage() {
           {/* Logo overlay & Issuer */}
           <div className="flex items-end gap-5 -mt-10 mb-6 relative z-10">
             <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center border-4 border-card shadow-sm overflow-hidden shrink-0">
-              <span className="text-white font-bold text-5xl font-display">T</span>
+              {selectedEnrollment.challenge?.challengeType === 'PUBLIC' ? (
+                selectedEnrollment.challenge?.creator?.avatarUrl ? (
+                  <img src={selectedEnrollment.challenge.creator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white font-bold text-3xl font-display">
+                    {(selectedEnrollment.challenge?.creator?.fullName || 'T')[0].toUpperCase()}
+                  </span>
+                )
+              ) : selectedEnrollment.challenge?.company?.logoUrl ? (
+                <img src={selectedEnrollment.challenge.company.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white font-bold text-5xl font-display">T</span>
+              )}
             </div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl font-bold text-foreground tracking-tight">
-                {selectedEnrollment.challenge.company?.companyName || 'Platform'}
+                {selectedEnrollment.challenge?.challengeType === 'PUBLIC'
+                  ? (selectedEnrollment.challenge?.creator?.fullName || 'Talenta')
+                  : (selectedEnrollment.challenge?.company?.companyName || 'Platform')}
               </span>
-              {selectedEnrollment.challenge.company && <BadgeCheck className="w-5 h-5 text-emerald-500" />}
+              {(selectedEnrollment.challenge?.company || selectedEnrollment.challenge?.challengeType === 'PUBLIC') && (
+                <BadgeCheck className="w-5 h-5 text-emerald-500" />
+              )}
             </div>
           </div>
 
@@ -675,7 +697,7 @@ export default function EnrollmentWorkspacePage() {
                       setCurrentStep('FACE_CHECK');
                     } else {
                       handleEnterFullscreen();
-                      setCurrentStep('QUESTIONS');
+                      router.push(`/workspace/${selectedEnrollmentId}/session`);
                     }
                   }} 
                   size="lg" 
@@ -710,7 +732,11 @@ export default function EnrollmentWorkspacePage() {
                         <Camera className="h-5 w-5 text-emerald-400 flex-shrink-0" />
                         <div>
                           <span className="text-xs font-semibold text-foreground block">Status Wajah Anti-Joki:</span>
-                          {faceVerified === null ? (
+                          {isVerifyingFace ? (
+                            <span className="text-xs font-bold text-cyan-400 animate-pulse flex items-center gap-1.5">
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" /> Sedang Memverifikasi & Mencocokkan Wajah AI...
+                            </span>
+                          ) : faceVerified === null ? (
                             <span className="text-xs font-bold text-amber-400 animate-pulse">Belum Dilakukan (Wajib Sebelum Submisi)</span>
                           ) : faceVerified ? (
                             <span className="text-xs font-bold text-emerald-400">✓ Wajah Terverifikasi 99.4% Sesuai KTP/KYC</span>
@@ -723,6 +749,8 @@ export default function EnrollmentWorkspacePage() {
                       <Button
                         type="button"
                         onClick={handleStartWebcam}
+                        disabled={isVerifyingFace}
+                        isLoading={isVerifyingFace}
                         size="sm"
                         className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold flex-shrink-0"
                       >
@@ -742,6 +770,7 @@ export default function EnrollmentWorkspacePage() {
                           <FaceScanner 
                             onCaptureComplete={handleFaceVerification}
                             onCancel={() => setWebcamOpen(false)}
+                            isVerifying={isVerifyingFace}
                             title="Verifikasi Wajah Peserta"
                             description="Sistem akan membandingkan wajah Anda dengan profil yang terdaftar secara instan (Lokal)."
                           />
@@ -752,12 +781,13 @@ export default function EnrollmentWorkspacePage() {
                       <Button
                         onClick={() => {
                           handleEnterFullscreen();
-                          setCurrentStep('QUESTIONS');
+                          router.push(`/workspace/${selectedEnrollmentId}/session`);
                         }}
                         size="lg"
-                        className="w-full mt-6 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14"
+                        className="w-full mt-6 bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold h-14 text-base shadow-xl rounded-2xl flex items-center justify-center gap-2"
                       >
-                        Wajah Terverifikasi. Lanjutkan ke Halaman Soal
+                        <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+                        Wajah Terverifikasi. Mulai Kerjakan Soal Sekarang
                       </Button>
                     )}
                   </div>
@@ -1218,45 +1248,66 @@ export default function EnrollmentWorkspacePage() {
                 </div>
 
                 {latestSubmission.notes && (
-                  <div className="bg-background border border-border rounded-2xl p-6 space-y-3 font-mono">
-                    <h5 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 border-b border-border pb-2">
-                      <FileText className="h-4 w-4" /> Dokumen & Catatan Pengumpulan Solusi
-                    </h5>
-                    <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap space-y-2 pt-2">
-                      {latestSubmission.notes}
+                  <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h5 className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-cyan-400" /> Dokumen & Catatan Pengumpulan Solusi
+                        </h5>
+                        <p className="text-xs text-muted-foreground">
+                          Catatan tambahan dan log pengawasan biometrik yang terlampir pada kiriman Anda.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowNotes(!showNotes)}
+                        className="rounded-xl flex items-center gap-2 shrink-0 border-border text-foreground hover:bg-foreground/5 font-bold text-xs"
+                      >
+                        {showNotes ? (
+                          <>
+                            <ChevronUp className="w-4 h-4" /> Sembunyikan Catatan
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-4 h-4" /> Lihat Catatan & Dokumen
+                          </>
+                        )}
+                      </Button>
                     </div>
+
+                    <AnimatePresence>
+                      {showNotes && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="pt-4 border-t border-border overflow-hidden"
+                        >
+                          <div className="bg-background border border-border rounded-xl p-4 font-mono text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                            {latestSubmission.notes}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )}
 
-                {latestSubmission.componentResponses && latestSubmission.componentResponses.length > 0 && (
-                  <div className="bg-background border border-border rounded-2xl p-6 space-y-4">
-                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 border-b border-border pb-2">
-                      <FileText className="h-4 w-4" /> Jawaban Komponen Spesifik
+                <div className="bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-[#1E7F4D]" /> Lembar Jawaban & Soal Lengkap
                     </h5>
-                    <div className="space-y-4 pt-2">
-                      {latestSubmission.componentResponses.map((res: any, idx: number) => (
-                        <div key={idx} className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-2">
-                          <p className="text-xs font-bold text-emerald-400">{res.component?.question || 'Tugas / Pertanyaan'}</p>
-                          {res.component?.type === 'LIVE_CODING' ? (
-                            <pre className="text-xs text-muted-foreground bg-black/50 p-3 rounded-lg overflow-x-auto font-mono border border-foreground/10">
-                              {res.textValue}
-                            </pre>
-                          ) : res.component?.type === 'MULTIPLE_CHOICE' ? (
-                            <p className="text-sm text-muted-foreground">
-                              Pilihan Anda: <span className="font-semibold text-foreground">{res.component?.options?.find((o: any) => o.id === res.textValue)?.text || res.textValue}</span>
-                            </p>
-                          ) : res.fileUrl ? (
-                            <a href={res.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-cyan-400 hover:underline flex items-center gap-1">
-                              Lihat Berkas Lampiran
-                            </a>
-                          ) : (
-                            <div className="text-sm text-muted-foreground whitespace-pre-wrap">{res.textValue || 'Tidak ada jawaban diberikan.'}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <p className="text-xs text-muted-foreground">Buka tampilan soal untuk melihat riwayat jawaban pilihan ganda, essay, dan live coding yang telah Anda kirimkan.</p>
                   </div>
-                )}
+                  <Link href={`/workspace/${selectedEnrollment.id}/session`} className="shrink-0">
+                    <Button className="bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold flex items-center justify-center gap-2 shrink-0 whitespace-nowrap px-6 py-3 shadow-sm rounded-xl">
+                      <Eye className="w-4 h-4 shrink-0" />
+                      <span>Lihat Jawaban Saya</span>
+                    </Button>
+                  </Link>
+                </div>
 
                 {(latestSubmission.repositoryUrl || latestSubmission.liveDemoUrl || latestSubmission.figmaUrl || latestSubmission.solutionFilesUrl) && (
                   <div className="bg-background border border-border rounded-2xl p-6 space-y-3 font-mono">

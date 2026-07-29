@@ -116,6 +116,7 @@ export const Navbar = () => {
     queryKey: ['notifications', user?.id],
     queryFn: () => notificationsService.getMyNotifications(),
     enabled: isAuthenticated && !!user?.id,
+    refetchInterval: 5000,
   });
 
   const { socket } = useSocket();

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { challengesService } from '../../../services/challenges.service';
 import { submissionsService } from '../../../services/submissions.service';
 import { useUserStore } from '../../../store/userStore';
@@ -40,6 +40,7 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
     enabled: !!challengeData?.data?.id,
   });
 
+  const queryClient = useQueryClient();
   const challenge = challengeData?.data;
   const discussions = discussionsData?.data || [];
 
@@ -50,6 +51,7 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
     try {
       await submissionsService.enroll({ challengeId: challenge.id });
       setNdaModalOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       router.push('/');
     } catch (err: any) {
       setEnrollmentError(err.message || 'Gagal mendaftar ke studi kasus ini.');

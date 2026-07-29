@@ -39,13 +39,14 @@ const PUBLISHERS = [
  * sekaligus — 500 studi kasus berarti 56 tombol berjejer dalam satu baris.
  */
 function buildPageWindow(current: number, total: number): (number | 'gap')[] {
+  const safeCurrent = Math.min(total, Math.max(1, current));
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
   const pages: (number | 'gap')[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
+  const start = Math.max(2, safeCurrent - 1);
+  const end = Math.min(total - 1, safeCurrent + 1);
 
   if (start > 2) pages.push('gap');
   for (let i = start; i <= end; i++) pages.push(i);
@@ -233,7 +234,7 @@ export default function ChallengesDirectoryPage() {
           {/* key sengaja dilepas: sebelumnya berisi gabungan seluruh id kartu,
               sehingga tiap pindah halaman seluruh grid dibongkar-pasang ulang
               alih-alih hanya menukar isinya. */}
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <StaggerContainer key={`page-${currentPage}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {challenges.map((challenge: any) => (
               <StaggerItem key={challenge.id}>
                 <ChallengeCard

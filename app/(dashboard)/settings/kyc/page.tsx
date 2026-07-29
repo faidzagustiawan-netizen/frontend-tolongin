@@ -4,11 +4,12 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { verificationService } from '@/services/verification.service';
-import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut, ShieldCheck } from 'lucide-react';
+import { Camera, UploadCloud, CheckCircle2, AlertCircle, ScanFace, ArrowRight, ArrowLeft, ZoomIn, ZoomOut, ShieldCheck, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import dynamic from 'next/dynamic';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUserStore } from '@/store/userStore';
 
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 
@@ -17,9 +18,83 @@ type KycStep = 'KTP' | 'LIVENESS' | 'SUCCESS';
 export default function KycVerificationPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user, loadUserFromStorage } = useUserStore();
+
   const [step, setStep] = useState<KycStep>('KTP');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+  const [livenessInstruction, setLivenessInstruction] = useState('Posisikan wajah Anda tepat di dalam bingkai oval');
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+
+  const [isReverifying, setIsReverifying] = useState(false);
+
+  // Polling KYC verification status every 3 seconds if PENDING or on Step 3
+  const { data: kycStatusData } = useQuery({
+    queryKey: ['kyc-status', user?.id],
+    queryFn: () => verificationService.getStatus(),
+    enabled: !!user?.id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === 'PENDING' || step === 'SUCCESS' || verificationResult?.status === 'PROCESSING') {
+        return 3000;
+      }
+      return false;
+    },
+  });
+
+  // Sync initial state from server KYC status
+  useEffect(() => {
+    if (!isReverifying && kycStatusData?.status) {
+      if (kycStatusData.status === 'VERIFIED') {
+        setStep('SUCCESS');
+        setVerificationResult((prev: any) =>
+          prev?.status === 'VERIFIED' ? prev : { status: 'VERIFIED', isMatch: true, isKtpValid: true }
+        );
+      } else if (kycStatusData.status === 'PENDING' && step !== 'LIVENESS') {
+        setStep('SUCCESS');
+        setVerificationResult((prev: any) =>
+          prev?.status === 'PROCESSING' ? prev : { status: 'PROCESSING', message: 'Verifikasi Anda sedang diproses.' }
+        );
+      }
+    }
+  }, [kycStatusData?.status, isReverifying, step]);
+
+  const handleRestartVerification = () => {
+    setIsReverifying(true);
+    setKtpPreview(null);
+    setKtpFileError(null);
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
+    setCroppedAreaPixels(null);
+    setVerificationResult(null);
+    setStep('KTP');
+  };
+
+  // Real-time update listener when verification status changes to VERIFIED or REJECTED
+  useEffect(() => {
+    if (step === 'SUCCESS' && kycStatusData?.status) {
+      if (kycStatusData.status === 'VERIFIED' && verificationResult?.status !== 'VERIFIED') {
+        setVerificationResult({
+          status: 'VERIFIED',
+          isMatch: true,
+          isKtpValid: true,
+        });
+        toast.success('Identitas Anda telah berhasil terverifikasi 100%!');
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        loadUserFromStorage();
+      } else if (kycStatusData.status === 'REJECTED' && verificationResult?.status !== 'REJECTED') {
+        setVerificationResult({
+          status: 'REJECTED',
+          isMatch: false,
+          reason: 'Verifikasi ditolak. Foto wajah tidak cocok dengan dokumen KTP.',
+        });
+        toast.error('Verifikasi identitas ditolak. Silakan coba lagi.');
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      }
+    }
+  }, [kycStatusData, step, verificationResult, queryClient, loadUserFromStorage]);
+
   // State for KTP
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
   const [ktpFileError, setKtpFileError] = useState<string | null>(null);
@@ -97,11 +172,7 @@ export default function KycVerificationPage() {
     }
   };
 
-  // State for Liveness
-  const [livenessInstruction, setLivenessInstruction] = useState('Posisikan wajah Anda tepat di dalam bingkai oval');
-  
-  // Results
-  const [verificationResult, setVerificationResult] = useState<any>(null);
+
 
   const handleKtpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -419,9 +490,17 @@ export default function KycVerificationPage() {
                 </div>
               )}
 
-              <div className="pt-6">
-                <Button onClick={() => router.push('/settings')} size="lg">
+              <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button variant="outline" onClick={() => router.push('/settings')} size="lg">
                   Kembali ke Profil
+                </Button>
+                <Button 
+                  onClick={handleRestartVerification} 
+                  size="lg"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Ulangi / Perbarui Verifikasi KTP & Wajah
                 </Button>
               </div>
             </div>
