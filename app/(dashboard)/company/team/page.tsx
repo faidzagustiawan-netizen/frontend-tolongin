@@ -61,6 +61,20 @@ export default function TeamWorkspacePage() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ memberId, status }: { memberId: string; status: 'APPROVED' | 'REJECTED' }) =>
+      companiesService.updateMemberStatus(memberId, status),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.status === 'APPROVED' ? 'Anggota disetujui' : 'Anggota ditolak'
+      );
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+    },
+    onError: () => {
+      toast.error('Gagal memperbarui status anggota');
+    },
+  });
+
   // Selama sesi belum selesai dibaca, `user` masih null. Tanpa pemeriksaan
   // `isHydrated` di bawah, menyegarkan halaman ini sempat menampilkan
   // penolakan akses kepada akun perusahaan yang sah.
@@ -255,7 +269,9 @@ export default function TeamWorkspacePage() {
                     <th className="px-6 py-4 font-bold">Profil & Pengguna</th>
                     <th className="px-6 py-4 font-bold">Email</th>
                     <th className="px-6 py-4 font-bold">Peran Akses</th>
+                    <th className="px-6 py-4 font-bold">Status</th>
                     <th className="px-6 py-4 font-bold">Tanggal Bergabung</th>
+                    <th className="px-6 py-4 font-bold text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -287,12 +303,43 @@ export default function TeamWorkspacePage() {
                             {MEMBER_ROLE_LABELS[member.role] ?? member.role ?? 'Anggota'}
                           </Badge>
                         </td>
-                        {/* Tombol "Kelola" dihapus: tidak pernah punya onClick
-                            dan backend belum menyediakan endpoint untuk mengubah
-                            peran atau mengeluarkan anggota. Menampilkannya hanya
-                            menjanjikan aksi yang tidak ada. */}
+                        <td className="px-6 py-4">
+                          {member.status === 'PENDING' ? (
+                            <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/30">
+                              Menunggu
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-emerald-500/10 text-success hover:bg-emerald-500/20 border-emerald-500/30">
+                              Aktif
+                            </Badge>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm text-muted-foreground">
                           {new Date(member.joinedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {member.status === 'PENDING' && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                onClick={() => updateStatusMutation.mutate({ memberId: member.id, status: 'REJECTED' })}
+                                isLoading={updateStatusMutation.isPending && updateStatusMutation.variables?.memberId === member.id && updateStatusMutation.variables?.status === 'REJECTED'}
+                              >
+                                Tolak
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                className="h-8 bg-emerald-500 hover:bg-emerald-600 border-none"
+                                onClick={() => updateStatusMutation.mutate({ memberId: member.id, status: 'APPROVED' })}
+                                isLoading={updateStatusMutation.isPending && updateStatusMutation.variables?.memberId === member.id && updateStatusMutation.variables?.status === 'APPROVED'}
+                              >
+                                Setujui
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

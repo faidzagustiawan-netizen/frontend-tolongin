@@ -19,6 +19,11 @@ export const companiesService = {
     return response.data;
   },
 
+  updateMemberStatus: async (memberId: string, status: 'APPROVED' | 'REJECTED') => {
+    const response = await apiClient.patch(`/companies/workspace/team/${memberId}/status`, { status });
+    return response.data;
+  },
+
   generateInviteCode: async () => {
     const response = await apiClient.post('/companies/workspace/invite-code');
     return response.data;
