@@ -172,20 +172,20 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
           </button>
           <button
             onClick={() => {
-              if (isStartupTier) return;
+              // DEV_MODE: if (isStartupTier) return;
               setSubmitError(null);
               setSubmitSuccess(null);
               setCreateTab('AI');
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-display font-bold text-xs transition-all ${
-              isStartupTier ? 'opacity-50 cursor-not-allowed bg-background text-muted-foreground' :
+              false /* DEV_MODE: isStartupTier */ ? 'opacity-50 cursor-not-allowed bg-background text-muted-foreground' :
               createTab === 'AI'
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {isStartupTier ? <Lock className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
-            AI Prompt Generator {isStartupTier && '(Pro)'}
+            {false /* DEV_MODE: isStartupTier */ ? <Lock className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
+            AI Prompt Generator {false /* DEV_MODE: isStartupTier */ && '(Pro)'}
           </button>
         </div>
 

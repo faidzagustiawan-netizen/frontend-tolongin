@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useUserStore } from '../store/userStore';
+import { readAuthToken } from '../lib/authStorage';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -19,7 +20,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = readAuthToken();
     if (!token || !user) {
       if (socket) {
         socket.disconnect();

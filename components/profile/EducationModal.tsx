@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { X, AlertCircle } from 'lucide-react';
+import { useDialogA11y } from '../../utils/useDialogA11y';
 import { Button } from '../common/Button';
 
 export interface Education {
@@ -175,6 +176,17 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
     }
   }, [isOpen, education]);
 
+  // Escape, jebakan fokus Tab, kunci gulir, dan pengembalian fokus
+
+  // ke pemicunya. Sebelumnya tidak ada satu pun di antaranya.
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const dialogTitleId = useId();
+
+  useDialogA11y(isOpen, onClose, dialogRef);
+
+
   if (!isOpen) return null;
 
   const buildDate = (year: string, month: string) => {
@@ -211,11 +223,19 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        tabIndex={-1}
+        className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">{education ? 'Edit pendidikan' : 'Tambahkan pendidikan'}</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
-            <X className="h-5 w-5" />
+          <h2 id={dialogTitleId} className="text-xl font-semibold text-foreground">{education ? 'Edit pendidikan' : 'Tambahkan pendidikan'}</h2>
+          <button onClick={onClose}
+            type="button"
+            aria-label="Tutup dialog" className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
         

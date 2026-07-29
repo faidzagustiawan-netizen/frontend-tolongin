@@ -14,8 +14,10 @@ export interface Discussion {
   parentId: string | null;
   createdAt: string;
   user: {
-    email: string;
+    id?: string;
     role: string;
+    companyProfile?: { companyName?: string; logoUrl?: string; slug?: string } | null;
+    talentProfile?: { fullName?: string; avatarUrl?: string; slug?: string } | null;
   };
 }
 
@@ -75,6 +77,12 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId,
   const renderComment = (disc: Discussion, isReply = false) => {
     const replies = repliesByParent[disc.id] || [];
     const isCompany = disc.user.role === 'COMPANY';
+    // Nama diambil dari profil. Ruang diskusi bisa dibaca tanpa masuk, jadi
+    // alamat surel tidak lagi ikut dikirim backend.
+    const authorName =
+      disc.user.companyProfile?.companyName
+      || disc.user.talentProfile?.fullName
+      || 'Pengguna Tolongin';
 
     return (
       <div key={disc.id} className={`space-y-4 ${isReply ? 'ml-8 sm:ml-12 border-l-2 border-border pl-4 sm:pl-6' : ''}`}>
@@ -84,11 +92,11 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId,
               <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shadow-md ${
                 isCompany ? 'bg-amber-500/20 border border-amber-500/50 text-amber-400' : 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-400'
               }`}>
-                {disc.user.email[0].toUpperCase()}
+                {authorName[0].toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h5 className="text-sm font-semibold text-gray-200">{disc.user.email}</h5>
+                  <h5 className="text-sm font-semibold text-gray-200">{authorName}</h5>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                     isCompany ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-foreground/5 border-foreground/10 text-muted-foreground'
                   }`}>

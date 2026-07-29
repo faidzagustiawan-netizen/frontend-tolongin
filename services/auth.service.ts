@@ -1,9 +1,12 @@
 import { apiClient } from './api';
 import { UserProfile } from '../types';
+import { clearAuthSession, persistAuthSession } from '../lib/authStorage';
 
 export interface LoginPayload {
   email: string;
   password?: string;
+  /** Tanpa ini sesi berakhir saat tab ditutup. Lihat lib/authStorage.ts. */
+  remember?: boolean;
 }
 
 export interface RegisterPayload {
@@ -17,19 +20,18 @@ export interface RegisterPayload {
 }
 
 export const authService = {
-  login: async (payload: LoginPayload) => {
+  login: async ({ remember = false, ...payload }: LoginPayload) => {
     const { data } = await apiClient.post('/auth/login', payload);
     if (data.accessToken) {
-      localStorage.setItem('access_token', data.accessToken);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
+      persistAuthSession(data.accessToken, data.user, remember);
     }
     return data;
   },
   register: async (payload: RegisterPayload) => {
     const { data } = await apiClient.post('/auth/register', payload);
     if (data.accessToken) {
-      localStorage.setItem('access_token', data.accessToken);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
+      // Pendaftaran selalu diingat: pengguna baru saja membuat akun ini.
+      persistAuthSession(data.accessToken, data.user, true);
     }
     return data;
   },
@@ -39,10 +41,20 @@ export const authService = {
       inviteCode,
     });
     if (data.accessToken) {
-      localStorage.setItem('access_token', data.accessToken);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
+      persistAuthSession(data.accessToken, data.user, true);
     }
     return data;
+  },
+  forgotPassword: async (email: string) => {
+    const { data } = await apiClient.post('/auth/forgot-password', { email });
+    return data as { message: string };
+  },
+  resetPassword: async (token: string, password: string) => {
+    const { data } = await apiClient.post('/auth/reset-password', {
+      token,
+      password,
+    });
+    return data as { message: string };
   },
   getProfile: async (userId: string) => {
     const { data } = await apiClient.get(`/users/${userId}`);
@@ -54,8 +66,7 @@ export const authService = {
   },
   logout: () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_data');
+      clearAuthSession();
       window.location.href = '/';
     }
   },

@@ -15,7 +15,8 @@ import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
-  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
+  password: z.string().min(1, 'Kata sandi wajib diisi'),
+  remember: z.boolean().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -34,6 +35,7 @@ function LoginContent() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { remember: false },
   });
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -67,17 +69,20 @@ function LoginContent() {
               priority
             />
           </Link>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
             Selamat Datang Kembali
-          </h2>
+          </h1>
           <p className="text-sm text-muted-foreground">
             Masuk ke akun Anda untuk melanjutkan pembuktian kinerja atau merekrut talenta.
           </p>
         </div>
 
         {expired && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3 text-amber-400">
-            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div
+            role="status"
+            className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3 text-warning"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div className="text-xs leading-relaxed">
               <p className="font-semibold">Sesi Anda telah berakhir</p>
               <p>Silakan masuk kembali untuk melanjutkan aktivitas Anda.</p>
@@ -86,8 +91,11 @@ function LoginContent() {
         )}
 
         {authError && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-red-400">
-            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div
+            role="alert"
+            className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 text-danger"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-xs font-medium leading-relaxed">{authError}</p>
           </div>
         )}
@@ -112,13 +120,23 @@ function LoginContent() {
           />
 
           <div className="flex items-center justify-between text-xs">
+            {/* Kotak ini sekarang benar-benar mengubah perilaku: tanpa dicentang
+                sesi disimpan di sessionStorage dan berakhir saat tab ditutup.
+                Lihat lib/authStorage.ts. */}
             <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
-              <input type="checkbox" className="rounded bg-bg border-border text-emerald-500 focus:ring-emerald-500" />
-              <span>Ingat saya</span>
+              <input
+                type="checkbox"
+                className="rounded bg-bg border-border text-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500"
+                {...register('remember')}
+              />
+              <span>Tetap masuk di perangkat ini</span>
             </label>
-            <a href="#" className="text-emerald-400 hover:text-emerald-300 font-medium">
+            <Link
+              href="/forgot-password"
+              className="text-success hover:opacity-80 font-medium transition-opacity"
+            >
               Lupa kata sandi?
-            </a>
+            </Link>
           </div>
 
           <Button type="submit" isLoading={isSubmitting} className="w-full shadow-xl py-2.5">
@@ -139,11 +157,11 @@ function LoginContent() {
         <div className="bg-foreground/5 border border-foreground/10 rounded-xl p-4 text-center space-y-2">
           <p className="text-xs text-muted-foreground">Belum memiliki akun di Tolongin.co?</p>
           <div className="flex items-center justify-center gap-4 text-xs font-semibold">
-            <Link href="/register?role=TALENT" className="text-emerald-400 hover:text-emerald-300">
+            <Link href="/register?role=TALENT" className="text-success hover:opacity-80 transition-opacity">
               Daftar Talenta
             </Link>
-            <span className="text-gray-600">•</span>
-            <Link href="/register?role=COMPANY" className="text-cyan-400 hover:text-cyan-300">
+            <span className="text-muted-foreground" aria-hidden="true">•</span>
+            <Link href="/register?role=COMPANY" className="text-info hover:opacity-80 transition-opacity">
               Daftar Perusahaan
             </Link>
           </div>

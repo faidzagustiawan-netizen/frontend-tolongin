@@ -3,16 +3,20 @@ import { cn } from '../../utils/cn';
 import { Loader2 } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
+// `focus-visible` menggantikan `focus`: cincin fokus kini hanya muncul untuk
+// navigasi keyboard, tidak setiap kali tombol diklik dengan tetikus. Offset
+// juga tidak lagi menunjuk `dark-bg`, warna yang tidak ada di daftar token
+// sehingga cincinnya salah warna di light mode.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-bg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        primary: 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20 focus:ring-emerald-500',
-        secondary: 'bg-card border border-border hover:bg-dark-border text-white focus:ring-gray-500',
-        outline: 'border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 focus:ring-emerald-500',
-        ghost: 'hover:bg-foreground/5 text-muted-foreground hover:text-foreground focus:ring-gray-500',
-        danger: 'bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 focus:ring-red-500',
+        primary: 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20 focus-visible:ring-emerald-500',
+        secondary: 'bg-card border border-border hover:bg-foreground/10 text-foreground focus-visible:ring-emerald-500',
+        outline: 'border border-emerald-500/50 hover:bg-emerald-500/10 text-success focus-visible:ring-emerald-500',
+        ghost: 'hover:bg-foreground/5 text-muted-foreground hover:text-foreground focus-visible:ring-emerald-500',
+        danger: 'bg-danger/10 border border-danger/50 text-danger hover:bg-danger/20 focus-visible:ring-danger',
       },
       size: {
         sm: 'text-xs px-3 py-1.5',

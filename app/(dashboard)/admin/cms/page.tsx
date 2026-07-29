@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { Megaphone, Trash2, Plus, Info, AlertTriangle, CheckCircle, PenTool } from 'lucide-react';
 import { format } from 'date-fns';
+import { readAuthToken } from '@/lib/authStorage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -11,7 +12,7 @@ export default function AdminCMSPage() {
   const { user } = useUserStore();
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = readAuthToken();
 
   // Form states
   const [title, setTitle] = useState('');

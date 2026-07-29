@@ -10,6 +10,7 @@ import { CtaSection } from '@/components/landing/CtaSection';
 import { TestimonialMarquee } from '@/components/common/TestimonialMarquee';
 import { CompanyWorkspaceDashboard } from '@/components/workspace/CompanyWorkspaceDashboard';
 import { TalentWorkspaceDashboard } from '@/components/workspace/TalentWorkspaceDashboard';
+import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
 import { submissionsService } from '@/services/submissions.service';
 import { tokenService } from '@/services/tokenService';
 
@@ -33,13 +34,23 @@ export default function Home() {
     enabled: !!user && !isCompany && isAuthenticated,
   });
 
-  const { data: statsData, isLoading: isStatsLoading, refetch: refetchStats } = useQuery({
+  // Perusahaan yang belum diverifikasi ditolak 403 oleh `VerifiedCompanyGuard`
+  // di seluruh controller submissions. Permintaannya tidak dikirim sama sekali
+  // supaya yang tampil adalah penjelasan dari CompanyAccessGate, bukan dasbor
+  // kosong hasil permintaan yang gagal.
+  const isPendingApproval = isCompany && user?.isVerified === false;
+
+  const { data: statsData, isLoading: isStatsLoading } = useQuery({
     queryKey: ['challenge-stats'],
     queryFn: () => submissionsService.getChallengeStats(),
-    enabled: !!user && isCompany && isAuthenticated,
+    enabled: !!user && isCompany && isAuthenticated && !isPendingApproval,
   });
 
   if (isAuthenticated && user) {
+    if (isPendingApproval) {
+      return <CompanyAccessGate>{null}</CompanyAccessGate>;
+    }
+
     if (isTalentLoading || isStatsLoading) {
       return (
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
@@ -50,7 +61,7 @@ export default function Home() {
     }
 
     if (isCompany) {
-      return <CompanyWorkspaceDashboard challenges={statsData?.data || []} refetchStats={refetchStats} />;
+      return <CompanyWorkspaceDashboard challenges={statsData?.data || []} />;
     }
 
     return <TalentWorkspaceDashboard enrollments={talentData?.data || []} tokenData={tokenData} />;

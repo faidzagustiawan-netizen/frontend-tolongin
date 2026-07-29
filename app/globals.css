@@ -11,6 +11,18 @@
   --color-primary: #1e7f4d;
   --color-secondary: #ffffff;
 
+  /* Warna teks semantik.
+   *
+   * Nilainya berbeda antara light dan dark mode dengan sengaja. Palet Tailwind
+   * `-400` dipilih untuk latar gelap dan rasio kontrasnya di atas kartu putih
+   * hanya 1,8-2,8:1 — di bawah ambang WCAG AA 4,5:1 untuk teks biasa. Yang
+   * paling merugikan: pesan galat formulir memakai `text-red-400`. Di light
+   * mode dipakai turunan -600/-700 yang terukur lolos AA. */
+  --color-success: #047857; /* 5,5:1 di atas #FFFFFF */
+  --color-danger: #dc2626; /* 4,8:1 */
+  --color-warning: #b45309; /* 5,0:1 */
+  --color-info: #0e7490; /* 5,4:1 */
+
   /* Button Primary (Emerald) */
   --btn-primary-bg-default: #1e7f4d;
   --btn-primary-bg-hover: #2aa565;
@@ -33,6 +45,12 @@
   --color-primary: #1e7f4d;
   --color-secondary: #3b3669;
 
+  /* Di atas kartu gelap #111827 turunan -400 justru yang lolos (6,4-10,6:1). */
+  --color-success: #34d399;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #22d3ee;
+
   /* Button Primary (Emerald) */
   --btn-primary-bg-default: #1e7f4d;
   --btn-primary-bg-hover: #2aa565;
@@ -53,7 +71,11 @@
   --color-muted-foreground: var(--color-muted-foreground);
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
-  
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+  --color-warning: var(--color-warning);
+  --color-info: var(--color-info);
+
   --font-display: var(--font-outfit), sans-serif;
   --font-sans: var(--font-inter), sans-serif;
   --font-jakarta: var(--font-plus-jakarta), sans-serif;
@@ -99,6 +121,70 @@ html:not(.dark) .bg-cyan-500 span {
 /* Maintain text-transparent for gradient text in light mode */
 html:not(.dark) .text-transparent {
   color: transparent;
+}
+
+/* Perbaikan kontras teks berwarna di light mode.
+ *
+ * Palet aplikasi ini dipilih ketika satu-satunya mode adalah gelap: turunan
+ * Tailwind `-400`/`-500` terbaca bagus di atas #111827. Setelah light mode
+ * ditambahkan, warna yang sama mendarat di atas kartu putih dengan rasio
+ * 1,8-2,8:1 — jauh di bawah ambang WCAG AA 4,5:1. Yang paling merugikan:
+ * seluruh pesan galat formulir memakai `text-red-400`.
+ *
+ * Dipetakan di satu tempat, bukan disunting di 432 tempat pemakaian, karena
+ * kelas-kelas ini muncul di hampir setiap komponen. Aturan `bg-gradient-to-r`
+ * dan `bg-emerald-500` di atas tetap menang untuk teks di atas latar pekat,
+ * jadi tombol dan lencana berwarna tidak ikut berubah.
+ *
+ * Rasio di bawah diukur terhadap #FFFFFF (warna kartu di light mode). */
+html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-500,
+html:not(.dark) .text-emerald-600,
+html:not(.dark) .text-green-400,
+html:not(.dark) .text-green-500 {
+  color: #047857; /* 5,5:1 */
+}
+
+html:not(.dark) .text-cyan-400,
+html:not(.dark) .text-cyan-500,
+html:not(.dark) .text-teal-400,
+html:not(.dark) .text-teal-500 {
+  color: #0e7490; /* 5,4:1 */
+}
+
+html:not(.dark) .text-amber-400,
+html:not(.dark) .text-amber-500,
+html:not(.dark) .text-orange-400 {
+  color: #b45309; /* 5,0:1 */
+}
+
+html:not(.dark) .text-yellow-400,
+html:not(.dark) .text-yellow-500 {
+  color: #a16207; /* 4,9:1 */
+}
+
+html:not(.dark) .text-red-400,
+html:not(.dark) .text-red-500 {
+  color: #dc2626; /* 4,8:1 */
+}
+
+html:not(.dark) .text-blue-400,
+html:not(.dark) .text-blue-500 {
+  color: #1d4ed8; /* 6,7:1 */
+}
+
+html:not(.dark) .text-indigo-400,
+html:not(.dark) .text-indigo-500,
+html:not(.dark) .text-purple-400 {
+  color: #4338ca; /* 7,9:1 */
+}
+
+/* Latar pekat tetap menang: teks di dalam tombol dan lencana berwarna tidak
+   boleh ikut digelapkan oleh aturan di atas. */
+html:not(.dark) .bg-gradient-to-r .text-emerald-400,
+html:not(.dark) .bg-emerald-500 .text-emerald-400,
+html:not(.dark) .bg-emerald-600 .text-emerald-400 {
+  color: #ffffff;
 }
 
 /* Shadow enhancements for light mode card depth */

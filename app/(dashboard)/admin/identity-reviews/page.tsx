@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { readAuthToken } from '@/lib/authStorage';
 import {
   ScanFace,
   ShieldCheck,
@@ -47,7 +48,7 @@ export default function AdminIdentityReviewsPage() {
   const [catatan, setCatatan] = useState<Record<string, string>>({});
 
   const token =
-    typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    readAuthToken();
 
   const ambilAntrean = useCallback(async () => {
     if (!user || user.role !== 'ADMIN') return;

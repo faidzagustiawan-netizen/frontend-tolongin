@@ -7,6 +7,7 @@ import { challengesService, CreateChallengePayload } from '@/services/challenges
 import { ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from '../../create/components/ManualBuilder';
+import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
 
 export default function EditChallengePage() {
   const router = useRouter();
@@ -125,7 +126,8 @@ export default function EditChallengePage() {
   }
 
   return (
-    <div 
+    <CompanyAccessGate>
+    <div
       className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10"
       onKeyDown={handleGlobalKeyDown}
     >
@@ -193,5 +195,6 @@ export default function EditChallengePage() {
         </motion.div>
       </AnimatePresence>
     </div>
+    </CompanyAccessGate>
   );
 }

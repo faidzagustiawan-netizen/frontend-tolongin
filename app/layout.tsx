@@ -71,10 +71,19 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
+        {/* Navbar perusahaan punya lima tautan tetap ditambah menu
+            pemberitahuan dan profil. Tanpa pintasan ini pengguna keyboard harus
+            melewati semuanya di setiap halaman sebelum sampai ke isi. */}
+        <a
+          href="#konten-utama"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-xl focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-2xl focus:ring-2 focus:ring-emerald-500"
+        >
+          Lewati ke konten utama
+        </a>
         <Providers>
           <AuthGuard>
             <Navbar />
-            <main className="flex-grow">{children}</main>
+            <main id="konten-utama" className="flex-grow">{children}</main>
             <Footer />
           </AuthGuard>
         </Providers>

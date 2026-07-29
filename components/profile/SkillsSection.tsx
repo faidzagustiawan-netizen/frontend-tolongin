@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Search, Pencil, Trash, ArrowLeft } from 'lucide-react';
 import { Button } from '../common/Button';
@@ -27,12 +27,24 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
     setSkills(initialSkills || []);
   }, [initialSkills]);
 
+  // Dideklarasikan sebelum effect yang memakainya. Sebagai `const` arrow
+  // function yang tadinya berada 20 baris di bawah, pemanggilan dari effect ini
+  // masuk temporal dead zone dan melempar
+  // `ReferenceError: Cannot access 'handleOpenAddModal' before initialization`
+  // setiap kali `autoOpenAddModal` bernilai true pada render pertama — jalur
+  // yang dipakai `autoOpenSection` dari halaman profil.
+  const handleOpenAddModal = useCallback(() => {
+    setSearchTerm('');
+    setFocusedIndex(-1);
+    setIsAddModalOpen(true);
+  }, []);
+
   useEffect(() => {
     if (autoOpenAddModal) {
       handleOpenAddModal();
       if (onModalOpened) onModalOpened();
     }
-  }, [autoOpenAddModal, onModalOpened]);
+  }, [autoOpenAddModal, onModalOpened, handleOpenAddModal]);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -50,12 +62,6 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
     const debounce = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounce);
   }, [searchTerm]);
-
-  const handleOpenAddModal = () => {
-    setSearchTerm('');
-    setFocusedIndex(-1);
-    setIsAddModalOpen(true);
-  };
 
   const handleOpenEditListModal = () => {
     router.push('/settings/skills');

@@ -2,121 +2,254 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { subscriptionsService } from '@/services/subscriptions.service';
-import { CheckCircle2, Zap, Shield, Crown, CreditCard, ArrowRight, Loader2, MessageSquare } from 'lucide-react';
+import { PLANS, WHATSAPP_SALES_URL, type Plan } from '@/lib/plans';
+import {
+  MIDTRANS_CLIENT_KEY,
+  MIDTRANS_IS_SANDBOX,
+  MIDTRANS_SNAP_URL,
+  isMidtransConfigured,
+} from '@/lib/midtrans';
+import {
+  CheckCircle2,
+  Zap,
+  Shield,
+  Crown,
+  CreditCard,
+  Loader2,
+  MessageSquare,
+  CalendarClock,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import Script from 'next/script';
 
-const plans = [
-  {
-    tier: 'STARTUP',
-    name: 'Startup',
-    price: 'Rp 0',
-    description: 'Bagus untuk mencoba platform kami dan merekrut posisi sederhana.',
-    features: [
-      'Maksimal 1 Tantangan Aktif',
-      'Pembuatan Tantangan Manual',
-      'Maksimal 50 Kandidat/Tantangan',
-      'Evaluasi Standar',
-    ],
-    buttonText: 'Paket Anda Saat Ini',
-  },
-  {
-    tier: 'KONGLOMERAT',
-    name: 'Pro',
-    price: 'Rp 990.000 / bln',
-    description: 'Fitur lengkap dengan kecerdasan buatan untuk rekrutmen masif.',
-    features: [
-      'Maksimal 5 Tantangan Aktif',
-      'AI Generate Tantangan',
-      'Evaluasi Otomatis AI Lanjutan',
-      'Proctoring Biometrik Penuh',
-      'Maksimal 500 Kandidat/Tantangan',
-    ],
-    buttonText: 'Upgrade ke Pro',
-  },
-  {
-    tier: 'CUSTOM',
-    name: 'Custom',
-    price: 'Hubungi Sales',
-    description: 'Solusi tak terbatas untuk korporat dengan kebutuhan unik.',
-    features: [
-      'Tantangan Tanpa Batas',
-      'Semua Fitur Pro',
-      'Kustomisasi Branding Penuh',
-      'Dukungan SLA 24/7',
-      'Kandidat Tanpa Batas',
-    ],
-    buttonText: 'Hubungi via WhatsApp',
-  },
-];
+const tierIcon = {
+  STARTUP: <Shield className="h-5 w-5 text-muted-foreground" />,
+  KONGLOMERAT: <Zap className="h-5 w-5 text-emerald-400 fill-emerald-400/20" />,
+  CUSTOM: <Crown className="h-5 w-5 text-amber-400 fill-amber-400/20" />,
+} as const;
 
 export default function BillingPage() {
-  const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
+  const { user, isHydrated, loadUserFromStorage } = useUserStore();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [pendingTier, setPendingTier] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserFromStorage();
+  }, [loadUserFromStorage]);
+
+  useEffect(() => {
     if (user && user.role !== 'COMPANY' && user.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [loadUserFromStorage, user, router]);
+  }, [user, router]);
 
-  const currentTier = user?.profile?.subscriptionTier || 'STARTUP';
+  // Tanggal berakhir langganan hanya ada di server; localStorage menyimpan
+  // potret saat login saja. Tanpa ini halaman berjudul "Langganan & Tagihan"
+  // tidak menampilkan satu pun informasi langganan yang sedang berjalan.
+  const { data: statusData } = useQuery({
+    queryKey: ['subscription-status', user?.id],
+    queryFn: () => subscriptionsService.getStatus(),
+    enabled: !!user && user.role === 'COMPANY',
+  });
 
-  const handleUpgrade = async (plan: any) => {
+  const currentTier =
+    statusData?.data?.subscriptionTier ||
+    user?.profile?.subscriptionTier ||
+    'STARTUP';
+  const expiresAt = statusData?.data?.subscriptionExpiresAt;
+
+  const handleSelectPlan = async (plan: Plan) => {
     if (plan.tier === currentTier) return;
 
-    if (plan.tier === 'CUSTOM') {
-      window.open('https://wa.me/0895397133738?text=Halo%20Tolongin,%20saya%20tertarik%20dengan%20paket%20Custom%20untuk%20perusahaan%20saya.', '_blank');
+    if (!plan.selfServe) {
+      window.open(WHATSAPP_SALES_URL, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    setIsLoading(true);
+    // `POST /payments/subscribe` selalu menagih paket Pro apa pun yang dikirim
+    // dari sini. Turun paket karena itu tidak boleh lewat jalur checkout —
+    // sebelumnya kartu Startup tampil sebagai tombol aktif berlabel "Paket Anda
+    // Saat Ini" dan menekannya menagih Rp 2.500.000 untuk paket Pro.
+    const currentRank = PLANS.findIndex((p) => p.tier === currentTier);
+    const targetRank = PLANS.findIndex((p) => p.tier === plan.tier);
+    if (targetRank < currentRank) {
+      toast(
+        'Penurunan paket diproses manual. Hubungi tim kami untuk mengaturnya.',
+        { icon: 'ℹ️' },
+      );
+      return;
+    }
+
+    if (!isMidtransConfigured) {
+      toast.error(
+        'Pembayaran mandiri sedang tidak tersedia. Hubungi tim kami untuk mengaktifkan paket Anda.',
+      );
+      return;
+    }
+
+    setPendingTier(plan.tier);
     try {
       const { PaymentsService } = await import('@/services/payments.service');
       const result = await PaymentsService.subscribePremium();
-      if (result.snapToken) {
-        (window as any).snap.pay(result.snapToken, {
-          onSuccess: function() {
-            alert('Pembayaran sukses! Akun Anda segera di-upgrade.');
-            window.location.reload();
-          },
-          onPending: function() {
-            alert('Menunggu pembayaran Anda...');
-          },
-          onError: function() {
-            alert('Pembayaran gagal.');
-          }
-        });
+
+      if (!result.snapToken) {
+        throw new Error('Payment Gateway tidak mengembalikan token pembayaran.');
       }
+
+      if (typeof (window as any).snap?.pay !== 'function') {
+        throw new Error(
+          'Jendela pembayaran gagal dimuat. Periksa koneksi Anda lalu coba lagi.',
+        );
+      }
+
+      (window as any).snap.pay(result.snapToken, {
+        onSuccess: () => {
+          toast.success('Pembayaran berhasil. Paket Anda segera aktif.');
+          window.location.reload();
+        },
+        onPending: () => {
+          toast('Pembayaran Anda sedang menunggu penyelesaian.', { icon: '⏳' });
+          setPendingTier(null);
+        },
+        onError: () => {
+          toast.error('Pembayaran gagal diproses.');
+          setPendingTier(null);
+        },
+        onClose: () => {
+          setPendingTier(null);
+        },
+      });
     } catch (err: any) {
-      alert(err.message || 'Gagal menghubungi Payment Gateway.');
-    } finally {
-      setIsLoading(false);
+      toast.error(err.message || 'Gagal menghubungi Payment Gateway.');
+      setPendingTier(null);
     }
+    // Tanpa `finally`: `snap.pay` membuka jendela pembayaran lalu langsung
+    // kembali. Membersihkan keadaan memuat di sini akan menghentikan indikator
+    // tepat ketika jendela pembayaran baru saja terbuka. Yang menutupnya adalah
+    // callback Snap di atas.
   };
 
-  if (!user || user.role !== 'COMPANY') {
+  // `isHydrated` membedakan "sesi belum selesai dibaca" dari "bukan
+  // perusahaan". Tanpa itu menyegarkan halaman ini menampilkan layar putih
+  // kepada akun perusahaan yang sah selama sepersekian detik pertama.
+  if (!isHydrated) {
+    return (
+      <div className="space-y-8 animate-pulse" aria-busy="true">
+        <div className="h-10 bg-foreground/5 rounded-xl w-1/3 mx-auto" />
+        <div className="h-24 bg-foreground/5 rounded-2xl w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="h-80 bg-foreground/5 rounded-3xl" />
+          <div className="h-80 bg-foreground/5 rounded-3xl" />
+          <div className="h-80 bg-foreground/5 rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || (user.role !== 'COMPANY' && user.role !== 'ADMIN')) {
     return null;
   }
 
+  const activePlan = PLANS.find((p) => p.tier === currentTier) ?? PLANS[0];
+
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="space-y-12">
       <div className="text-center space-y-4">
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">Langganan & Tagihan</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+          Langganan &amp; Tagihan
+        </h1>
         <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-          Tingkatkan kapabilitas rekrutmen Anda. Akses AI Generative, buka kuota tantangan yang lebih banyak, dan pastikan proses rekrutmen berjalan lancar tanpa hambatan.
+          Tingkatkan kuota studi kasus dan buka penilaian otomatis AI untuk
+          setiap submisi kandidat.
         </p>
       </div>
 
+      {/* Lingkungan sandbox tidak menagih apa pun. Dikatakan terang-terangan
+          supaya "pembayaran berhasil" di layar tidak disangka tagihan nyata. */}
+      {isMidtransConfigured && MIDTRANS_IS_SANDBOX && (
+        <div
+          role="status"
+          className="bg-warning/10 border border-warning/30 rounded-2xl p-4 text-center"
+        >
+          <p className="text-xs font-semibold text-warning">
+            Mode uji coba pembayaran. Transaksi di halaman ini tidak menagih
+            dana sungguhan.
+          </p>
+        </div>
+      )}
+
+      {!isMidtransConfigured && (
+        <div
+          role="status"
+          className="bg-warning/10 border border-warning/30 rounded-2xl p-4 text-center"
+        >
+          <p className="text-xs font-semibold text-warning">
+            Pembayaran mandiri sedang tidak tersedia. Hubungi tim kami untuk
+            mengaktifkan atau meningkatkan paket.
+          </p>
+        </div>
+      )}
+
+      {/* Ringkasan langganan berjalan */}
+      <div className="bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+              Paket berjalan
+            </p>
+            <p className="font-display text-xl font-bold text-foreground">
+              {activePlan.name}
+              <span className="text-sm font-medium text-muted-foreground ml-2">
+                {activePlan.priceLabel}
+                {activePlan.monthlyPrice ? ' / bln' : ''}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarClock className="h-4 w-4 flex-shrink-0" />
+          {expiresAt ? (
+            <span>
+              Berlaku hingga{' '}
+              <span className="font-semibold text-foreground">
+                {new Date(expiresAt).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </span>
+            </span>
+          ) : (
+            <span>Tanpa tanggal berakhir</span>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {plans.map((plan, idx) => {
+        {PLANS.map((plan, idx) => {
           const isCurrent = currentTier === plan.tier;
           const isPro = plan.tier === 'KONGLOMERAT';
-          
+          const isBusy = pendingTier === plan.tier;
+
+          const currentRank = PLANS.findIndex((p) => p.tier === currentTier);
+          const isDowngrade = idx < currentRank;
+
+          const label = isCurrent
+            ? 'Paket Anda Saat Ini'
+            : !plan.selfServe
+              ? 'Hubungi via WhatsApp'
+              : isDowngrade
+                ? 'Turunkan Paket'
+                : `Tingkatkan ke ${plan.name}`;
+
           return (
             <motion.div
               key={plan.tier}
@@ -124,32 +257,46 @@ export default function BillingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
               className={`relative bg-card border rounded-3xl p-8 flex flex-col ${
-                isPro ? 'border-emerald-500/50 shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]' : 'border-border'
+                isCurrent
+                  ? 'border-emerald-500/60 shadow-[0_0_40px_-10px_rgba(16,185,129,0.25)]'
+                  : isPro
+                    ? 'border-emerald-500/30'
+                    : 'border-border'
               }`}
             >
-              {isPro && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
-                  Paling Populer
+              {isCurrent && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+                  Paket Aktif
                 </div>
               )}
-              
+
               <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-2">
-                  {plan.tier === 'STARTUP' && <Shield className="h-5 w-5 text-muted-foreground" />}
-                  {plan.tier === 'KONGLOMERAT' && <Zap className="h-5 w-5 text-emerald-400 fill-emerald-400/20" />}
-                  {plan.tier === 'CUSTOM' && <Crown className="h-5 w-5 text-amber-400 fill-amber-400/20" />}
-                  <h3 className="font-display font-bold text-lg text-foreground">{plan.name}</h3>
+                  {tierIcon[plan.tier]}
+                  <h3 className="font-display font-bold text-lg text-foreground">
+                    {plan.name}
+                  </h3>
                 </div>
-                <div className="text-3xl font-extrabold text-foreground">{plan.price}</div>
+                <div className="text-3xl font-extrabold text-foreground">
+                  {plan.priceLabel}
+                  {plan.monthlyPrice ? (
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {' '}
+                      / bln
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
               </div>
 
               <div className="flex-1 space-y-4 mb-8">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fitur Utama</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Fitur Utama
+                </p>
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  {plan.features.map((feat, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                  {plan.features.map((feat) => (
+                    <li key={feat} className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" aria-hidden="true" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -157,29 +304,27 @@ export default function BillingPage() {
               </div>
 
               <button
-                onClick={() => handleUpgrade(plan)}
-                disabled={isCurrent || (isLoading && plan.tier !== 'CUSTOM')}
+                onClick={() => handleSelectPlan(plan)}
+                disabled={isCurrent || isBusy}
                 className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                   isCurrent
-                    ? 'bg-foreground/5 text-muted-foreground cursor-not-allowed border border-white/5'
+                    ? 'bg-foreground/5 text-muted-foreground cursor-not-allowed border border-foreground/10'
                     : isPro
-                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25'
-                    : plan.tier === 'CUSTOM'
-                    ? 'bg-foreground/10 text-white hover:bg-white/20 border border-foreground/10'
-                    : 'bg-foreground/10 text-white hover:bg-white/20 border border-foreground/10'
+                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25'
+                      : 'bg-foreground/10 text-foreground hover:bg-foreground/20 border border-foreground/10'
                 }`}
               >
-                {isLoading && !isCurrent && plan.tier !== 'CUSTOM' ? (
+                {isBusy ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isCurrent ? (
-                  plan.buttonText
-                ) : plan.tier === 'CUSTOM' ? (
-                  <>
-                    <MessageSquare className="h-4 w-4" /> {plan.buttonText}
-                  </>
                 ) : (
                   <>
-                    <CreditCard className="h-4 w-4" /> {plan.buttonText}
+                    {!isCurrent &&
+                      (plan.selfServe ? (
+                        <CreditCard className="h-4 w-4" />
+                      ) : (
+                        <MessageSquare className="h-4 w-4" />
+                      ))}
+                    {label}
                   </>
                 )}
               </button>
@@ -187,13 +332,37 @@ export default function BillingPage() {
           );
         })}
       </div>
-      <Script
-        src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 'dummy_client_key'}
-        strategy="lazyOnload"
-      />
+
+      {/* Faktur per transaksi memang belum ada di sini. Yang berubah: pengguna
+          diberi jalan keluar yang bisa ditempuh, bukan sekadar diberi tahu
+          bahwa fiturnya tidak ada. */}
+      <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
+        <p className="text-sm font-semibold text-foreground">
+          Butuh faktur atau riwayat tagihan?
+        </p>
+        <p className="text-xs text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          Bukti pembayaran otomatis dikirim ke email penanggung jawab akun oleh
+          penyedia pembayaran. Untuk faktur ber-NPWP atau rekapitulasi tagihan
+          keperluan finance, mintakan ke tim kami.
+        </p>
+        <a
+          href={WHATSAPP_SALES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-success hover:opacity-80 transition-opacity"
+        >
+          <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+          Minta faktur ke tim kami
+        </a>
+      </div>
+
+      {isMidtransConfigured && (
+        <Script
+          src={MIDTRANS_SNAP_URL}
+          data-client-key={MIDTRANS_CLIENT_KEY}
+          strategy="lazyOnload"
+        />
+      )}
     </div>
   );
 }
-
-

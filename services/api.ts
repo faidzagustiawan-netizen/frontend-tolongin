@@ -1,5 +1,6 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { clearAuthSession, readAuthToken } from '../lib/authStorage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://podorukunspk.fun/api/v1';
 
@@ -14,7 +15,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
+      const token = readAuthToken();
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -40,8 +41,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_data');
+      clearAuthSession();
       if (!window.location.pathname.includes('/login')) {
         if (onSessionExpired) {
           onSessionExpired();

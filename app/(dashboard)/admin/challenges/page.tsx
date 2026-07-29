@@ -5,13 +5,14 @@ import { useUserStore } from '@/store/userStore';
 import { ShieldAlert, Trash2, Search, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { readAuthToken } from '@/lib/authStorage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminChallengesPage() {
   const { user } = useUserStore();
   const [challenges, setChallenges] = useState<any[]>([]);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = readAuthToken();
   const [search, setSearch] = useState('');
 
   useEffect(() => {

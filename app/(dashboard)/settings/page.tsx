@@ -8,7 +8,7 @@ import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
 import { verificationService } from '@/services/verification.service';
 import { Button } from '@/components/common/Button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Building2 } from 'lucide-react';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { AboutSection } from '@/components/profile/AboutSection';
@@ -23,6 +23,7 @@ import { EducationSection } from '@/components/profile/EducationSection';
 import { LivenessKycTab } from '@/components/profile/LivenessKycTab';
 import { TalentBadgesTab } from '@/components/profile/TalentBadgesTab';
 import { PublicProfileCard } from '@/components/profile/PublicProfileCard';
+import { CompanySettingsTab } from '@/components/profile/CompanySettingsTab';
 
 export default function ProfilePage() {
   const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
@@ -41,6 +42,22 @@ export default function ProfilePage() {
   const [showLivenessCam, setShowLivenessCam] = useState(false);
   const [showTestFaceCam, setShowTestFaceCam] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  // Penyuntingan profil perusahaan. Formulirnya sudah lama ada di
+  // `CompanySettingsTab` tetapi tidak pernah dirender di mana pun, sehingga
+  // akun COMPANY membuka /settings dan tidak menemukan satu pun field
+  // perusahaan — padahal `PATCH /users/profile` menerima seluruhnya.
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const isCompanyOwner = user?.role === 'COMPANY' && !user?.profile?.isTeamMember;
+
+  // Legalitas bisnis (KYB).
+  const [kybEntityName, setKybEntityName] = useState('');
+  const [kybNumber, setKybNumber] = useState('');
+  const [kybDocUrl, setKybDocUrl] = useState('');
+  const [isVerifyingKyb, setIsVerifyingKyb] = useState(false);
 
   /**
    * Menguji apakah wajah di kamera cocok dengan acuan biometrik yang tersimpan.
@@ -149,6 +166,62 @@ export default function ProfilePage() {
     }
   };
 
+  const handleStartEditCompany = () => {
+    setEditFormData({
+      companyName: companyProfile?.companyName ?? '',
+      industry: companyProfile?.industry ?? '',
+      companySize: companyProfile?.companySize ?? '',
+      websiteUrl: companyProfile?.websiteUrl ?? '',
+      location: companyProfile?.location ?? '',
+      linkedinUrl: companyProfile?.linkedinUrl ?? '',
+      logoUrl: companyProfile?.logoUrl ?? '',
+      description: companyProfile?.description ?? '',
+    });
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveCompany = async () => {
+    setIsSavingProfile(true);
+    try {
+      await handleUpdateProfile(editFormData);
+      setIsEditingProfile(false);
+    } catch {
+      // handleUpdateProfile sudah menampilkan toast galatnya. Mode edit
+      // sengaja dibiarkan terbuka supaya isian yang sudah diketik tidak hilang.
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleKybSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!kybEntityName || !kybNumber || !kybDocUrl) {
+      toast.error('Lengkapi nama entitas, nomor NIB/NPWP, dan tautan dokumen.');
+      return;
+    }
+
+    setIsVerifyingKyb(true);
+    try {
+      await verificationService.verifyKyb({
+        legalEntityName: kybEntityName,
+        businessRegistrationNumber: kybNumber,
+        documentUrl: kybDocUrl,
+      });
+      toast.success('Dokumen KYB berhasil dikirim.');
+      setKybEntityName('');
+      setKybNumber('');
+      setKybDocUrl('');
+      refetch();
+    } catch (err: any) {
+      toast.error(
+        err.response?.data?.message || err.message || 'Gagal mengirim dokumen KYB.',
+      );
+    } finally {
+      setIsVerifyingKyb(false);
+    }
+  };
+
   const handleAddSection = (key: string) => {
     if (key === 'about') {
       setIsAddSectionOpen(false);
@@ -191,15 +264,73 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Left Column (Main Content) */}
         <div className="lg:col-span-2 space-y-8">
+          {/* Modal intro/foto/section hanya membaca dan menulis `talentProfile`.
+              Sebelumnya callback-nya diteruskan tanpa syarat, sehingga akun
+              COMPANY bisa membuka formulir kosong yang simpanannya tidak pernah
+              mendarat di profil perusahaan. Profil perusahaan disunting lewat
+              CompanySettingsTab di bawah. */}
           <ProfileHeader
             user={user}
             isTalent={isTalent}
             talentProfile={talentProfile}
             companyProfile={companyProfile}
-            onEditIntroClick={() => setIsEditIntroOpen(true)}
-            onAddSectionClick={() => setIsAddSectionOpen(true)}
-            onEditPhotoClick={() => setIsEditPhotoOpen(true)}
+            onEditIntroClick={isTalent ? () => setIsEditIntroOpen(true) : undefined}
+            onAddSectionClick={isTalent ? () => setIsAddSectionOpen(true) : undefined}
+            onEditPhotoClick={isTalent ? () => setIsEditPhotoOpen(true) : undefined}
           />
+
+          {!isTalent && (
+            <div className="bg-card border border-border rounded-3xl p-8 shadow-lg space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-foreground">
+                      Profil Perusahaan
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Data ini tampil di direktori perusahaan dan halaman challenge Anda.
+                    </p>
+                  </div>
+                </div>
+
+                {isCompanyOwner ? (
+                  !isEditingProfile ? (
+                    <Button size="sm" variant="outline" onClick={handleStartEditCompany}>
+                      Edit Profil
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingProfile(false)}
+                        disabled={isSavingProfile}
+                      >
+                        Batal
+                      </Button>
+                      <Button size="sm" onClick={handleSaveCompany} isLoading={isSavingProfile}>
+                        Simpan
+                      </Button>
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-medium border border-amber-500/20">
+                    Mode Anggota (Hanya Baca)
+                  </div>
+                )}
+              </div>
+
+              <CompanySettingsTab
+                companyProfile={companyProfile}
+                isEditingProfile={isEditingProfile}
+                editFormData={editFormData}
+                setEditFormData={setEditFormData}
+              />
+            </div>
+          )}
 
           {isTalent && (visibleSections.includes('about') || talentProfile?.bio) && (
             <AboutSection 
@@ -243,36 +374,40 @@ export default function ProfilePage() {
 
         {/* Right Column (Sidebar) */}
         <div className="space-y-8">
-          <PublicProfileCard 
-            linkedinUrl={talentProfile?.linkedinUrl || ''} 
-            githubUrl={talentProfile?.githubUrl || ''}
-            figmaUrl={talentProfile?.figmaUrl || ''}
-            onEditClick={() => setIsEditLinksOpen(true)}
-          />
-          
-          {/* Liveness KYC always shown on the right for talent */}
+          {/* Tautan LinkedIn/GitHub/Figma adalah field talenta. */}
           {isTalent && (
-            <LivenessKycTab
-              isTalent={isTalent}
-              talentProfile={talentProfile}
-              companyProfile={companyProfile}
-              showLivenessCam={showLivenessCam}
-              setShowLivenessCam={setShowLivenessCam}
-              showTestFaceCam={showTestFaceCam}
-              setShowTestFaceCam={setShowTestFaceCam}
-              handleFaceCaptureComplete={handleFaceCaptureComplete}
-              handleFaceTestComplete={handleFaceTestComplete}
-              handleKybSubmit={async () => {}}
-              kybEntityName=""
-              setKybEntityName={() => {}}
-              kybNumber=""
-              setKybNumber={() => {}}
-              kybDocUrl=""
-              setKybDocUrl={() => {}}
-              isVerifyingKyb={false}
-              verificationError={verificationError}
+            <PublicProfileCard
+              linkedinUrl={talentProfile?.linkedinUrl || ''}
+              githubUrl={talentProfile?.githubUrl || ''}
+              figmaUrl={talentProfile?.figmaUrl || ''}
+              onEditClick={() => setIsEditLinksOpen(true)}
             />
           )}
+
+          {/* Satu komponen, dua cabang: liveness untuk talenta, legalitas KYB
+              untuk perusahaan. Cabang KYB-nya sudah lama ada di dalam sini
+              tetapi tidak pernah tampil karena komponennya digerbang isTalent
+              dan handler-nya diisi stub kosong. */}
+          <LivenessKycTab
+            isTalent={isTalent}
+            talentProfile={talentProfile}
+            companyProfile={companyProfile}
+            showLivenessCam={showLivenessCam}
+            setShowLivenessCam={setShowLivenessCam}
+            showTestFaceCam={showTestFaceCam}
+            setShowTestFaceCam={setShowTestFaceCam}
+            handleFaceCaptureComplete={handleFaceCaptureComplete}
+            handleFaceTestComplete={handleFaceTestComplete}
+            handleKybSubmit={handleKybSubmit}
+            kybEntityName={kybEntityName}
+            setKybEntityName={setKybEntityName}
+            kybNumber={kybNumber}
+            setKybNumber={setKybNumber}
+            kybDocUrl={kybDocUrl}
+            setKybDocUrl={setKybDocUrl}
+            isVerifyingKyb={isVerifyingKyb}
+            verificationError={verificationError}
+          />
 
           {isTalent && visibleSections.includes('badges') && (
             <div className="bg-card border border-border rounded-3xl p-8 shadow-lg">
