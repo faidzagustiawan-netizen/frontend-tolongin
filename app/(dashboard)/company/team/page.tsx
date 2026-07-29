@@ -107,6 +107,8 @@ export default function TeamWorkspacePage() {
   const hasActiveInvite = !!rawInviteCode && !isInviteExpired;
   const inviteCode = hasActiveInvite ? rawInviteCode : 'Belum ada kode aktif';
 
+  const isCompanyAdmin = !user?.profile?.isTeamMember || user?.profile?.memberRole === 'ADMIN' || user?.profile?.memberRole === 'OWNER';
+
   const copyToClipboard = () => {
     if (hasActiveInvite) {
       navigator.clipboard.writeText(inviteCode as string);
@@ -188,36 +190,38 @@ export default function TeamWorkspacePage() {
         </div>
         
         {/* INVITE CODE CARD */}
-        <Card className="p-4 flex items-center gap-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/20 shadow-emerald-500/5">
-          <div className="p-2.5 bg-emerald-500/20 text-emerald-600 rounded-xl">
-            <Key size={20} />
-          </div>
-          <div>
-            <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Kode Undangan Tim</p>
-            <div className="flex items-center gap-2">
-              <code className={`font-mono font-bold text-lg px-2 py-0.5 bg-background rounded border border-border ${hasActiveInvite ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {String(inviteCode)}
-              </code>
-              <Button size="sm" variant="outline" className="h-8 px-3" onClick={copyToClipboard} disabled={!hasActiveInvite}>
-                {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="primary" 
-                className="h-8 px-3 bg-emerald-500 hover:bg-emerald-600 text-white border-none"
-                isLoading={generateCodeMutation.isPending}
-                onClick={() => generateCodeMutation.mutate()}
-              >
-                Generate Baru
-              </Button>
+        {isCompanyAdmin && (
+          <Card className="p-4 flex items-center gap-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/20 shadow-emerald-500/5">
+            <div className="p-2.5 bg-emerald-500/20 text-emerald-600 rounded-xl">
+              <Key size={20} />
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              {hasActiveInvite
-                ? `Berlaku sekali pakai, hangus ${inviteExpiresAt!.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}.`
-                : 'Tekan "Generate Baru" untuk menerbitkan kode. Kode hanya bisa dipakai satu orang dan berlaku 48 jam.'}
-            </p>
-          </div>
-        </Card>
+            <div>
+              <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Kode Undangan Tim</p>
+              <div className="flex items-center gap-2">
+                <code className={`font-mono font-bold text-lg px-2 py-0.5 bg-background rounded border border-border ${hasActiveInvite ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {String(inviteCode)}
+                </code>
+                <Button size="sm" variant="outline" className="h-8 px-3" onClick={copyToClipboard} disabled={!hasActiveInvite}>
+                  {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="primary" 
+                  className="h-8 px-3 bg-emerald-500 hover:bg-emerald-600 text-white border-none"
+                  isLoading={generateCodeMutation.isPending}
+                  onClick={() => generateCodeMutation.mutate()}
+                >
+                  Generate Baru
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                {hasActiveInvite
+                  ? `Berlaku sekali pakai, hangus ${inviteExpiresAt!.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}.`
+                  : 'Tekan "Generate Baru" untuk menerbitkan kode. Kode hanya bisa dipakai satu orang dan berlaku 48 jam.'}
+              </p>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* DASHBOARD TABS */}
@@ -318,7 +322,7 @@ export default function TeamWorkspacePage() {
                           {new Date(member.joinedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {member.status === 'PENDING' && (
+                          {member.status === 'PENDING' && isCompanyAdmin && (
                             <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"

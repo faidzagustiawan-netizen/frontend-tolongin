@@ -61,6 +61,8 @@ export function CompanyWorkspaceDashboard({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const { user } = useUserStore();
 
+  const isCompanyAdmin = !user?.profile?.isTeamMember || user?.profile?.memberRole === 'ADMIN' || user?.profile?.memberRole === 'OWNER';
+
   const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
 
   const calculateSlaStatus = (nearestDate: string | null) => {
@@ -326,11 +328,13 @@ export function CompanyWorkspaceDashboard({
               </p>
             </div>
           </div>
-          <Link href="/company/billing" className="flex-shrink-0">
-            <Button size="sm" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" /> Lihat Paket
-            </Button>
-          </Link>
+            {isCompanyAdmin && (
+              <Link href="/company/billing" className="flex-shrink-0">
+                <Button size="sm" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" /> Lihat Paket
+                </Button>
+              </Link>
+            )}
         </div>
       )}
 
