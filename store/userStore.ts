@@ -14,6 +14,15 @@ export interface UserData {
   fullName?: string;
   isVerified?: boolean;
   role: 'TALENT' | 'COMPANY' | 'ADMIN';
+  /**
+   * Pemilik akun perusahaan — yang mendaftar sendiri dan punya CompanyProfile.
+   *
+   * Sebelumnya kepemilikan disimpulkan dari `!profile?.isTeamMember`, dan itu
+   * salah untuk anggota tim yang belum disetujui: profilnya `null`, sehingga
+   * `!undefined` bernilai true dan ia tampil sebagai pemilik. Penanda ini
+   * datang langsung dari server dan tidak punya keadaan ambigu.
+   */
+  isCompanyOwner?: boolean;
   profile?: UserProfile;
 }
 
@@ -34,6 +43,26 @@ interface UserStore {
   logout: () => void;
   loadUserFromStorage: () => void;
   refreshFromServer: () => Promise<void>;
+}
+
+/**
+ * Melengkapi sesi yang disimpan sebelum `isCompanyOwner` ada.
+ *
+ * Sesi lama di localStorage tidak membawa penanda ini, dan tanpa pengisian
+ * ulang setiap pemilik perusahaan yang sedang masuk akan tampak seperti anggota
+ * tim sampai ia login ulang — kehilangan menu Kelola Tim dan halaman langganan
+ * miliknya sendiri. Penurunan ke tebakan lama hanya menyangkut tampilan;
+ * backend memutuskannya dari CompanyProfile di basis data.
+ */
+function withOwnerFlag(user: UserData): UserData {
+  if (typeof user?.isCompanyOwner === 'boolean') {
+    return user;
+  }
+
+  return {
+    ...user,
+    isCompanyOwner: user?.role === 'COMPANY' && !user?.profile?.isTeamMember,
+  };
 }
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -62,7 +91,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       const token = readAuthToken();
       if (userData && token) {
         try {
-          const user = JSON.parse(userData);
+          const user = withOwnerFlag(JSON.parse(userData));
           set((state) => {
             // Prevent state update if user object hasn't changed to avoid render thrashing
             if (state.isHydrated && state.isAuthenticated && JSON.stringify(state.user) === JSON.stringify(user)) {
@@ -104,6 +133,13 @@ export const useUserStore = create<UserStore>((set, get) => ({
         fullName: data.fullName ?? current.fullName,
         isVerified: data.isVerified ?? current.isVerified,
         role: data.role ?? current.role,
+        // Endpoint profil mengembalikan `companyProfile` hanya untuk pemilik,
+        // jadi keberadaannya adalah jawaban yang sama dengan yang dipakai
+        // server. Tanpa baris ini penanda dari sesi login hilang pada
+        // penyegaran pertama dan pemilik ikut kehilangan akses ke layarnya.
+        isCompanyOwner: data.companyProfile
+          ? true
+          : (current.isCompanyOwner ?? false),
         profile: data.talentProfile ?? data.companyProfile ?? current.profile,
       };
 
