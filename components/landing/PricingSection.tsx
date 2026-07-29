@@ -1,12 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Lock } from 'lucide-react';
 import { Button } from '../common/Button';
+import { getPlan } from '../../lib/plans';
 
+/**
+ * Harga dan kuota diambil dari `lib/plans.ts` supaya halaman pemasaran tidak
+ * bisa lagi menjanjikan sesuatu yang berbeda dari yang ditagih di checkout.
+ *
+ * Yang dihapus dari versi sebelumnya karena tidak ada di produk: pilihan
+ * tagihan tahunan "HEMAT 20%" (backend mengalikan harga bulanan dengan jumlah
+ * bulan, tanpa potongan apa pun), "studi kasus/submisi tak terbatas" pada
+ * paket Professional yang sebenarnya dibatasi 5 studi kasus aktif, serta ajakan
+ * "Uji Coba Gratis 14 Hari" yang tidak punya implementasi trial sama sekali.
+ */
 export function PricingSection() {
-  const [billingCycle, setBillingCycle] = useState<'bulanan' | 'tahunan'>('bulanan');
+  const starter = getPlan('STARTUP');
+  const professional = getPlan('KONGLOMERAT');
 
   return (
     <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-border overflow-hidden">
@@ -17,33 +29,9 @@ export function PricingSection() {
           Paket Fleksibel untuk Segala Skala Organisasi
         </h2>
         <p className="text-muted text-base max-w-2xl mx-auto">
-          Rancang dan sebarkan studi kasus tanpa batas, hemat 80% waktu penyaringan rekruter dengan asisten AI terdepan.
+          Rancang studi kasus, biarkan AI menilai submisi kandidat, dan pangkas
+          waktu penyaringan rekruter Anda.
         </p>
-
-        {/* Billing Toggle */}
-        <div className="pt-6 inline-flex items-center p-1.5 bg-card border border-border rounded-full shadow-lg">
-          <button
-            onClick={() => setBillingCycle('bulanan')}
-            className={`px-6 py-2.5 rounded-full font-bold text-xs transition-all ${
-              billingCycle === 'bulanan'
-                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-md'
-                : 'text-muted hover:text-title'
-            }`}
-          >
-            Tagihan Bulanan
-          </button>
-          <button
-            onClick={() => setBillingCycle('tahunan')}
-            className={`px-6 py-2.5 rounded-full font-bold text-xs transition-all flex items-center gap-2 ${
-              billingCycle === 'tahunan'
-                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-md'
-                : 'text-muted hover:text-title'
-            }`}
-          >
-            <span>Tagihan Tahunan</span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 font-extrabold text-[10px]">HEMAT 20%</span>
-          </button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
@@ -57,21 +45,15 @@ export function PricingSection() {
             </div>
 
             <div className="space-y-3 pt-4 border-t border-border/60">
-              <div className="flex items-center gap-3 text-sm text-body">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Maksimal 1 studi kasus aktif</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-body">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>10 Submisi kandidat per bulan</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-body">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Evaluasi otomatis AI Dasar</span>
-              </div>
+              {starter.features.map((feat) => (
+                <div key={feat} className="flex items-center gap-3 text-sm text-body">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                  <span>{feat}</span>
+                </div>
+              ))}
               <div className="flex items-center gap-3 text-sm text-muted">
                 <Lock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <span className="line-through">Laporan Plagiasi Mendalam</span>
+                <span className="line-through">Evaluasi otomatis AI</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted">
                 <Lock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
@@ -98,7 +80,7 @@ export function PricingSection() {
               <span className="inline-block px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-xs font-bold text-emerald-500 uppercase tracking-wider mb-3">Professional</span>
               <div className="flex items-baseline gap-1">
                 <h3 className="font-display text-4xl font-extrabold text-title">
-                  {billingCycle === 'bulanan' ? 'Rp 2.500.000' : 'Rp 2.000.000'}
+                  {professional.priceLabel}
                 </h3>
                 <span className="text-xs font-bold text-emerald-500">/ bulan</span>
               </div>
@@ -106,36 +88,18 @@ export function PricingSection() {
             </div>
 
             <div className="space-y-3 pt-4 border-t border-emerald-500/30">
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Studi kasus aktif tak terbatas</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Submisi kandidat tak terbatas</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Evaluasi AI Senior (GPT-4o)</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Pemeriksaan AST & Plagiasi Kode</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>AI Prompt-to-Challenge Generator</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-title font-medium">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                <span>Ekspor Laporan PDF Lengkap</span>
-              </div>
+              {professional.features.map((feat) => (
+                <div key={feat} className="flex items-center gap-3 text-sm text-title font-medium">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                  <span>{feat}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           <Link href="/register?role=COMPANY">
             <Button size="lg" className="w-full font-bold py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-xl shadow-emerald-500/20 text-white">
-              Mulai Uji Coba Gratis 14 Hari
+              Mulai dari Paket Gratis
             </Button>
           </Link>
         </div>

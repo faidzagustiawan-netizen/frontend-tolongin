@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { ShieldAlert, Users, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { readAuthToken } from '@/lib/authStorage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -13,7 +14,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([]);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = readAuthToken();
 
   useEffect(() => {
     if (!user) return;

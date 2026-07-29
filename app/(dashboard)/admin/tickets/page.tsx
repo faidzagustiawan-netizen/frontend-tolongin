@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { LifeBuoy, Search, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { readAuthToken } from '@/lib/authStorage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -11,7 +12,7 @@ export default function AdminTicketsPage() {
   const { user } = useUserStore();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = readAuthToken();
   const [search, setSearch] = useState('');
   
   const [selectedTicket, setSelectedTicket] = useState<any>(null);

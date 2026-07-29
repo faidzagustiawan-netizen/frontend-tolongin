@@ -13,8 +13,16 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
+/** Nilai `CompanyMember.role` di basis data adalah OWNER/ADMIN/RECRUITER/MEMBER. */
+const MEMBER_ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Pemilik',
+  ADMIN: 'Admin',
+  RECRUITER: 'Rekruter',
+  MEMBER: 'Anggota',
+};
+
 export default function TeamWorkspacePage() {
-  const { user, refreshFromServer } = useUserStore();
+  const { user, isHydrated, refreshFromServer } = useUserStore();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -22,10 +30,10 @@ export default function TeamWorkspacePage() {
   const [searchLog, setSearchLog] = useState('');
 
   useEffect(() => {
-    if (user && user.role !== 'COMPANY' && user.role !== 'ADMIN') {
+    if (isHydrated && user && user.role !== 'COMPANY' && user.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [user, router]);
+  }, [isHydrated, user, router]);
 
   const { data: teamMembers, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['teamMembers'],
@@ -53,10 +61,22 @@ export default function TeamWorkspacePage() {
     },
   });
 
+  // Selama sesi belum selesai dibaca, `user` masih null. Tanpa pemeriksaan
+  // `isHydrated` di bawah, menyegarkan halaman ini sempat menampilkan
+  // penolakan akses kepada akun perusahaan yang sah.
+  if (!isHydrated) {
+    return (
+      <div className="space-y-8 animate-pulse" aria-busy="true">
+        <div className="h-10 bg-foreground/5 rounded-xl w-1/3" />
+        <div className="h-[600px] bg-foreground/5 rounded-2xl" />
+      </div>
+    );
+  }
+
   if (user?.role !== 'COMPANY') {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center text-gray-500">
+        <div className="text-center text-muted-foreground">
           Hanya akun perusahaan yang dapat mengakses halaman ini.
         </div>
       </div>
@@ -143,13 +163,13 @@ export default function TeamWorkspacePage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="space-y-8">
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Manajemen Tim</h1>
           <p className="text-muted-foreground mt-1">
-            Kelola peran anggota tim dan pantau setiap aktivitas di dalam *workspace* perusahaan.
+            Undang anggota tim dan pantau setiap aktivitas di workspace perusahaan Anda.
           </p>
         </div>
         
@@ -236,7 +256,6 @@ export default function TeamWorkspacePage() {
                     <th className="px-6 py-4 font-bold">Email</th>
                     <th className="px-6 py-4 font-bold">Peran Akses</th>
                     <th className="px-6 py-4 font-bold">Tanggal Bergabung</th>
-                    <th className="px-6 py-4"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -264,23 +283,33 @@ export default function TeamWorkspacePage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/30">
-                            {member.role || 'Admin'}
+                          <Badge className="bg-emerald-500/10 text-success hover:bg-emerald-500/20 border-emerald-500/30">
+                            {MEMBER_ROLE_LABELS[member.role] ?? member.role ?? 'Anggota'}
                           </Badge>
                         </td>
+                        {/* Tombol "Kelola" dihapus: tidak pernah punya onClick
+                            dan backend belum menyediakan endpoint untuk mengubah
+                            peran atau mengeluarkan anggota. Menampilkannya hanya
+                            menjanjikan aksi yang tidak ada. */}
                         <td className="px-6 py-4 text-sm text-muted-foreground">
                           {new Date(member.joinedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            Kelola
-                          </Button>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+            )}
+
+            {/* Batas fitur dinyatakan, bukan disembunyikan. Halaman ini
+                berjudul "Manajemen Tim" tetapi satu-satunya tindakan yang
+                tersedia adalah menambah anggota — tanpa keterangan, rekruter
+                mencari tombol ubah peran dan keluarkan anggota yang tidak ada. */}
+            {!!teamMembers?.length && (
+              <p className="px-6 py-4 text-xs text-muted-foreground border-t border-border">
+                Mengubah peran akses atau mengeluarkan anggota belum tersedia di
+                halaman ini. Hubungi admin Tolongin bila perlu penyesuaian.
+              </p>
             )}
           </div>
         )}

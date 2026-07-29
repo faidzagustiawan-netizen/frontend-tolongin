@@ -40,23 +40,32 @@ export default function MyChallengesPage() {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
 
+  // Halaman ini kini khusus talenta.
+  //
+  // Untuk perusahaan isinya menduplikasi dasbor `/` — daftar challenge yang
+  // sama persis, hanya beda bentuk — dan keduanya sama-sama dipasang di menu
+  // utama. Penanda status serta penyaringnya sudah dipindahkan ke dasbor, jadi
+  // akun perusahaan diarahkan ke sana.
+  const isCompany = user?.role === 'COMPANY';
+
   useEffect(() => {
-    if (isAuthenticated && user && user.role !== 'COMPANY' && user.role !== 'TALENT') {
-      router.push('/');
+    if (!isAuthenticated || !user) return;
+    if (user.role !== 'TALENT') {
+      router.replace('/');
     }
   }, [isAuthenticated, user, router]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['my-challenges', page],
     queryFn: () => challengesService.getAll({ mine: true, page, limit: PAGE_SIZE }),
-    enabled: !!user,
+    enabled: !!user && !isCompany,
   });
 
   const challenges = data?.data ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  if (!user) return null;
+  if (!user || user.role !== 'TALENT') return null;
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">

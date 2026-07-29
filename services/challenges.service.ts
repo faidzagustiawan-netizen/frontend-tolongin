@@ -112,6 +112,22 @@ export const challengesService = {
     const { data } = await apiClient.post('/challenges/ai-generate', payload);
     return { data };
   },
+  /**
+   * Pustaka template studi kasus.
+   *
+   * Dulu dipanggil dengan `fetch` mentah langsung dari komponen halaman:
+   * tanpa header Authorization, tanpa penanganan 401, dan galatnya hanya
+   * masuk ke konsol sehingga layar menampilkan "belum ada template" padahal
+   * permintaannya yang gagal.
+   */
+  getTemplates: async () => {
+    const { data } = await apiClient.get('/templates');
+    return Array.isArray(data) ? data : [];
+  },
+  cloneTemplate: async (templateId: string) => {
+    const { data } = await apiClient.post(`/templates/${templateId}/clone`);
+    return data;
+  },
   getDiscussions: async (challengeId: string) => {
     const { data } = await apiClient.get(`/challenges/${challengeId}/discussions`);
     return { data };

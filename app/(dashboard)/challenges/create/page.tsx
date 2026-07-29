@@ -1,55 +1,80 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { challengesService, CreateChallengePayload } from '@/services/challenges.service';
+import { submissionsService } from '@/services/submissions.service';
+import { getPlan } from '@/lib/plans';
 import { Button } from '@/components/common/Button';
-import { Input, Textarea } from '@/components/common/Input';
-import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info } from 'lucide-react';
+import { Textarea } from '@/components/common/Input';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { Sparkles, Briefcase, PlusCircle, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Info, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ManualBuilder from './components/ManualBuilder';
+import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
 import { aiDraftKey, clearDraft, manualDraftKey, readDraft, writeDraft } from '@/lib/challengeDraftStorage';
 export default function CreateChallengePage() {
   const router = useRouter();
-  const { user, loadUserFromStorage, isAuthenticated } = useUserStore();
+  const { user, loadUserFromStorage, isAuthenticated, isHydrated } = useUserStore();
   const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'MANUAL' | 'AI'>('TEMPLATES');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [cloningTemplateId, setCloningTemplateId] = useState<string | null>(null);
+  const [isAssetWarningOpen, setIsAssetWarningOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const isCompany = user?.role === 'COMPANY';
+  const plan = getPlan(user?.profile?.subscriptionTier as string | undefined);
+  const isAiLocked = isCompany && user?.profile?.subscriptionTier === 'STARTUP';
+
+  // Kuota dihitung dari DRAFT + PUBLISHED, sama persis dengan
+  // assertCompanyQuota di backend.
+  const { data: statsData } = useQuery({
+    queryKey: ['challenge-stats'],
+    queryFn: () => submissionsService.getChallengeStats(),
+    enabled: isCompany && isAuthenticated && user?.isVerified !== false,
+  });
+
+  const quotaUsed = (statsData?.data ?? []).filter(
+    (c: any) => c.status === 'DRAFT' || c.status === 'PUBLISHED',
+  ).length;
+  const isQuotaFull =
+    isCompany &&
+    plan.activeChallengeQuota !== null &&
+    quotaUsed >= plan.activeChallengeQuota;
+
+  const loadTemplates = React.useCallback(async () => {
+    setIsLoadingTemplates(true);
+    setTemplatesError(null);
+    try {
+      setTemplates(await challengesService.getTemplates());
+    } catch (err: any) {
+      // Kegagalan permintaan tidak lagi menyamar sebagai "belum ada template".
+      setTemplatesError(
+        err?.message || 'Gagal memuat pustaka template. Periksa koneksi Anda.',
+      );
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Fetch templates
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/templates`)
-      .then(res => res.json())
-      .then(data => {
-        setTemplates(Array.isArray(data) ? data : []);
-        setIsLoadingTemplates(false);
-      })
-      .catch(err => {
-        console.error('Failed to load templates:', err);
-        setIsLoadingTemplates(false);
-      });
-  }, []);
+    void loadTemplates();
+  }, [loadTemplates]);
 
   const handleCloneTemplate = async (templateId: string) => {
     if (!isAuthenticated) return;
-    setIsSubmitting(true);
+    setCloningTemplateId(templateId);
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/templates/${templateId}/clone`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || `Gagal menduplikasi template (${res.status})`);
-      }
-      const data = await res.json();
-      
+      const data = await challengesService.cloneTemplate(templateId);
+
       setSuccessMsg('Template berhasil disalin. Anda dapat menyesuaikannya sekarang.');
       // Load the cloned challenge into manual builder
       setManualData({
@@ -65,20 +90,21 @@ export default function CreateChallengePage() {
       });
       setActiveTab('MANUAL');
     } catch (err: any) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || 'Gagal menduplikasi template.');
     } finally {
-      setIsSubmitting(false);
+      setCloningTemplateId(null);
     }
   };
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserFromStorage();
-    if (isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'TALENT') {
+  }, [loadUserFromStorage]);
+
+  useEffect(() => {
+    if (isHydrated && isAuthenticated && user?.role !== 'COMPANY' && user?.role !== 'TALENT') {
       router.push('/');
     }
-  }, [loadUserFromStorage, isAuthenticated, user, router]);
+  }, [isHydrated, isAuthenticated, user, router]);
 
   // States for AI Form
   const [aiPrompt, setAiPrompt] = useState('');
@@ -180,19 +206,23 @@ export default function CreateChallengePage() {
     }
   };
 
+  const requestAiGenerate = () => {
+    if (!aiPrompt || !aiBlueprint) return;
+
+    // Dulu `window.confirm`: dialog bawaan peramban yang tidak bisa ditata,
+    // dan isinya mengulang persis panel kuning yang sudah tampil di layar.
+    if (aiBlueprint.requiredAssets && aiBlueprint.requiredAssets.length > 0) {
+      setIsAssetWarningOpen(true);
+      return;
+    }
+
+    void handleAiGenerate();
+  };
+
   const handleAiGenerate = async () => {
     if (!aiPrompt || !aiBlueprint) return;
 
-    if (aiBlueprint.requiredAssets && aiBlueprint.requiredAssets.length > 0) {
-      const confirmed = window.confirm(
-        'PERINGATAN: Aset eksternal yang dibutuhkan belum dijelaskan.\n\n' +
-        'Jika Anda tidak menyerahkan rincian aset atau data yang diminta, kemungkinan besar soal yang digenerate ' +
-        'tidak akan maksimal, bersifat halusinasi, atau tidak sesuai dengan ekspektasi Anda.\n\n' +
-        'Apakah Anda yakin ingin melanjutkan tanpa merevisi?'
-      );
-      if (!confirmed) return;
-    }
-
+    setIsAssetWarningOpen(false);
     setIsSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -204,14 +234,17 @@ export default function CreateChallengePage() {
         difficulty: aiDifficulty,
         blueprint: aiBlueprint,
       });
-      setSuccessMsg('Proses generasi soal dan rubrik sedang berjalan di latar belakang! Silakan cek notifikasi atau Dashboard Anda beberapa saat lagi.');
+      setSuccessMsg('Proses generasi soal dan rubrik sedang berjalan di latar belakang. Anda akan menerima notifikasi begitu drafnya siap.');
 
       // Bersihkan cache dan arahkan ke daftar challenge milik pengguna, tempat
       // draf hasil AI akan muncul begitu selesai diproses.
+      //
+      // Pengalihan tidak lagi dipaksakan lewat setTimeout. Menunggu tiga detik
+      // tanpa cara melewatinya membuat pesan sukses terasa seperti aplikasi
+      // yang menggantung; sekarang pesannya menyediakan tautannya sendiri.
       if (draftOwnerId) clearDraft(aiDraftKey(draftOwnerId));
-      setTimeout(() => {
-        router.push('/challenges/mine');
-      }, 3000); // Beri waktu 3 detik agar user bisa membaca pesan sukses
+      setIsSubmitting(false);
+      return;
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal memproses AI generator. Pastikan API key backend telah terkonfigurasi.');
       setIsSubmitting(false);
@@ -244,11 +277,16 @@ export default function CreateChallengePage() {
         await challengesService.create(payload);
       }
       
-      setSuccessMsg(status === 'DRAFT' ? 'Draf berhasil disimpan!' : 'Studi kasus berhasil dipublikasikan!');
-      setTimeout(() => {
-        if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
-        router.push('/challenges/mine');
-      }, 2000);
+      // Draf lokal dibuang lalu langsung berpindah. Jeda dua detik sebelumnya
+      // hanya menahan pengguna di layar yang pekerjaannya sudah selesai.
+      if (draftOwnerId) clearDraft(manualDraftKey(draftOwnerId));
+      toast.success(
+        status === 'DRAFT'
+          ? 'Draf berhasil disimpan.'
+          : 'Studi kasus berhasil dipublikasikan.',
+      );
+      router.push('/challenges/mine');
+      return;
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal menyimpan studi kasus.');
     } finally {
@@ -256,35 +294,31 @@ export default function CreateChallengePage() {
     }
   };
 
-  const handleGlobalKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'TEXTAREA') return;
-      if (target.tagName === 'BUTTON') return;
-      
-      // Don't intercept if they are inside a modal or portal that isn't child of currentTarget
-      if (!e.currentTarget.contains(target)) return;
+  // Pembajakan tombol Enter dihapus.
+  //
+  // Handler lama menyulap Enter menjadi "pindah ke field berikutnya" di
+  // seluruh halaman. Akibatnya Enter tidak lagi mengirim formulir seperti yang
+  // diharapkan pengguna, urutan lompatannya memakai urutan DOM dan bukan
+  // urutan tab, dan tombol dilewati begitu saja. Perilaku bawaan peramban
+  // sudah benar; Tab memang tugasnya berpindah field.
 
-      e.preventDefault();
-      const focusableElements = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
-      const elements = Array.from(e.currentTarget.querySelectorAll(focusableElements)) as HTMLElement[];
-      const index = elements.indexOf(target);
-      
-      if (index > -1 && index < elements.length - 1) {
-        elements[index + 1].focus();
-      }
-    }
-  };
+  if (!isHydrated) {
+    return (
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6 animate-pulse" aria-busy="true">
+        <div className="h-40 bg-foreground/5 rounded-3xl" />
+        <div className="h-12 bg-foreground/5 rounded-2xl w-2/3" />
+        <div className="h-80 bg-foreground/5 rounded-3xl" />
+      </div>
+    );
+  }
 
   if (!user || (user.role !== 'COMPANY' && user.role !== 'TALENT')) {
     return null;
   }
 
   return (
-    <div 
-      className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10"
-      onKeyDown={handleGlobalKeyDown}
-    >
+    <CompanyAccessGate>
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
       <button 
         onClick={() => router.back()} 
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -348,26 +382,34 @@ export default function CreateChallengePage() {
             <Briefcase className="h-4 w-4" />
             <span>Template Library</span>
           </button>
-        <div className="relative group w-full sm:w-auto">
-          <button
-            onClick={() => {
-              if (user?.profile?.subscriptionTier !== 'STARTUP') {
-                setActiveTab('AI');
-              }
-            }}
-            disabled={user?.profile?.subscriptionTier === 'STARTUP'}
-            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
-              activeTab === 'AI' ? 'bg-primary text-white shadow-lg border border-primary' : 'text-muted-foreground hover:text-foreground'
-            } ${user?.profile?.subscriptionTier === 'STARTUP' ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <Sparkles className="h-4 w-4" /> AI Auto-Generate
-          </button>
-          {user?.profile?.subscriptionTier === 'STARTUP' && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 bg-border text-xs text-foreground font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Tingkatkan ke Pro untuk Akses AI
-            </div>
+        {/* Tab AI tidak lagi `disabled` dengan tooltip yang hanya muncul saat
+            disorot tetikus. Tombol `disabled` hilang dari urutan tab sehingga
+            pengguna keyboard tidak pernah tahu alasannya, dan tooltip hover
+            tidak pernah muncul di layar sentuh. Sekarang tombolnya tetap bisa
+            difokus dan menjelaskan sendiri apa yang harus dilakukan. */}
+        <button
+          onClick={() => {
+            if (isAiLocked) {
+              router.push('/company/billing');
+              return;
+            }
+            setActiveTab('AI');
+          }}
+          aria-describedby={isAiLocked ? 'ai-tab-lock-note' : undefined}
+          className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
+            activeTab === 'AI'
+              ? 'bg-primary text-white shadow-lg border border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-card'
+          }`}
+        >
+          {isAiLocked ? (
+            <Lock className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
           )}
-        </div>
+          AI Auto-Generate
+          {isAiLocked && <span className="sr-only">— butuh paket Pro</span>}
+        </button>
         <button
             onClick={() => setActiveTab('MANUAL')}
             className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all w-full sm:w-auto ${
@@ -376,21 +418,78 @@ export default function CreateChallengePage() {
             : 'text-muted-foreground hover:text-foreground hover:bg-card'
             }`}
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="h-4 w-4" aria-hidden="true" />
             <span>Pembuatan Manual</span>
           </button>
       </div>
 
+      {isAiLocked && (
+        <p id="ai-tab-lock-note" className="text-xs text-muted-foreground -mt-6">
+          AI Auto-Generate aktif mulai paket Pro.{' '}
+          <Link href="/company/billing" className="font-semibold text-success underline underline-offset-4">
+            Lihat paket
+          </Link>
+          .
+        </p>
+      )}
+
+      {/* Kuota diperiksa sebelum formulir dibuka, bukan setelah seluruh studi
+          kasus selesai disusun lalu ditolak backend saat disimpan. */}
+      {isQuotaFull && (
+        <div
+          role="status"
+          className="bg-warning/10 border border-warning/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div className="flex items-start gap-3">
+            <Lock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-bold text-warning">
+                Kuota paket {plan.name} sudah penuh
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Anda memakai {quotaUsed} dari {plan.activeChallengeQuota} studi
+                kasus aktif. Arsipkan salah satunya atau tingkatkan paket sebelum
+                membuat yang baru — kalau tidak, penyimpanan akan ditolak setelah
+                formulir selesai diisi.
+              </p>
+            </div>
+          </div>
+          <Link href="/company/billing" className="flex-shrink-0">
+            <Button size="sm">Lihat Paket</Button>
+          </Link>
+        </div>
+      )}
+
+      {/* `role="status"` dan `role="alert"`: tanpa keduanya pembaca layar tidak
+          pernah mengumumkan hasil pengiriman formulir sepanjang ini. */}
       {successMsg && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
-          <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium leading-relaxed">{successMsg}</p>
+        <motion.div
+          role="status"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-success/10 border border-success/30 rounded-2xl p-6 flex flex-col sm:flex-row items-start gap-4 text-success shadow-lg"
+        >
+          <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="space-y-3">
+            <p className="text-sm font-medium leading-relaxed">{successMsg}</p>
+            <Link
+              href="/challenges/mine"
+              className="inline-block text-sm font-bold underline underline-offset-4"
+            >
+              Buka daftar studi kasus saya
+            </Link>
+          </div>
         </motion.div>
       )}
 
       {errorMsg && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4 text-red-400 shadow-lg">
-          <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" />
+        <motion.div
+          role="alert"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-danger/10 border border-danger/30 rounded-2xl p-6 flex items-start gap-4 text-danger shadow-lg"
+        >
+          <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <p className="text-sm font-medium leading-relaxed">{errorMsg}</p>
         </motion.div>
       )}
@@ -406,13 +505,29 @@ export default function CreateChallengePage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {isLoadingTemplates ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin mb-4" />
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground" aria-busy="true">
+                <Loader2 className="h-8 w-8 animate-spin mb-4" aria-hidden="true" />
                 <p>Memuat Role-Based Templates...</p>
+              </div>
+            ) : templatesError ? (
+              /* Permintaan yang gagal dibedakan dari pustaka yang memang
+                 kosong. Sebelumnya keduanya menampilkan kalimat yang sama. */
+              <div
+                role="alert"
+                className="col-span-full flex flex-col items-center justify-center py-12 bg-card rounded-2xl border border-danger/30 text-center px-6"
+              >
+                <AlertCircle className="h-12 w-12 mb-4 text-danger" aria-hidden="true" />
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Pustaka template gagal dimuat
+                </p>
+                <p className="text-xs text-muted-foreground mb-4 max-w-sm">{templatesError}</p>
+                <Button variant="outline" size="sm" onClick={() => void loadTemplates()}>
+                  Coba muat ulang
+                </Button>
               </div>
             ) : templates.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground bg-card rounded-2xl border border-border">
-                <Briefcase className="h-12 w-12 mb-4 opacity-50" />
+                <Briefcase className="h-12 w-12 mb-4 opacity-50" aria-hidden="true" />
                 <p>Belum ada template yang tersedia. Anda bisa menggunakan AI Auto-Generate.</p>
               </div>
             ) : (
@@ -441,12 +556,16 @@ export default function CreateChallengePage() {
                       </div>
                     </div>
                     
-                    <Button 
+                    {/* Keadaan memuat dilekatkan pada template yang ditekan.
+                        Sebelumnya `isSubmitting` bersama membuat SELURUH tombol
+                        template berputar sekaligus. */}
+                    <Button
                       onClick={() => handleCloneTemplate(tpl.id)}
-                      disabled={isSubmitting}
+                      disabled={!!cloningTemplateId}
+                      isLoading={cloningTemplateId === tpl.id}
                       className="w-full font-bold"
                     >
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gunakan Template Ini"}
+                      Gunakan Template Ini
                     </Button>
                   </div>
                 </div>
@@ -612,12 +731,12 @@ export default function CreateChallengePage() {
                     >
                       Batal & Edit Prompt
                     </Button>
-                    <Button 
-                      onClick={handleAiGenerate}
-                      isLoading={isSubmitting} 
+                    <Button
+                      onClick={requestAiGenerate}
+                      isLoading={isSubmitting}
                       className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 py-4 font-bold shadow-xl"
                     >
-                      <Sparkles className="h-5 w-5 mr-2" /> Konfirmasi & Buat Detail Soal
+                      <Sparkles className="h-5 w-5 mr-2" aria-hidden="true" /> Konfirmasi &amp; Buat Detail Soal
                     </Button>
                   </div>
                 </div>
@@ -641,7 +760,32 @@ export default function CreateChallengePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={isAssetWarningOpen}
+        title="Lanjut tanpa menjelaskan aset?"
+        confirmLabel="Lanjutkan tanpa merevisi"
+        cancelLabel="Kembali dan jelaskan aset"
+        isBusy={isSubmitting}
+        onCancel={() => setIsAssetWarningOpen(false)}
+        onConfirm={() => void handleAiGenerate()}
+      >
+        <p>
+          AI mendeteksi studi kasus ini membutuhkan aset eksternal yang belum
+          Anda jelaskan
+          {aiBlueprint?.requiredAssets?.length
+            ? `: ${aiBlueprint.requiredAssets.join(', ')}`
+            : ''}
+          .
+        </p>
+        <p>
+          Tanpa rincian aset atau strukturnya, soal yang dihasilkan besar
+          kemungkinan meleset dari yang Anda maksud. Anda bisa kembali dan
+          menjelaskannya di kotak revisi.
+        </p>
+      </ConfirmDialog>
     </div>
+    </CompanyAccessGate>
   );
 }
 

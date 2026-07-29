@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { authService } from '../../../services/auth.service';
@@ -10,14 +10,26 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
-import { Mail, Lock, User, Building2, Briefcase, AlertCircle, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  User,
+  Building2,
+  AlertCircle,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const tiers = [
-  { id: 'STARTUP', name: 'Startup', price: 'IDR 0 /bulan', desc: 'Cocok untuk coba-coba, max 1 lowongan aktif.' },
-  { id: 'KONGLOMERAT', name: 'Konglomerat', price: 'IDR 5jt /bulan', desc: 'Akses tanpa batas ke semua talenta dan fitur unggulan.' },
-  { id: 'CUSTOM', name: 'Custom', price: 'Hubungi Kami', desc: 'Solusi *dedicated* untuk kebutuhan korporasi skala besar.' }
-];
+// Pemilihan paket dihapus dari alur pendaftaran.
+//
+// Langkah ini menuliskan `subscriptionTier` pilihan pengguna langsung ke
+// profil (users.service.ts), sehingga siapa pun bisa memilih paket berbayar
+// tanpa melewati pembayaran. Harga yang ditampilkannya pun tidak pernah cocok
+// dengan yang ditagih Midtrans. Semua akun kini mulai dari STARTUP dan
+// peningkatan paket berjalan lewat /company/billing.
 
 const industries = [
   'Teknologi Informasi & Software',
@@ -26,41 +38,53 @@ const industries = [
   'Edukasi & EdTech',
   'Kesehatan & Medis',
   'Manufaktur & Logistik',
-  'Lainnya'
+  'Lainnya',
 ];
 
-const registerSchema = z.object({
-  email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
-  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
-  role: z.enum(['TALENT', 'COMPANY']),
-  isJoinTeam: z.boolean().optional(),
-  inviteCode: z.string().optional(),
-  fullName: z.string().optional(),
-  companyName: z.string().optional(),
-  industry: z.string().optional(),
-  subscriptionTier: z.enum(['STARTUP', 'KONGLOMERAT', 'CUSTOM']).optional(),
-}).superRefine((data, ctx) => {
-  if (data.role === 'TALENT' && !data.fullName) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama lengkap wajib diisi', path: ['fullName'] });
-  }
-  if (data.role === 'COMPANY') {
-    if (data.isJoinTeam) {
-      if (!data.inviteCode) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kode undangan wajib diisi', path: ['inviteCode'] });
-      }
-      if (!data.fullName) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama lengkap wajib diisi', path: ['fullName'] });
-      }
-    } else {
-      if (!data.companyName) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama perusahaan wajib diisi', path: ['companyName'] });
-      }
-      if (!data.industry) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Industri wajib diisi', path: ['industry'] });
+const registerSchema = z
+  .object({
+    email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
+    password: z.string().min(8, 'Kata sandi minimal 8 karakter'),
+    confirmPassword: z.string().min(1, 'Ulangi kata sandi Anda'),
+    role: z.enum(['TALENT', 'COMPANY']),
+    isJoinTeam: z.boolean().optional(),
+    inviteCode: z.string().optional(),
+    fullName: z.string().optional(),
+    companyName: z.string().optional(),
+    industry: z.string().optional(),
+    acceptTerms: z.literal(true, {
+      message: 'Anda perlu menyetujui Syarat Layanan dan Kebijakan Privasi',
+    }),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Kedua kata sandi tidak sama',
+        path: ['confirmPassword'],
+      });
+    }
+    if (data.role === 'TALENT' && !data.fullName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama lengkap wajib diisi', path: ['fullName'] });
+    }
+    if (data.role === 'COMPANY') {
+      if (data.isJoinTeam) {
+        if (!data.inviteCode) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kode undangan wajib diisi', path: ['inviteCode'] });
+        }
+        if (!data.fullName) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama lengkap wajib diisi', path: ['fullName'] });
+        }
+      } else {
+        if (!data.companyName) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nama perusahaan wajib diisi', path: ['companyName'] });
+        }
+        if (!data.industry) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Industri wajib diisi', path: ['industry'] });
+        }
       }
     }
-  }
-});
+  });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -69,7 +93,7 @@ function RegisterContent() {
   const searchParams = useSearchParams();
   const initialRole = (searchParams.get('role') as 'TALENT' | 'COMPANY') || 'TALENT';
   const { setUser } = useUserStore();
-  
+
   const [authError, setAuthError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'TALENT' | 'COMPANY'>(initialRole);
   const [step, setStep] = useState(1);
@@ -86,40 +110,34 @@ function RegisterContent() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: initialRole,
-      subscriptionTier: 'STARTUP',
       isJoinTeam: false,
     },
   });
 
   const isJoinTeam = watch('isJoinTeam');
-  const selectedTier = watch('subscriptionTier');
-  const selectedIndustry = watch('industry');
 
   useEffect(() => {
     setValue('role', selectedRole);
   }, [selectedRole, setValue]);
 
-  const maxSteps = selectedRole === 'TALENT' ? 2 : (isJoinTeam ? 3 : 4);
+  const maxSteps = selectedRole === 'TALENT' ? 2 : 3;
 
   const nextStep = async () => {
-    let fieldsToValidate: any[] = [];
-    if (step === 1) fieldsToValidate = ['email', 'password'];
+    let fieldsToValidate: (keyof RegisterFormValues)[] = [];
+    if (step === 1) fieldsToValidate = ['email', 'password', 'confirmPassword'];
     else if (step === 2 && selectedRole === 'TALENT') fieldsToValidate = ['fullName'];
-    else if (step === 3 && selectedRole === 'COMPANY') {
-      if (isJoinTeam) fieldsToValidate = ['fullName', 'inviteCode'];
-      else fieldsToValidate = ['companyName', 'industry'];
-    }
 
-    const isStepValid = await trigger(fieldsToValidate);
+    const isStepValid =
+      fieldsToValidate.length === 0 ? true : await trigger(fieldsToValidate);
     if (isStepValid) {
       setDirection(1);
-      setStep(prev => prev + 1);
+      setStep((prev) => prev + 1);
     }
   };
 
   const prevStep = () => {
     setDirection(-1);
-    setStep(prev => prev - 1);
+    setStep((prev) => prev - 1);
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -131,7 +149,7 @@ function RegisterContent() {
       } else {
         data = await authService.register(values);
       }
-      
+
       if (data?.user) {
         setUser(data.user);
         router.push('/');
@@ -142,18 +160,34 @@ function RegisterContent() {
   };
 
   const variants = {
-    enter: (direction: number) => ({ x: direction > 0 ? 50 : -50, opacity: 0 }),
+    enter: (dir: number) => ({ x: dir > 0 ? 40 : -40, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (direction: number) => ({ x: direction < 0 ? 50 : -50, opacity: 0 }),
+    exit: (dir: number) => ({ x: dir < 0 ? 40 : -40, opacity: 0 }),
   };
+
+  const stepTitle =
+    step === 1
+      ? 'Pilih Peran Anda'
+      : selectedRole === 'COMPANY'
+        ? step === 2
+          ? 'Tujuan Pendaftaran'
+          : 'Profil Perusahaan'
+        : 'Profil Talenta';
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative z-10">
       <div className="w-full max-w-lg bg-card border border-border rounded-2xl p-8 shadow-2xl overflow-hidden relative">
-        
+
         {/* Progress Bar */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
-          <div 
+        <div
+          className="absolute top-0 left-0 w-full h-1 bg-foreground/10"
+          role="progressbar"
+          aria-valuenow={step}
+          aria-valuemin={1}
+          aria-valuemax={maxSteps}
+          aria-label={`Langkah ${step} dari ${maxSteps}`}
+        >
+          <div
             className="h-full bg-emerald-500 transition-all duration-300 ease-out"
             style={{ width: `${(step / maxSteps) * 100}%` }}
           />
@@ -162,25 +196,33 @@ function RegisterContent() {
         <div className="text-center space-y-2 mb-8">
           <Link href="/" className="inline-block mb-2">
             <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-              <span className="font-display font-bold text-2xl text-foreground">T</span>
+              <span className="font-display font-bold text-2xl text-white">T</span>
             </div>
           </Link>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            {step === 1 ? 'Pilih Peran Anda' : selectedRole === 'COMPANY' ? 'Profil Perusahaan' : 'Profil Talenta'}
-          </h2>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            {stepTitle}
+          </h1>
           <p className="text-sm text-muted-foreground">
             Langkah {step} dari {maxSteps}
           </p>
         </div>
 
         {authError && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-red-400 mb-6">
-            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div
+            role="alert"
+            className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3 text-danger mb-6"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-xs font-medium leading-relaxed">{authError}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 relative min-h-[300px]">
+        {/* Tinggi kontainer mengikuti isinya.
+            Versi sebelumnya memposisikan isi langkah secara absolut lalu
+            mengganjalnya dengan `pt-80` — ruang mati 320px yang tetap sama
+            besar untuk langkah pendek maupun panjang, dan mendorong tombol
+            navigasinya jauh di bawah lipatan layar ponsel. */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <AnimatePresence custom={direction} mode="wait">
             <motion.div
               key={step}
@@ -189,41 +231,47 @@ function RegisterContent() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="space-y-4 absolute w-full"
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="space-y-4"
             >
-              
+
               {/* STEP 1: Basic & Role */}
               {step === 1 && (
                 <>
-                  <div className="grid grid-cols-2 gap-4 p-1 bg-background rounded-xl border border-foreground/10 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRole('TALENT')}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                        selectedRole === 'TALENT'
-                          ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <User className="h-4 w-4" /> Talenta
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRole('COMPANY')}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                        selectedRole === 'COMPANY'
-                          ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Building2 className="h-4 w-4" /> Perusahaan
-                    </button>
-                  </div>
+                  <fieldset>
+                    <legend className="sr-only">Peran akun</legend>
+                    <div className="grid grid-cols-2 gap-4 p-1 bg-background rounded-xl border border-border mb-6">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRole('TALENT')}
+                        aria-pressed={selectedRole === 'TALENT'}
+                        className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                          selectedRole === 'TALENT'
+                            ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <User className="h-4 w-4" aria-hidden="true" /> Talenta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRole('COMPANY')}
+                        aria-pressed={selectedRole === 'COMPANY'}
+                        className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                          selectedRole === 'COMPANY'
+                            ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Building2 className="h-4 w-4" aria-hidden="true" /> Perusahaan
+                      </button>
+                    </div>
+                  </fieldset>
 
                   <Input
                     label="Alamat Email"
                     type="email"
+                    autoComplete="email"
                     placeholder="nama@perusahaan.com"
                     icon={<Mail className="h-5 w-5" />}
                     error={errors.email?.message}
@@ -232,44 +280,85 @@ function RegisterContent() {
                   <Input
                     label="Kata Sandi"
                     type="password"
-                    placeholder="Minimal 6 karakter"
+                    autoComplete="new-password"
+                    placeholder="Minimal 8 karakter"
                     icon={<Lock className="h-5 w-5" />}
                     error={errors.password?.message}
                     {...register('password')}
+                  />
+                  {/* Konfirmasi kata sandi: pendaftaran ini tidak mengirim email
+                      verifikasi, jadi satu salah ketik pada kata sandi berarti
+                      akun yang langsung terkunci. */}
+                  <Input
+                    label="Ulangi Kata Sandi"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Ketik ulang kata sandi"
+                    icon={<Lock className="h-5 w-5" />}
+                    error={errors.confirmPassword?.message}
+                    {...register('confirmPassword')}
                   />
                 </>
               )}
 
               {/* STEP 2: Path Selection (Only for Company) */}
               {step === 2 && selectedRole === 'COMPANY' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-white mb-4 text-center">Apa tujuan Anda mendaftar?</h3>
-                  <div 
-                    onClick={() => setValue('isJoinTeam', false)}
-                    className={`border rounded-xl p-5 cursor-pointer transition-all ${
-                      !isJoinTeam ? 'border-emerald-500 bg-emerald-500/10' : 'border-zinc-800 hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <Building2 className={`w-6 h-6 ${!isJoinTeam ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                      <h4 className="font-semibold text-white">Mendaftarkan Perusahaan Baru</h4>
-                    </div>
-                    <p className="text-sm text-zinc-400 ml-9">Sebagai pemilik atau perwakilan resmi perusahaan.</p>
-                  </div>
+                /* Dulu dua `<div onClick>`: tidak bisa difokus, tidak bisa
+                   dipilih dengan keyboard, dan tanpa semantik pilihan apa pun.
+                   Kini radiogroup sungguhan. */
+                <fieldset className="space-y-4">
+                  <legend className="text-lg font-medium text-foreground mb-4 text-center w-full">
+                    Apa tujuan Anda mendaftar?
+                  </legend>
 
-                  <div 
-                    onClick={() => setValue('isJoinTeam', true)}
-                    className={`border rounded-xl p-5 cursor-pointer transition-all ${
-                      isJoinTeam ? 'border-emerald-500 bg-emerald-500/10' : 'border-zinc-800 hover:border-zinc-600'
+                  <label
+                    className={`block border rounded-xl p-5 cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-500 ${
+                      !isJoinTeam ? 'border-emerald-500 bg-emerald-500/10' : 'border-border hover:border-foreground/30'
                     }`}
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <User className={`w-6 h-6 ${isJoinTeam ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                      <h4 className="font-semibold text-white">Bergabung ke Tim (Join Team)</h4>
-                    </div>
-                    <p className="text-sm text-zinc-400 ml-9">Saya memiliki kode undangan dari Admin/HR perusahaan saya.</p>
-                  </div>
-                </div>
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name="registration-path"
+                      checked={!isJoinTeam}
+                      onChange={() => setValue('isJoinTeam', false)}
+                    />
+                    <span className="flex items-center gap-3 mb-2">
+                      <Building2
+                        className={`w-6 h-6 ${!isJoinTeam ? 'text-success' : 'text-muted-foreground'}`}
+                        aria-hidden="true"
+                      />
+                      <span className="font-semibold text-foreground">Mendaftarkan Perusahaan Baru</span>
+                    </span>
+                    <span className="block text-sm text-muted-foreground ml-9">
+                      Sebagai pemilik atau perwakilan resmi perusahaan.
+                    </span>
+                  </label>
+
+                  <label
+                    className={`block border rounded-xl p-5 cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-500 ${
+                      isJoinTeam ? 'border-emerald-500 bg-emerald-500/10' : 'border-border hover:border-foreground/30'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name="registration-path"
+                      checked={!!isJoinTeam}
+                      onChange={() => setValue('isJoinTeam', true)}
+                    />
+                    <span className="flex items-center gap-3 mb-2">
+                      <User
+                        className={`w-6 h-6 ${isJoinTeam ? 'text-success' : 'text-muted-foreground'}`}
+                        aria-hidden="true"
+                      />
+                      <span className="font-semibold text-foreground">Bergabung ke Tim</span>
+                    </span>
+                    <span className="block text-sm text-muted-foreground ml-9">
+                      Saya memiliki kode undangan dari Admin/HR perusahaan saya.
+                    </span>
+                  </label>
+                </fieldset>
               )}
 
               {/* STEP 2 for TALENT */}
@@ -277,6 +366,7 @@ function RegisterContent() {
                 <Input
                   label="Nama Lengkap"
                   type="text"
+                  autoComplete="name"
                   placeholder="Budi Raharjo"
                   icon={<User className="h-5 w-5" />}
                   error={errors.fullName?.message}
@@ -292,6 +382,7 @@ function RegisterContent() {
                       <Input
                         label="Nama Lengkap Anda"
                         type="text"
+                        autoComplete="name"
                         placeholder="Budi Raharjo"
                         icon={<User className="h-5 w-5" />}
                         error={errors.fullName?.message}
@@ -311,87 +402,132 @@ function RegisterContent() {
                       <Input
                         label="Nama Perusahaan"
                         type="text"
+                        autoComplete="organization"
                         placeholder="PT Teknologi Masa Depan"
                         icon={<Building2 className="h-5 w-5" />}
                         error={errors.companyName?.message}
                         {...register('companyName')}
                       />
                       <div className="space-y-1">
-                        <label className="block text-sm font-medium text-foreground">Sektor Industri</label>
+                        <label
+                          htmlFor="register-industry"
+                          className="block text-sm font-medium text-muted-foreground mb-1.5"
+                        >
+                          Sektor Industri
+                        </label>
                         <select
-                          className={`flex h-11 w-full rounded-xl border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors bg-zinc-900 border-zinc-800 text-white`}
+                          id="register-industry"
+                          aria-invalid={errors.industry ? true : undefined}
+                          aria-describedby={errors.industry ? 'register-industry-error' : undefined}
+                          className={`flex h-11 w-full rounded-lg border px-3 py-2 text-sm bg-card text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors ${
+                            errors.industry ? 'border-danger' : 'border-border'
+                          }`}
                           {...register('industry')}
                         >
                           <option value="">Pilih Industri...</option>
-                          {industries.map(ind => (
+                          {industries.map((ind) => (
                             <option key={ind} value={ind}>{ind}</option>
                           ))}
                         </select>
-                        {errors.industry && <p className="text-xs text-red-500 mt-1">{errors.industry.message}</p>}
+                        {errors.industry && (
+                          <p id="register-industry-error" role="alert" className="text-xs text-danger mt-1">
+                            {errors.industry.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Ekspektasi yang dulu tidak pernah disebutkan.
+                          Perusahaan mengisi tiga langkah, menekan "Selesaikan
+                          Pendaftaran", lalu langsung menabrak dinding
+                          "Menunggu Persetujuan Admin" tanpa pernah diberi tahu
+                          bahwa persetujuan itu ada. */}
+                      <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-warning">
+                            Akun perusahaan ditinjau dulu sebelum aktif
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Setelah mendaftar Anda perlu mengirim dokumen
+                            legalitas usaha (NIB/NPWP) di halaman profil. Tim
+                            kami meninjaunya dalam 1x24 jam kerja. Membuat studi
+                            kasus dan melihat kandidat baru terbuka setelah
+                            peninjauan selesai.
+                          </p>
+                        </div>
                       </div>
                     </>
                   )}
                 </div>
               )}
 
-              {/* STEP 4 for COMPANY: Subscription */}
-              {step === 4 && selectedRole === 'COMPANY' && !isJoinTeam && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-muted-foreground text-center mb-4">Pilih Paket Eksekutif Anda</label>
-                  {tiers.map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => setValue('subscriptionTier', t.id as any)}
-                      className={`border rounded-xl p-4 cursor-pointer transition-all flex items-center justify-between ${
-                        selectedTier === t.id
-                          ? 'border-emerald-500 bg-emerald-500/10 shadow-md'
-                          : 'border-border bg-card/50 hover:bg-card'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-foreground">{t.name}</h4>
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-foreground/5 border border-foreground/10 px-2 py-0.5 rounded-full text-emerald-400">
-                            {t.price}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{t.desc}</p>
-                      </div>
-                      {selectedTier === t.id && <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />}
-                    </div>
-                  ))}
+              {/* Persetujuan diletakkan di langkah terakhir, tepat sebelum
+                  tombol kirim. */}
+              {step === maxSteps && (
+                <div className="pt-2">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 rounded border-border text-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      aria-invalid={errors.acceptTerms ? true : undefined}
+                      {...register('acceptTerms')}
+                    />
+                    <span className="text-xs text-muted-foreground leading-relaxed">
+                      Saya menyetujui{' '}
+                      <Link href="/terms" className="font-semibold text-success underline underline-offset-4">
+                        Syarat Layanan
+                      </Link>{' '}
+                      dan{' '}
+                      <Link href="/privacy" className="font-semibold text-success underline underline-offset-4">
+                        Kebijakan Privasi
+                      </Link>{' '}
+                      Tolongin.
+                    </span>
+                  </label>
+                  {errors.acceptTerms && (
+                    <p role="alert" className="text-xs text-danger mt-1.5">
+                      {errors.acceptTerms.message}
+                    </p>
+                  )}
                 </div>
               )}
+
             </motion.div>
           </AnimatePresence>
 
-          {/* Spacer to push buttons down since relative container is fixed height */}
-          <div className="pt-80"></div>
-          
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             {step > 1 && (
-              <Button type="button" variant="outline" onClick={prevStep} className="px-4 border-zinc-700">
-                <ArrowLeft className="h-4 w-4" />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+                aria-label="Kembali ke langkah sebelumnya"
+                className="px-4"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
-            
+
             {step < maxSteps ? (
               <Button type="button" onClick={nextStep} className="w-full">
                 <span>Selanjutnya</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Button>
             ) : (
               <Button type="submit" isLoading={isSubmitting} className="w-full shadow-xl">
                 <span>Selesaikan Pendaftaran</span>
-                <CheckCircle2 className="ml-2 h-4 w-4" />
+                <CheckCircle2 className="ml-2 h-4 w-4" aria-hidden="true" />
               </Button>
             )}
           </div>
         </form>
 
-        <div className="mt-6 border-t border-zinc-800 pt-6 text-center">
+        <div className="mt-6 border-t border-border pt-6 text-center">
           <p className="text-xs text-muted-foreground">Sudah memiliki akun di Tolongin.co?</p>
-          <Link href="/login" className="inline-block mt-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300">
+          <Link
+            href="/login"
+            className="inline-block mt-2 text-sm font-semibold text-success hover:opacity-80 transition-opacity"
+          >
             Masuk ke Dasbor Anda
           </Link>
         </div>

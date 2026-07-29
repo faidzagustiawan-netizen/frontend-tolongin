@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit, ClipboardList, UserSearch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -175,16 +175,25 @@ export const Navbar = () => {
 
   const talentNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },
-    { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
-    { name: 'Challenge Saya', href: '/challenges/mine', icon: FileEdit },
+    { name: 'Cari Studi Kasus', href: '/challenges', icon: Briefcase },
+    { name: 'Studi Kasus Saya', href: '/challenges/mine', icon: FileEdit },
     { name: 'Perusahaan Mitra', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
+  // "Challenge Saya" dihapus: isinya sama persis dengan dasbor `/`, yang kini
+  // sudah punya penanda status dan penyaringnya sendiri.
+  //
+  // Ditambahkan "Kandidat", "Buat Studi Kasus", dan "Cari Talenta". Ketiganya
+  // adalah pekerjaan utama seorang rekruter, tetapi sebelumnya hanya bisa
+  // dicapai lewat tombol di dalam dasbor atau menu di balik foto profil —
+  // sementara menu tetapnya berisi direktori sesama perusahaan.
   const companyNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },
-    { name: 'Challenge Saya', href: '/challenges/mine', icon: FileEdit },
-    { name: 'Leaderboard Talenta', href: '/leaderboard', icon: Trophy },
+    { name: 'Kandidat', href: '/company/submissions', icon: ClipboardList },
+    { name: 'Buat Studi Kasus', href: '/challenges/create', icon: Briefcase },
+    { name: 'Cari Talenta', href: '/talents', icon: UserSearch },
+    { name: 'Kelola Tim', href: '/company/team', icon: Users },
   ];
 
   const adminNavLinks = [
@@ -194,18 +203,25 @@ export const Navbar = () => {
   ];
 
   const guestNavLinks = [
-    { name: 'Cari Tantangan', href: '/challenges', icon: Briefcase },
-    { name: 'Direktori Perusahaan', href: '/companies', icon: Building2 },
+    { name: 'Cari Studi Kasus', href: '/challenges', icon: Briefcase },
+    { name: 'Direktori Talenta', href: '/talents', icon: UserSearch },
+    { name: 'Perusahaan Mitra', href: '/companies', icon: Building2 },
     { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   ];
 
-  const navLinks = !isAuthenticated 
-    ? guestNavLinks 
-    : user?.role === 'ADMIN' 
-      ? adminNavLinks 
-      : user?.role === 'COMPANY' 
-        ? companyNavLinks 
+  const navLinks = !isAuthenticated
+    ? guestNavLinks
+    : user?.role === 'ADMIN'
+      ? adminNavLinks
+      : user?.role === 'COMPANY'
+        ? companyNavLinks
         : talentNavLinks;
+
+  // Tautan beranda harus dicocokkan persis. Dengan `startsWith` biasa, href "/"
+  // cocok dengan setiap path, sehingga "Dashboard" tampak aktif di seluruh
+  // halaman sekaligus dan penanda halaman aktif kehilangan artinya.
+  const isLinkActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">
@@ -226,7 +242,7 @@ export const Navbar = () => {
             <div className="hidden md:flex items-center gap-1.5">
               {navLinks.map((link) => {
                 const Icon = link.icon;
-                const isActive = pathname.startsWith(link.href);
+                const isActive = isLinkActive(link.href);
 
                 return (
                   <Link
@@ -504,7 +520,7 @@ export const Navbar = () => {
               </div>
               {navLinks.map((link) => {
                 const Icon = link.icon;
-                const isActive = pathname.startsWith(link.href);
+                const isActive = isLinkActive(link.href);
 
                 return (
                   <Link

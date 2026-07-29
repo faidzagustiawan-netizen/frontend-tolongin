@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { ShieldAlert, Ban, Search, MailWarning } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { readAuthToken } from '@/lib/authStorage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export default function AdminUsersPage() {
   const { user } = useUserStore();
   const [usersList, setUsersList] = useState<any[]>([]);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = readAuthToken();
   const [search, setSearch] = useState('');
 
   useEffect(() => {

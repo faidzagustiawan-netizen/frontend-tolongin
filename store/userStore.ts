@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { UserProfile } from '../types';
 import { clearAllChallengeDrafts } from '../lib/challengeDraftStorage';
+import {
+  clearAuthSession,
+  readAuthToken,
+  readStoredUserRaw,
+  updateStoredUser,
+} from '../lib/authStorage';
 
 export interface UserData {
   id: string;
@@ -14,6 +20,15 @@ export interface UserData {
 interface UserStore {
   user: UserData | null;
   isAuthenticated: boolean;
+  /**
+   * false sampai sesi tersimpan selesai dibaca.
+   *
+   * Tanpa penanda ini setiap penjaga peran tidak bisa membedakan "belum tahu
+   * siapa penggunanya" dari "bukan perusahaan", sehingga menyegarkan halaman
+   * /company/* sempat menampilkan penolakan akses — atau layar putih — kepada
+   * akun perusahaan yang sah.
+   */
+  isHydrated: boolean;
   setUser: (user: UserData | null) => void;
   updateUserProfile: (profile: UserProfile) => void;
   logout: () => void;
@@ -24,45 +39,43 @@ interface UserStore {
 export const useUserStore = create<UserStore>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  isHydrated: false,
+  setUser: (user) => set({ user, isAuthenticated: !!user, isHydrated: true }),
   updateUserProfile: (profile) => set((state) => {
     if (!state.user) return state;
     const updatedUser = { ...state.user, profile };
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user_data', JSON.stringify(updatedUser));
-    }
+    updateStoredUser(updatedUser);
     return { user: updatedUser };
   }),
   logout: () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_data');
+      clearAuthSession();
       // Draf pembuatan challenge berisi isi soal beserta kunci jawabannya.
       // Peramban bersama tidak boleh menyimpannya setelah pemiliknya keluar.
       clearAllChallengeDrafts();
     }
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, isHydrated: true });
   },
   loadUserFromStorage: () => {
     if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('user_data');
-      const token = localStorage.getItem('access_token');
+      const userData = readStoredUserRaw();
+      const token = readAuthToken();
       if (userData && token) {
         try {
           const user = JSON.parse(userData);
           set((state) => {
             // Prevent state update if user object hasn't changed to avoid render thrashing
-            if (state.isAuthenticated && JSON.stringify(state.user) === JSON.stringify(user)) {
+            if (state.isHydrated && state.isAuthenticated && JSON.stringify(state.user) === JSON.stringify(user)) {
               return state;
             }
-            return { user, isAuthenticated: true };
+            return { user, isAuthenticated: true, isHydrated: true };
           });
         } catch (e) {
           console.error('Failed to parse user data from storage', e);
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, isHydrated: true });
         }
       } else {
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isHydrated: true });
       }
     }
   },
@@ -94,8 +107,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
         profile: data.talentProfile ?? data.companyProfile ?? current.profile,
       };
 
-      localStorage.setItem('user_data', JSON.stringify(fresh));
-      set({ user: fresh, isAuthenticated: true });
+      updateStoredUser(fresh);
+      set({ user: fresh, isAuthenticated: true, isHydrated: true });
     } catch {
       // Galat 401 sudah ditangani interceptor. Kegagalan lain (mis. jaringan)
       // sengaja diabaikan agar pengguna tetap bisa memakai data tersimpan.
