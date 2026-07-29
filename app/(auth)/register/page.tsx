@@ -143,11 +143,12 @@ function RegisterContent() {
   const onSubmit = async (values: RegisterFormValues) => {
     setAuthError(null);
     try {
+      const { confirmPassword, acceptTerms, ...submitData } = values;
       let data;
-      if (values.role === 'COMPANY' && values.isJoinTeam && values.inviteCode) {
-        data = await authService.registerTeam(values, values.inviteCode);
+      if (submitData.role === 'COMPANY' && submitData.isJoinTeam && submitData.inviteCode) {
+        data = await authService.registerTeam(submitData, submitData.inviteCode);
       } else {
-        data = await authService.register(values);
+        data = await authService.register(submitData);
       }
 
       if (data?.user) {
