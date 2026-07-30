@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
+import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -94,7 +95,31 @@ export default function ExamSessionPage() {
 
   const submissions = selectedEnrollment?.submissions || [];
   const latestSubmission = submissions[submissions.length - 1];
-  const isSubmitted = submissions.length > 0;
+
+  // Keadaan tahap menurut server: terbuka atau tidak, alasannya, dan sisa
+  // waktunya. Dipanggil di sini — sebelum apa pun yang membacanya — karena hook
+  // tidak boleh berada sesudah `return` awal untuk keadaan memuat.
+  const stageGate = useStageGate(selectedEnrollmentId, {
+    enabled: !!selectedEnrollmentId && !!user,
+  });
+  const isStageGated = stageGate.stages.length > 0;
+
+  /**
+   * Apakah seluruh pengerjaan sudah selesai.
+   *
+   * Bukan sekadar "ada submisi": pada pengerjaan bertahap, submisi pertama masuk
+   * setelah tahap pertama, dan memperlakukan itu sebagai selesai membuat seluruh
+   * tahap sesudahnya hanya-baca — kandidat tidak bisa mengisi apa pun lagi.
+   * Karena itu yang dihitung adalah tidak adanya tahap yang masih bisa
+   * dikerjakan.
+   */
+  const isSubmitted = isStageGated
+    ? stageGate.stages.every((s) =>
+        ['SUBMITTED', 'AWAITING_GRADE', 'PASSED', 'FAILED', 'EXPIRED'].includes(
+          s.status,
+        ),
+      )
+    : submissions.length > 0;
 
   const isProctored = selectedEnrollment?.challenge?.gradingRubric?.requireProctoring ?? true;
   const proctoringSettings =
@@ -110,15 +135,56 @@ export default function ExamSessionPage() {
 
   const rawSections = selectedEnrollment?.challenge?.sections || [];
   const rawComponents = selectedEnrollment?.challenge?.components || [];
-  const sections = rawSections.length > 0 
-    ? rawSections 
+  const sections = rawSections.length > 0
+    ? rawSections
     : (rawComponents.length > 0 ? [{ id: 'default', title: 'Seksi Ujian', components: rawComponents }] : []);
 
+  const stageBySection = new Map(stageGate.stages.map((s) => [s.sectionId, s]));
+
+  /**
+   * Apakah satu tahap boleh dibuka kandidat ini.
+   *
+   * Jawaban server didahulukan. Aturan lama — "tahap sebelumnya sudah ditandai
+   * selesai" — hanya berlaku bila tidak ada keadaan tahap sama sekali; aturan itu
+   * seluruhnya hidup di peramban dan karena itu tidak mengikat siapa pun.
+   */
   const isSectionUnlocked = (sectionIdx: number) => {
+    const stage = stageBySection.get(sections[sectionIdx]?.id);
+    if (stage) return stage.unlocked;
+
     if (isSubmitted) return true;
     if (sectionIdx === 0) return true;
     return completedSectionIndices.includes(sectionIdx - 1);
   };
+
+  const activeStage = stageBySection.get(sections[activeSectionIndex]?.id);
+
+  /**
+   * Tahap ini masih menunggu kandidat menekan "Mulai".
+   *
+   * Bukan hanya berlaku di antara dua tahap: saat halaman ujian pertama kali
+   * dibuka pun jam belum berjalan. Tanpa penjaga ini soal tampil lebih awal, dan
+   * kandidat bisa membaca serta menyiapkan jawaban sebelum waktunya dihitung —
+   * batas waktu jadi tidak berarti apa-apa.
+   */
+  const needsStageStart =
+    isStageGated &&
+    !!activeStage &&
+    activeStage.status !== 'IN_PROGRESS' &&
+    !isSubmitted;
+
+  /** Sisa waktu tahap aktif sebagai HH:MM:SS, atau null bila tak berbatas. */
+  const stageTimeLeft = (() => {
+    if (stageGate.remainingSeconds === null) return null;
+    const total = stageGate.remainingSeconds;
+    return [
+      Math.floor(total / 3600),
+      Math.floor((total % 3600) / 60),
+      total % 60,
+    ]
+      .map((v) => String(v).padStart(2, '0'))
+      .join(':');
+  })();
 
   // Prevent Navigation & Refresh while in active exam
   useEffect(() => {
@@ -317,27 +383,56 @@ export default function ExamSessionPage() {
     }
   };
 
+  /**
+   * Menutup tahap yang sedang dikerjakan.
+   *
+   * Dulu ini hanya menandai tahap sebagai selesai di draf dan berpindah — tidak
+   * ada apa pun yang dikumpulkan sampai tombol terakhir ditekan. Akibatnya tidak
+   * ada nilai per tahap, jadi tidak ada angka untuk dibandingkan dengan ambang
+   * lolos. Kini jawabannya benar-benar dikumpulkan per tahap.
+   */
   const handleConfirmCompleteStage = async () => {
     const nextSectionIdx = activeSectionIndex + 1;
     const newCompleted = Array.from(new Set([...completedSectionIndices, activeSectionIndex]));
-    setCompletedSectionIndices(newCompleted);
     setShowStageConfirmModal(false);
+    setSubmitError(null);
 
-    try {
-      await submissionsService.saveDraft(selectedEnrollmentId, {
-        ...draftPayloadRef.current,
-        completedSectionIndices: newCompleted,
-      } as any);
-    } catch (err) {
-      console.error('Gagal menyimpan draf status tahap:', err);
+    if (isStageGated) {
+      const submitted = await submitStage();
+      if (!submitted) return;
+    } else {
+      try {
+        await submissionsService.saveDraft(selectedEnrollmentId, {
+          ...draftPayloadRef.current,
+          completedSectionIndices: newCompleted,
+        } as any);
+      } catch (err) {
+        console.error('Gagal menyimpan draf status tahap:', err);
+      }
     }
 
+    setCompletedSectionIndices(newCompleted);
     setActiveSectionIndex(nextSectionIdx);
     setExamQuestionIdx(0);
     setIsBetweenStages(true);
   };
 
-  const handleStartNextStage = () => {
+  /**
+   * Memulai tahap berikutnya.
+   *
+   * Pada studi kasus bertahap, ini juga saat jam mulai berjalan — dicap server
+   * atas kehendak kandidat, bukan saat halaman termuat.
+   */
+  const handleStartNextStage = async () => {
+    const nextStage = stageBySection.get(sections[activeSectionIndex]?.id);
+
+    if (nextStage && nextStage.status !== 'IN_PROGRESS') {
+      await stageGate.startStage(nextStage.sectionId);
+      // Gerbang bisa menolak — misalnya nilai tahap sebelumnya belum keluar.
+      // Dalam hal itu layar antara dibiarkan terbuka beserta alasannya.
+      if (stageGate.error) return;
+    }
+
     setIsBetweenStages(false);
     if (enforceFullscreen) {
       handleEnterFullscreen();
@@ -370,14 +465,12 @@ export default function ExamSessionPage() {
     }
   };
 
-  const handleSubmitSolution = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEnrollment || isExpired || isSubmitted) return;
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
-
+  /**
+   * Menyusun catatan pengumpulan: keluaran khusus yang diminta perusahaan
+   * ditambah jejak pengawasan. Dipakai bersama oleh pengumpulan per tahap dan
+   * pengumpulan akhir supaya keduanya tidak pernah berbeda isinya.
+   */
+  const buildSubmissionNotes = () => {
     let proctoringNotes = '';
     if (isProctored) {
       proctoringNotes = `\n\n### 🔒 Log Pengawasan Ujian (Browser Proctoring)\n- **Total Perpindahan Tab**: ${tabSwitchCount} kali\n- **Riwayat Log**:\n${proctoringEvents.length > 0 ? proctoringEvents.map((ev) => `  * ${ev}`).join('\n') : '  * Tidak ada perpindahan mencurigakan'}`;
@@ -394,8 +487,74 @@ export default function ExamSessionPage() {
       combinedNotes = `${notes ? notes + '\n\n' : ''}## Custom Deliverables\n${customNotes}`;
     }
 
-    combinedNotes += proctoringNotes;
-    const responsesArray = Object.values(componentResponses);
+    return combinedNotes + proctoringNotes;
+  };
+
+  /**
+   * Mengumpulkan tahap yang sedang dikerjakan.
+   *
+   * Mengembalikan `true` bila berhasil. Kegagalan tidak boleh membuat kandidat
+   * berpindah tahap: jawabannya belum tercatat di server, dan tahap ini tidak
+   * bisa dibuka ulang.
+   */
+  const submitStage = async (): Promise<boolean> => {
+    const sectionId = sections[activeSectionIndex]?.id;
+    if (!selectedEnrollment || !sectionId) return false;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await submissionsService.submitSolution({
+        enrollmentId: selectedEnrollment.id,
+        sectionId,
+        solutionFilesUrl,
+        repositoryUrl,
+        figmaUrl,
+        liveDemoUrl,
+        notes: buildSubmissionNotes(),
+        responses: Object.values(componentResponses),
+      });
+
+      await stageGate.refresh();
+      return true;
+    } catch (err: any) {
+      setSubmitError(
+        err.response?.data?.message ||
+          err.message ||
+          'Gagal mengumpulkan tahap ini. Silakan periksa koneksi Anda.',
+      );
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitSolution = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!selectedEnrollment || isExpired) return;
+    // Pada studi kasus bertahap, `isSubmitted` menjadi benar begitu tahap
+    // pertama masuk — memakainya sebagai penjaga akan menghalangi pengumpulan
+    // tahap-tahap sesudahnya.
+    if (!isStageGated && isSubmitted) return;
+
+    // Tahap terakhir tetap dikumpulkan sebagai tahap, bukan sebagai pengumpulan
+    // menyeluruh: nilainya dibutuhkan per tahap, dan backend yang menyatakan
+    // pendaftaran selesai setelah tidak ada tahap tersisa.
+    if (isStageGated) {
+      const ok = await submitStage();
+      if (!ok) return;
+
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        router.push(`/workspace/${selectedEnrollment.id}`);
+      }, 2000);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
 
     try {
       await submissionsService.submitSolution({
@@ -404,8 +563,8 @@ export default function ExamSessionPage() {
         repositoryUrl,
         figmaUrl,
         liveDemoUrl,
-        notes: combinedNotes,
-        responses: responsesArray,
+        notes: buildSubmissionNotes(),
+        responses: Object.values(componentResponses),
       });
 
       setSubmitSuccess(true);
@@ -413,7 +572,11 @@ export default function ExamSessionPage() {
         router.push(`/workspace/${selectedEnrollment.id}`);
       }, 2000);
     } catch (err: any) {
-      setSubmitError(err.message || 'Gagal mengirimkan solusi. Silakan periksa koneksi Anda.');
+      setSubmitError(
+        err.response?.data?.message ||
+          err.message ||
+          'Gagal mengirimkan solusi. Silakan periksa koneksi Anda.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -434,6 +597,14 @@ export default function ExamSessionPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-[var(--font-plus-jakarta)]">
+      {/* Waktu tahap habis: jawaban yang sudah tersimpan dikumpulkan alih-alih
+          hilang bersama waktunya. Server tetap yang memutuskan menerima atau
+          menolak — hitungan di layar hanya tampilan. */}
+      <StageExpiryWatcher
+        expiredSectionId={stageGate.expiredSectionId}
+        onExpire={() => void handleSubmitSolution()}
+      />
+
       {/* CONTINUOUS PROCTORING COMPONENT — PAUSED IN INTER-STAGE BREAK */}
       {continuousTracking && !isExpired && !isSubmitted && !isBetweenStages && (
         <ContinuousProctoring
@@ -589,7 +760,25 @@ export default function ExamSessionPage() {
                 )}
               </div>
 
-              {/* Countdown Timer */}
+              {/* Batas waktu tahap. Angkanya berasal dari sisa waktu yang
+                  dilaporkan server, bukan dari `timeLimit` dikali di peramban:
+                  jam peramban bisa digeser, dan menutup tab tidak boleh
+                  menghentikan hitungan. */}
+              {stageTimeLeft && (
+                <div
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm font-mono text-xs font-bold ${
+                    (stageGate.remainingSeconds ?? 0) < 60
+                      ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse'
+                      : 'bg-background border-border text-cyan-400'
+                  }`}
+                  title="Sisa waktu tahap ini"
+                >
+                  <Timer className="h-4 w-4" />
+                  <span>{stageTimeLeft}</span>
+                </div>
+              )}
+
+              {/* Countdown Timer — batas keseluruhan challenge */}
               <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm font-mono text-xs font-bold ${
                 isExpired ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-background border-border text-emerald-400'
               }`}>
@@ -732,34 +921,71 @@ export default function ExamSessionPage() {
             </div>
           )}
 
-          {/* INTER-STAGE BREAK BANNER */}
-          {isBetweenStages ? (
+          {/* INTER-STAGE BREAK BANNER — juga layar pembuka setiap tahap, karena
+              jam baru berjalan setelah kandidat menekan tombolnya sendiri. */}
+          {isBetweenStages || needsStageStart ? (
             <div className="bg-card border-2 border-emerald-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl text-center space-y-6 animate-in zoom-in-95 duration-300">
               <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400">
-                <CheckCircle2 className="w-10 h-10" />
+                {activeSectionIndex > 0 ? <CheckCircle2 className="w-10 h-10" /> : <Play className="w-10 h-10" />}
               </div>
               <div className="space-y-2 max-w-lg mx-auto">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest block">Tahap {activeSectionIndex} Berhasil Diselesaikan</span>
+                {activeSectionIndex > 0 && (
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest block">Tahap {activeSectionIndex} Berhasil Diselesaikan</span>
+                )}
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                  Siap Melanjutkan ke {currentSection?.title || `Tahap ${activeSectionIndex + 1}`}?
+                  {activeSectionIndex > 0
+                    ? `Siap Melanjutkan ke ${currentSection?.title || `Tahap ${activeSectionIndex + 1}`}?`
+                    : `Siap Mengerjakan ${currentSection?.title || 'Tahap 1'}?`}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Jawaban Anda pada tahap sebelumnya telah tersimpan dengan aman. Keamanan dan pengawasan (proctoring) sedang diistirahatkan sementara.
+                  {activeSectionIndex > 0
+                    ? 'Jawaban Anda pada tahap sebelumnya telah tersimpan dengan aman. Keamanan dan pengawasan (proctoring) sedang diistirahatkan sementara.'
+                    : 'Waktu pengerjaan baru mulai dihitung setelah Anda menekan tombol di bawah.'}
                 </p>
               </div>
               <div className="bg-background border border-border rounded-2xl p-4 max-w-md mx-auto text-xs text-muted-foreground leading-relaxed flex items-center gap-3 text-left">
                 <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
                 <span>Pengawasan keamanan akan diaktifkan kembali secara otomatis begitu Anda menekan tombol di bawah.</span>
               </div>
-              <Button
-                type="button"
-                onClick={handleStartNextStage}
-                size="lg"
-                className="bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold h-14 px-8 text-sm rounded-2xl shadow-xl hover:scale-105 transition-all"
-              >
-                <Play className="w-4 h-4 mr-2 fill-current" />
-                Mulai Kerjakan {currentSection?.title || `Tahap ${activeSectionIndex + 1}`} Sekarang
-              </Button>
+
+              {/* Tahap berikutnya bisa saja belum terbuka — nilai tahap
+                  sebelumnya belum keluar, atau ambangnya tidak tercapai. Alasan
+                  dari server ditampilkan utuh karena memuat angka yang perlu
+                  dibaca kandidat. */}
+              {activeStage && !activeStage.unlocked ? (
+                <div className="max-w-md mx-auto bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 text-left flex items-start gap-3">
+                  <Lock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-500 mb-1">Tahap Belum Terbuka</p>
+                    <p className="text-sm text-foreground">
+                      {activeStage.lockReason ??
+                        'Tahap ini belum bisa dikerjakan untuk saat ini.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {activeStage?.timeLimit && (
+                    <p className="text-xs text-muted-foreground">
+                      Waktu pengerjaan {activeStage.timeLimit} menit, dihitung sejak
+                      Anda menekan tombol di bawah.
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={() => void handleStartNextStage()}
+                    size="lg"
+                    className="bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold h-14 px-8 text-sm rounded-2xl shadow-xl hover:scale-105 transition-all"
+                  >
+                    <Play className="w-4 h-4 mr-2 fill-current" />
+                    Mulai Kerjakan {currentSection?.title || `Tahap ${activeSectionIndex + 1}`} Sekarang
+                  </Button>
+                </>
+              )}
+
+              {stageGate.error && (
+                <p className="text-xs text-red-400 max-w-md mx-auto">{stageGate.error}</p>
+              )}
             </div>
           ) : (
             /* ACTIVE QUESTION PANEL */

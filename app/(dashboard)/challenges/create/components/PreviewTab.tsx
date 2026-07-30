@@ -3,6 +3,8 @@ import { ChevronLeft, UploadCloud, ChevronRight, Play, CheckCircle2, Lock, Clock
 import { CreateChallengePayload } from '@/services/challenges.service';
 import { pistonService } from '@/services/piston.service';
 import { QuestionTypeRegistry } from '@/components/question-types';
+import { describeStageGate } from './StageGateSettings';
+import { Section } from '@/types';
 import dynamic from 'next/dynamic';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat Editor...</div> });
@@ -119,6 +121,16 @@ export default function PreviewTab({ manualData, onClose, onApprove }: PreviewTa
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {section.components?.length || 0} Tugas • {formatTime(section.timeLimit)}
+                      </p>
+                      {/* Syarat masuk ikut ditampilkan supaya pratinjau ini
+                          mencerminkan aturan yang sebenarnya, bukan hanya
+                          urutan tahapnya. */}
+                      <p className="text-xs text-muted-foreground mt-1.5 max-w-xl leading-relaxed">
+                        {describeStageGate(
+                          section as Section,
+                          (manualData.sections || []) as Section[],
+                          idx,
+                        )}
                       </p>
                     </div>
 

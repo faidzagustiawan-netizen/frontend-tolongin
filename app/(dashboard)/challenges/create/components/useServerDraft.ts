@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CreateChallengePayload, challengesService } from '@/services/challenges.service';
+import {
+  CreateChallengePayload,
+  challengesService,
+  mergeServerSectionIds,
+} from '@/services/challenges.service';
 
 export type ServerDraftState = 'IDLE' | 'SAVING' | 'SAVED' | 'ERROR';
 
@@ -64,25 +68,38 @@ export function useServerDraft(
     try {
       const payload = { ...manualData, status: 'DRAFT' as const };
 
-      if (manualData.id) {
-        await challengesService.update(manualData.id, payload);
-        lastSavedRef.current = snapshot;
-      } else {
-        const { data } = await challengesService.create(payload);
-        // Id disimpan ke state supaya penyimpanan berikutnya memperbarui baris
-        // yang sama. Tanpa ini tiap autosave membuat challenge baru dan kuota
-        // paket habis dalam hitungan menit.
-        if (data?.id) setManualData((prev) => ({ ...prev, id: data.id }));
+      const { data } = manualData.id
+        ? await challengesService.update(manualData.id, payload)
+        : await challengesService.create(payload);
 
-        // Penanda ikut membawa id barunya. Kalau tidak, penambahan id itu
-        // sendiri terbaca sebagai perubahan dan memicu satu PATCH mubazir
-        // beberapa detik kemudian.
-        lastSavedRef.current = JSON.stringify({
-          ...manualData,
-          id: data?.id,
-          status: 'DRAFT',
-        });
+      // Id disimpan ke state supaya penyimpanan berikutnya memperbarui baris
+      // yang sama. Tanpa ini tiap autosave membuat challenge baru dan kuota
+      // paket habis dalam hitungan menit.
+      const nextId = data?.id ?? manualData.id;
+
+      // Id tahap juga disalin balik, dengan alasan sejenis satu tingkat lebih
+      // dalam: tahap tanpa id diperlakukan backend sebagai tahap baru, jadi
+      // seluruh id berganti tiap simpan dan syarat masuk antar-tahap — yang
+      // menunjuk tahap lain lewat id — ikut membusuk.
+      const nextSections = mergeServerSectionIds(manualData.sections, data?.sections);
+
+      if (nextId !== manualData.id || nextSections !== manualData.sections) {
+        setManualData((prev) => ({ ...prev, id: nextId, sections: nextSections }));
       }
+
+      // Penanda ikut membawa id barunya. Kalau tidak, penambahan id itu sendiri
+      // terbaca sebagai perubahan dan memicu satu PATCH mubazir beberapa detik
+      // kemudian.
+      lastSavedRef.current =
+        nextId === manualData.id && nextSections === manualData.sections
+          ? snapshot
+          : JSON.stringify({
+              ...manualData,
+              id: nextId,
+              sections: nextSections,
+              status: 'DRAFT',
+            });
+
       setSavedAt(new Date());
       setState('SAVED');
     } catch (err: any) {

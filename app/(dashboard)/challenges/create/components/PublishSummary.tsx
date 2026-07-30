@@ -14,6 +14,8 @@ import {
   DIFFICULTY_SHORT_LABELS,
 } from './options';
 import { PROCTORING_SETTINGS } from './proctoringCatalog';
+import { describeStageGate } from './StageGateSettings';
+import { Section } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
   MULTIPLE_CHOICE: 'Pilihan Ganda',
@@ -287,6 +289,17 @@ export default function PublishSummary({ manualData, onJumpTo }: PublishSummaryP
                         ))}
                       </div>
                     )}
+
+                    {/* Syarat masuk dibacakan kembali di sini karena inilah
+                        layar terakhir sebelum terbit — dan sesudah terbit,
+                        soalnya tidak bisa disunting lagi. */}
+                    <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                      {describeStageGate(
+                        section as Section,
+                        sections as Section[],
+                        idx,
+                      )}
+                    </p>
                   </div>
                 );
               })}

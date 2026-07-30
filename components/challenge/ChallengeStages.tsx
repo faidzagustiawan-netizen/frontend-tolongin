@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Layers, FileText, CheckCircle2, Video, Code, Link, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layers, FileText, CheckCircle2, Video, Code, Link, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ChallengeStagesProps {
   sections: any[];
@@ -29,6 +29,12 @@ const getComponentLabel = (type: string) => {
   }
 };
 
+/**
+ * Taksiran durasi per jenis soal, hanya dipakai bila tahapnya tidak berbatas
+ * waktu. Ketika `timeLimit` diisi, angka itulah yang berlaku — taksiran di sini
+ * pernah menjadi satu-satunya yang ditampilkan, sehingga tahap "30 menit" bisa
+ * terbaca sebagai "90 menit" di halaman yang sama.
+ */
 const estimateDuration = (type: string) => {
   switch (type) {
     case 'MULTIPLE_CHOICE': return 3;
@@ -41,6 +47,40 @@ const estimateDuration = (type: string) => {
   }
 };
 
+const formatMinutes = (minutes: number) => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0) return m > 0 ? `${h} jam ${m} menit` : `${h} jam`;
+  return `${m} menit`;
+};
+
+/** Syarat masuk tahap, dalam kalimat yang bisa dibaca calon peserta. */
+const describeGate = (section: any, sections: any[], idx: number): string | null => {
+  if (idx === 0) return null;
+
+  const sourceName = () => {
+    if (section.scoreBasis === 'CUMULATIVE') return 'rata-rata tahap sebelumnya';
+    if (section.scoreBasis === 'SPECIFIC_STAGES') {
+      const picked = (section.gateSourceIds ?? [])
+        .map((id: string) => sections.find((s) => s.id === id)?.title)
+        .filter(Boolean);
+      return picked.length > 0 ? `nilai ${picked.join(' dan ')}` : 'nilai tahap sebelumnya';
+    }
+    return `nilai ${sections[idx - 1]?.title ?? 'tahap sebelumnya'}`;
+  };
+
+  switch (section.gateMode) {
+    case 'MIN_SCORE':
+      return `Butuh ${sourceName()} minimal ${section.minScore}.`;
+    case 'TOP_N':
+      return `Hanya ${section.maxAdvancing} kandidat teratas berdasarkan ${sourceName()}.`;
+    case 'MANUAL_APPROVAL':
+      return 'Perusahaan memilih siapa yang lanjut ke tahap ini.';
+    default:
+      return null;
+  }
+};
+
 export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
 
@@ -49,14 +89,21 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
   const totalStages = sections.length;
   const currentSection = sections[currentStageIndex] || sections[0];
 
-  const totalDuration = useMemo(() => {
-    return sections.reduce((acc, section) => {
-      const sectionDur = (section.components || []).reduce((sAcc: number, comp: any) => {
-        return sAcc + estimateDuration(comp.type);
-      }, 0);
-      return acc + sectionDur;
-    }, 0);
-  }, [sections]);
+  // Total waktu seluruh tahap. `timeLimit` dipakai bila diisi, dan taksiran per
+  // jenis soal hanya menjadi cadangan untuk tahap tanpa batas waktu.
+  //
+  // Dulu perhitungan ini memakai `useMemo` yang diletakkan sesudah `return null`
+  // di atas — melanggar urutan hook — dan hasilnya tidak dipakai sama sekali.
+  const totalDuration = sections.reduce((acc, section) => {
+    if (section.timeLimit) return acc + Number(section.timeLimit);
+    return (
+      acc +
+      (section.components || []).reduce(
+        (sAcc: number, comp: any) => sAcc + estimateDuration(comp.type),
+        0,
+      )
+    );
+  }, 0);
 
   return (
     <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl space-y-8">
@@ -65,8 +112,11 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
           <Layers className="h-6 w-6 text-emerald-400" />
         </div>
         <h3 className="font-display text-2xl font-bold text-foreground">
-          Tahapan & Struktur Ujian
+          Tahapan &amp; Struktur Ujian
         </h3>
+        <span className="ml-auto text-xs font-semibold text-muted-foreground whitespace-nowrap">
+          Total ~{formatMinutes(totalDuration)}
+        </span>
       </div>
 
       {/* Active Stage Content */}
@@ -75,10 +125,25 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
         
         <div className="space-y-4 -mt-1.5">
           <div>
-            <h4 className="text-lg font-bold text-foreground">{currentSection.title}</h4>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h4 className="text-lg font-bold text-foreground">{currentSection.title}</h4>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {currentSection.timeLimit
+                  ? formatMinutes(Number(currentSection.timeLimit))
+                  : 'Tanpa batas waktu'}
+              </span>
+            </div>
             {currentSection.description && (
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-3xl">
                 {currentSection.description}
+              </p>
+            )}
+            {/* Syarat masuk ditampilkan di halaman publik: kandidat berhak tahu
+                aturannya sebelum memutuskan mendaftar. */}
+            {describeGate(currentSection, sections, currentStageIndex) && (
+              <p className="text-sm text-amber-500 mt-2 font-semibold flex items-center gap-2">
+                <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                {describeGate(currentSection, sections, currentStageIndex)}
               </p>
             )}
           </div>

@@ -23,6 +23,8 @@ import { getLearningRecommendation } from '@/lib/learning-taxonomy';
 import { RubricTable } from '@/components/challenge/RubricTable';
 import { ChallengeStages } from '@/components/challenge/ChallengeStages';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
+import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
+import { stagesService } from '@/services/stages.service';
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
 
@@ -124,6 +126,13 @@ export default function EnrollmentWorkspacePage() {
     enabled: !!user,
   });
   const kycStatus = verificationStatusData?.data?.status || 'UNVERIFIED';
+
+  // Keadaan tahap datang dari server, termasuk keputusan terbuka atau tidak dan
+  // sisa waktunya. Halaman ini tidak menghitung apa pun sendiri: hitungan di
+  // peramban bisa dihentikan dengan menutup tab.
+  const stageGate = useStageGate(selectedEnrollmentId, {
+    enabled: !!selectedEnrollmentId && !!user,
+  });
 
   const enrollments = talentData?.data || [];
   const selectedEnrollment = enrollments.find((e: any) => e.id === selectedEnrollmentId);
@@ -433,6 +442,34 @@ export default function EnrollmentWorkspacePage() {
   const customOutputs: Array<{ id: string; label: string; placeholder: string; required?: boolean }> =
     selectedEnrollment?.challenge?.gradingRubric?.customOutputs || [];
 
+  // Keadaan tahap dipasangkan lewat id, bukan indeks: urutan di layar dan
+  // urutan jawaban server tidak dijamin sama, dan menukar keduanya berarti
+  // membuka tahap yang salah.
+  const stageBySection = new Map(stageGate.stages.map((s) => [s.sectionId, s]));
+  const activeSection = sections[activeSectionIndex];
+  const activeStage = activeSection ? stageBySection.get(activeSection.id) : undefined;
+
+  // Studi kasus lama tanpa satu pun `ChallengeSection` — atau yang belum punya
+  // baris attempt — tidak boleh terkunci gara-gara fitur ini. Tanpa keadaan
+  // tahap dari server, halaman berperilaku seperti sebelumnya.
+  const isStageGated = stageGate.stages.length > 0;
+  const isActiveStageRunning = !isStageGated || activeStage?.status === 'IN_PROGRESS';
+  const isActiveStageDone =
+    !!activeStage &&
+    ['SUBMITTED', 'AWAITING_GRADE', 'PASSED', 'FAILED', 'EXPIRED'].includes(
+      activeStage.status,
+    );
+
+  /** Sisa waktu tahap aktif, sebagai HH:MM:SS. */
+  const stageTimeLeft = (() => {
+    if (stageGate.remainingSeconds === null) return null;
+    const total = stageGate.remainingSeconds;
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
+  })();
+
   const handleComponentChange = (componentId: string, value: any, field: 'textValue' | 'fileUrl') => {
     setComponentResponses(prev => ({
       ...prev,
@@ -458,9 +495,14 @@ export default function EnrollmentWorkspacePage() {
     }
   };
 
-  const handleSubmitSolution = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEnrollment || isExpired) return;
+  const handleSubmitSolution = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!selectedEnrollment) return;
+    // Batas global challenge tetap berlaku. Batas per tahap tidak diperiksa di
+    // sini: pengumpulan saat waktu tahap habis justru yang dikehendaki —
+    // pekerjaan yang sudah ada dikirim alih-alih hilang, dan server yang
+    // memutuskan menerimanya atau tidak.
+    if (isExpired) return;
 
     if (isProctored && faceVerified === null) {
       setSubmitError('Pemeriksaan Pengawasan Ujian: Anda wajib melakukan Verifikasi Wajah Anti-Joki sebelum mengirimkan solusi.');
@@ -491,6 +533,10 @@ export default function EnrollmentWorkspacePage() {
     try {
       await submissionsService.submitSolution({
         enrollmentId: selectedEnrollment.id,
+        // Tahap yang dikumpulkan. Dikirim hanya bila studi kasus ini memang
+        // bertahap — tanpa itu backend memperlakukannya sebagai pengumpulan
+        // menyeluruh, seperti sebelum tahapan ada.
+        sectionId: isStageGated ? activeSection?.id : undefined,
         solutionFilesUrl,
         repositoryUrl,
         figmaUrl,
@@ -498,22 +544,60 @@ export default function EnrollmentWorkspacePage() {
         notes: combinedNotes,
         responses: responsesArray,
       });
-      setSubmitSuccess(true);
-      setCurrentStep('SUBMITTED');
-      handleExitFullscreen();
+
+      await stageGate.refresh();
+      const refreshed = await stagesService
+        .getStages(selectedEnrollment.id)
+        .catch(() => null);
+
+      // Tahap berikutnya yang sudah terbuka langsung dituju; kalau tidak ada,
+      // pengerjaan memang selesai. Keputusan "sudah terbuka" tetap milik server.
+      const nextIndex = refreshed
+        ? sections.findIndex((section: any) => {
+            const stage = refreshed.find((s) => s.sectionId === section.id);
+            return stage?.unlocked && stage.status !== 'IN_PROGRESS'
+              ? true
+              : stage?.status === 'IN_PROGRESS';
+          })
+        : -1;
+
+      if (isStageGated && nextIndex >= 0 && nextIndex !== activeSectionIndex) {
+        setActiveSectionIndex(nextIndex);
+        setExamQuestionIdx(0);
+        setComponentResponses({});
+        setSubmitSuccess(false);
+      } else {
+        setSubmitSuccess(true);
+        setCurrentStep('SUBMITTED');
+        handleExitFullscreen();
+      }
+
       refetchTalent();
     } catch (err: any) {
-      setSubmitError(err.message || 'Gagal mengirimkan solusi. Silakan coba lagi.');
+      setSubmitError(
+        err.response?.data?.message ||
+          err.message ||
+          'Gagal mengirimkan solusi. Silakan coba lagi.',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const submissions = selectedEnrollment?.submissions || [];
   const latestSubmission = submissions[submissions.length - 1];
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
+      {/* Waktu tahap habis memicu pengumpulan otomatis: pekerjaan yang sudah
+          tersimpan dikirim alih-alih hilang bersama waktunya. Server tetap yang
+          memutuskan menerima atau menolak. */}
+      <StageExpiryWatcher
+        expiredSectionId={stageGate.expiredSectionId}
+        onExpire={() => void handleSubmitSolution()}
+      />
+
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
       </Link>
@@ -954,23 +1038,123 @@ export default function EnrollmentWorkspacePage() {
 
                     {sections.length > 1 && (
                       <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
-                        {sections.map((sec: any, idx: number) => (
-                          <button
-                            key={sec.id || idx}
-                            type="button"
-                            onClick={() => setActiveSectionIndex(idx)}
-                            className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${
-                              activeSectionIndex === idx 
-                                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                                : 'bg-background border-border text-muted-foreground hover:text-foreground hover:bg-foreground/5'
-                            }`}
-                          >
-                            {sec.title}
-                          </button>
-                        ))}
+                        {sections.map((sec: any, idx: number) => {
+                          const stage = stageBySection.get(sec.id);
+                          // Tanpa keadaan dari server tahap dianggap terbuka —
+                          // studi kasus lama tanpa gerbang tidak boleh berubah
+                          // perilakunya. Keputusan penguncian hanya datang dari
+                          // server, tidak pernah dihitung di sini.
+                          const locked = !!stage && !stage.unlocked;
+                          const done =
+                            !!stage &&
+                            ['SUBMITTED', 'AWAITING_GRADE', 'PASSED', 'FAILED'].includes(
+                              stage.status,
+                            );
+
+                          return (
+                            <button
+                              key={sec.id || idx}
+                              type="button"
+                              disabled={locked}
+                              title={stage?.lockReason ?? undefined}
+                              onClick={() => setActiveSectionIndex(idx)}
+                              className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border flex items-center gap-2 ${
+                                locked
+                                  ? 'bg-background border-border text-muted-foreground/50 cursor-not-allowed'
+                                  : activeSectionIndex === idx
+                                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                                    : 'bg-background border-border text-muted-foreground hover:text-foreground hover:bg-foreground/5'
+                              }`}
+                            >
+                              {locked && <Lock className="w-3.5 h-3.5" aria-hidden="true" />}
+                              {done && <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />}
+                              {sec.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Alasan terkunci ditampilkan utuh, bukan hanya sebagai
+                        tooltip: kalimatnya memuat angka yang perlu dibaca
+                        kandidat — ambang nilai dan nilainya sendiri. */}
+                    {activeStage && !activeStage.unlocked && activeStage.lockReason && (
+                      <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                        <Lock className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-bold text-amber-500 mb-1">Tahap Terkunci</p>
+                          <p className="text-sm text-foreground">{activeStage.lockReason}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Layar antara sebelum jam berjalan. Waktu dicap oleh
+                        kehendak kandidat, bukan oleh kebetulan halaman termuat —
+                        kalau tidak, membuka tautan berarti kehilangan waktu. */}
+                    {activeStage && activeStage.unlocked && !isActiveStageRunning && !isActiveStageDone && (
+                      <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-4">
+                        <Timer className="w-10 h-10 text-emerald-400 mx-auto" aria-hidden="true" />
+                        <div>
+                          <h5 className="font-bold text-lg text-foreground">{activeStage.title}</h5>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {activeStage.timeLimit
+                              ? `Waktu pengerjaan ${activeStage.timeLimit} menit, dihitung sejak Anda menekan tombol di bawah.`
+                              : 'Tahap ini tidak berbatas waktu.'}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => void stageGate.startStage(activeStage.sectionId)}
+                          className="mx-auto"
+                        >
+                          <Play className="w-4 h-4" /> Mulai Tahap
+                        </Button>
+                      </div>
+                    )}
+
+                    {isActiveStageDone && activeStage && (
+                      <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-bold text-emerald-400 mb-1">
+                            {activeStage.status === 'EXPIRED'
+                              ? 'Waktu Tahap Habis'
+                              : 'Tahap Sudah Dikumpulkan'}
+                          </p>
+                          <p className="text-sm text-foreground">
+                            {activeStage.score !== null
+                              ? `Nilai tahap ini: ${activeStage.score.toFixed(1)}/100.`
+                              : 'Nilainya sedang dihitung. Tahap berikutnya terbuka setelah nilainya keluar.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hitung mundur tahap. Angkanya berasal dari sisa waktu
+                        yang dilaporkan server, bukan dari `timeLimit` dikali di
+                        peramban — jam peramban tidak bisa dipercaya. */}
+                    {isActiveStageRunning && stageTimeLeft && (
+                      <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3">
+                        <span className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                          <Timer className="w-4 h-4" aria-hidden="true" /> Sisa waktu tahap ini
+                        </span>
+                        <span
+                          className={`font-mono font-bold text-lg ${
+                            (stageGate.remainingSeconds ?? 0) < 60
+                              ? 'text-red-400'
+                              : 'text-foreground'
+                          }`}
+                        >
+                          {stageTimeLeft}
+                        </span>
                       </div>
                     )}
                     
+                    {/* Soal hanya ditampilkan setelah tahapnya benar-benar
+                        dimulai. Menampilkannya lebih awal berarti kandidat bisa
+                        membaca dan menyiapkan jawaban sebelum jam berjalan —
+                        batas waktu jadi tidak berarti apa-apa. */}
+                    {isActiveStageRunning && (
                     <div className="space-y-6">
                       <div className="flex flex-col xl:flex-row gap-6">
                         <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-inner">
@@ -1200,6 +1384,7 @@ export default function EnrollmentWorkspacePage() {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* NAVIGASI ANTAR SEKSI */}
                     {sections.length > 1 && (
@@ -1213,11 +1398,21 @@ export default function EnrollmentWorkspacePage() {
                          >
                            <ArrowLeft className="w-4 h-4 mr-2" /> Seksi Sebelumnya
                          </Button>
-                         <Button 
-                           type="button" 
-                           variant="secondary" 
-                           onClick={() => setActiveSectionIndex(Math.min(sections.length - 1, activeSectionIndex + 1))} 
-                           disabled={activeSectionIndex === sections.length - 1}
+                         <Button
+                           type="button"
+                           variant="secondary"
+                           onClick={() => setActiveSectionIndex(Math.min(sections.length - 1, activeSectionIndex + 1))}
+                           // Tombol maju ikut menghormati gerbang: tanpa ini
+                           // kandidat bisa melewati tahap terkunci lewat
+                           // navigasi, bukan lewat daftar tahap.
+                           disabled={
+                             activeSectionIndex === sections.length - 1 ||
+                             (() => {
+                               const next = sections[activeSectionIndex + 1];
+                               const stage = next && stageBySection.get(next.id);
+                               return !!stage && !stage.unlocked;
+                             })()
+                           }
                            className="bg-background border-border"
                          >
                            Seksi Selanjutnya <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
@@ -1229,9 +1424,21 @@ export default function EnrollmentWorkspacePage() {
 
 
 
-                <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full shadow-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 text-base mt-8">
+                {/* Pada studi kasus bertahap, pengumpulan menutup satu tahap,
+                    bukan seluruh studi kasus — labelnya harus mengatakan itu,
+                    supaya kandidat tidak menahan pekerjaan karena takut
+                    mengakhiri semuanya. */}
+                <Button
+                  type="submit"
+                  isLoading={isSubmitting}
+                  size="lg"
+                  disabled={!isActiveStageRunning}
+                  className="w-full shadow-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 text-base mt-8"
+                >
                   <Send className="h-5 w-5 mr-2" />
-                  Kirim Solusi untuk Dievaluasi AI & Rekruter
+                  {isStageGated && sections.length > 1
+                    ? `Kumpulkan Tahap "${activeSection?.title ?? ''}"`
+                    : 'Kirim Solusi untuk Dievaluasi AI & Rekruter'}
                 </Button>
               </form>
             ) : currentStep === 'SUBMITTED' ? (

@@ -16,6 +16,8 @@ import { DurationPicker } from '@/components/common/DurationPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionTypeRegistry } from '@/components/question-types';
 import BankPicker from './BankPicker';
+import StageGateSettings from './StageGateSettings';
+import { Section } from '@/types';
 
 interface QuestionBuilderProps {
   manualData: CreateChallengePayload;
@@ -116,6 +118,18 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
   const updateSectionStageType = (secIdx: number, stageType: 'QUIZ' | 'ASSIGNMENT') => {
     const newSections = [...(manualData.sections || [])];
     newSections[secIdx] = { ...newSections[secIdx], stageType };
+    setManualData({ ...manualData, sections: newSections });
+  };
+
+  /**
+   * Menerapkan perubahan jadwal atau syarat masuk satu tahap.
+   *
+   * Satu fungsi untuk seluruh kolomnya, bukan satu per kolom: jumlahnya sepuluh,
+   * dan semuanya diperlakukan sama — disalin ke tahap yang sedang dipilih.
+   */
+  const updateSectionGate = (secIdx: number, patch: Partial<Section>) => {
+    const newSections = [...(manualData.sections || [])];
+    newSections[secIdx] = { ...newSections[secIdx], ...patch };
     setManualData({ ...manualData, sections: newSections });
   };
 
@@ -494,6 +508,14 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
               </button>
             </div>
           </div>
+
+          {/* Jadwal & syarat masuk tahap ini. Diletakkan sebelum daftar soal
+              karena menentukan siapa yang akan melihat soal-soal di bawahnya. */}
+          <StageGateSettings
+            sections={(manualData.sections || []) as Section[]}
+            index={selectedSectionIdx}
+            onChange={(patch) => updateSectionGate(selectedSectionIdx, patch)}
+          />
 
           {/* List of Questions (LMS Style) */}
           <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-4">

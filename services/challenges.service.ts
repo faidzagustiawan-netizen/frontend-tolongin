@@ -1,5 +1,11 @@
 import { apiClient } from './api';
-import { Section, ComponentData } from '../types';
+import {
+  Section,
+  ComponentData,
+  GateScoreBasis,
+  StageGateMode,
+  StagePendingPolicy,
+} from '../types';
 
 export interface SectionPayload {
   id?: string;
@@ -8,7 +14,30 @@ export interface SectionPayload {
   order: number;
   timeLimit?: number | null;
   stageType?: 'QUIZ' | 'ASSIGNMENT';
+  opensAt?: string | null;
+  closesAt?: string | null;
+  gateMode?: StageGateMode;
+  minScore?: number | null;
+  maxAdvancing?: number | null;
+  scoreBasis?: GateScoreBasis;
+  gateSourceIds?: string[];
+  pendingPolicy?: StagePendingPolicy;
+  graceDays?: number | null;
   components: ComponentData[];
+}
+
+/** Pengaturan tahap yang boleh diubah walau studi kasus sudah terbit. */
+export interface UpdateStageGatePayload {
+  timeLimit?: number | null;
+  opensAt?: string | null;
+  closesAt?: string | null;
+  gateMode?: StageGateMode;
+  minScore?: number | null;
+  maxAdvancing?: number | null;
+  scoreBasis?: GateScoreBasis;
+  gateSourceIds?: string[];
+  pendingPolicy?: StagePendingPolicy;
+  graceDays?: number | null;
 }
 
 export interface CreateChallengePayload {
@@ -70,13 +99,62 @@ const sanitizeComponent = (comp: ComponentData) => ({
 });
 
 const sanitizeSection = (section: SectionPayload, idx: number) => ({
+  // Id tahap ikut dikirim supaya backend memperbarui baris yang sama alih-alih
+  // membuatnya ulang. Tanpa ini `ChallengeSection.id` berganti tiap simpan, dan
+  // syarat masuk antar-tahap — yang menunjuk tahap lain lewat id — ikut rusak.
+  id: section.id,
   title: section.title,
   description: section.description,
   order: section.order ?? idx,
   stageType: section.stageType,
   timeLimit: section.timeLimit,
+  // Jadwal dan syarat masuk. Harus disebut satu per satu di sini: payload
+  // disusun ulang secara eksplisit, jadi kolom yang tidak disalin hilang tanpa
+  // jejak — itu yang dulu terjadi pada `timeLimit`.
+  opensAt: section.opensAt,
+  closesAt: section.closesAt,
+  gateMode: section.gateMode,
+  minScore: section.minScore,
+  maxAdvancing: section.maxAdvancing,
+  scoreBasis: section.scoreBasis,
+  gateSourceIds: section.gateSourceIds,
+  pendingPolicy: section.pendingPolicy,
+  graceDays: section.graceDays,
   components: (section.components || []).map(sanitizeComponent),
 });
+
+/**
+ * Menyalin id tahap dari jawaban server ke state builder.
+ *
+ * Tanpa ini `section.id` selamanya undefined: backend memperlakukan setiap tahap
+ * sebagai tahap baru, sehingga seluruh `ChallengeSection.id` berganti pada tiap
+ * autosave. Itu tidak terlihat selama tahap hanya berisi soal, tetapi syarat
+ * masuk antar-tahap menunjuk tahap lain lewat id — rujukannya membusuk sebelum
+ * studi kasus sempat terbit.
+ *
+ * Pencocokan lewat `order` karena itu satu-satunya penanda yang dipegang kedua
+ * sisi sebelum id ada.
+ */
+export const mergeServerSectionIds = (
+  sections: Section[] | undefined,
+  serverSections: Array<{ id: string; order: number }> | undefined,
+): Section[] | undefined => {
+  if (!sections || !serverSections || serverSections.length === 0) return sections;
+
+  const idByOrder = new Map(serverSections.map((s) => [s.order, s.id]));
+  let changed = false;
+
+  const merged = sections.map((section, idx) => {
+    const id = idByOrder.get(section.order ?? idx);
+    if (!id || section.id === id) return section;
+    changed = true;
+    return { ...section, id };
+  });
+
+  // Referensi lama dikembalikan bila tidak ada yang berubah, supaya pemanggil
+  // bisa membedakan "perlu disimpan ke state" dari "sudah sama".
+  return changed ? merged : sections;
+};
 
 const sanitizePayload = <T extends Partial<CreateChallengePayload>>(payload: T) => {
   // `id` hanya penanda internal untuk memilih create vs update, bukan bagian
@@ -121,6 +199,25 @@ export const challengesService = {
    */
   archive: async (id: string) => {
     const { data } = await apiClient.patch(`/challenges/${id}/archive`);
+    return { data };
+  },
+
+  /**
+   * Mengubah jadwal dan syarat masuk satu tahap.
+   *
+   * Rute tersendiri, bukan `update`, karena boleh dipakai pada studi kasus yang
+   * sudah terbit: soalnya tetap terkunci, hanya ambang lolos dan jadwal yang
+   * bisa disesuaikan setelah terlihat hasilnya di kandidat sungguhan.
+   */
+  updateStageGate: async (
+    challengeId: string,
+    sectionId: string,
+    payload: UpdateStageGatePayload,
+  ) => {
+    const { data } = await apiClient.patch(
+      `/challenges/${challengeId}/stages/${sectionId}/gate`,
+      payload,
+    );
     return { data };
   },
   generateAiBlueprint: async (payload: GenerateAiChallengePayload) => {

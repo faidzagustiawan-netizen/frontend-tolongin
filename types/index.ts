@@ -36,6 +36,25 @@ export interface ComponentData {
   [key: string]: unknown;
 }
 
+/** Syarat masuk sebuah tahap. Cocok dengan enum `StageGateMode` di backend. */
+export type StageGateMode = 'OPEN' | 'MIN_SCORE' | 'TOP_N' | 'MANUAL_APPROVAL';
+
+/** Nilai mana yang dibandingkan dengan ambang lolos. */
+export type GateScoreBasis =
+  | 'PREVIOUS_STAGE'
+  | 'CUMULATIVE'
+  | 'SPECIFIC_STAGES';
+
+/**
+ * Perlakuan ketika nilai tahap sumber belum siap. Tahap berisi esai atau tugas
+ * tidak punya nilai sampai AI atau manusia menilainya, jadi gerbang berbasis
+ * nilai selalu punya jeda; ini yang menentukan apa yang terjadi selama jeda itu.
+ */
+export type StagePendingPolicy =
+  | 'WAIT_FOR_SCORE'
+  | 'AUTO_ADVANCE_AFTER'
+  | 'MANUAL_ONLY';
+
 export interface Section {
   id?: string;
   title: string;
@@ -43,6 +62,23 @@ export interface Section {
   order: number;
   timeLimit?: number | null;
   stageType?: 'QUIZ' | 'ASSIGNMENT';
+
+  /** Jendela buka-tutup tahap ini, di dalam jendela global challenge. */
+  opensAt?: string | null;
+  closesAt?: string | null;
+
+  gateMode?: StageGateMode;
+  minScore?: number | null;
+  maxAdvancing?: number | null;
+  scoreBasis?: GateScoreBasis;
+  /**
+   * Tahap yang nilainya dipakai ketika `scoreBasis === 'SPECIFIC_STAGES'`.
+   * Menyimpan id tahap, jadi hanya tahap yang sudah tersimpan bisa dirujuk.
+   */
+  gateSourceIds?: string[];
+  pendingPolicy?: StagePendingPolicy;
+  graceDays?: number | null;
+
   components: ComponentData[];
 }
 

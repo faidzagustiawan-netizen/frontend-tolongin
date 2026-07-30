@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '@/services/submissions.service';
 import { useUserStore } from '@/store/userStore';
 import { CandidateBrowser } from '@/components/company/CandidateBrowser';
+import { StageApprovalPanel } from '@/components/company/StageApprovalPanel';
+import { StageGateEditor } from '@/components/company/StageGateEditor';
 import { ArrowLeft } from 'lucide-react';
 
 export default function ChallengeSubmissionsPage() {
@@ -51,6 +53,19 @@ export default function ChallengeSubmissionsPage() {
           Daftar talenta yang telah mengumpulkan pekerjaan untuk studi kasus ini.
         </p>
       </div>
+
+      {/* Diletakkan di atas daftar kandidat: yang menunggu keputusan tidak bisa
+          melanjutkan sampai ditindaklanjuti, sementara daftar di bawah hanya
+          menunggu dinilai. */}
+      <StageApprovalPanel
+        challengeId={challengeId}
+        enabled={isAuthenticated && !!challengeId && isAllowed}
+      />
+
+      <StageGateEditor
+        challengeId={challengeId}
+        enabled={isAuthenticated && !!challengeId && isAllowed}
+      />
 
       <CandidateBrowser
         challengeId={challengeId}

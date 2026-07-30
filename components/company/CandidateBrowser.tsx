@@ -284,6 +284,15 @@ export function CandidateBrowser({
                             <p className="text-xs text-muted-foreground truncate max-w-[180px]">
                               {sub.talent.headline || sub.talent.skills?.slice(0, 2).join(', ')}
                             </p>
+                            {/* Pada studi kasus bertahap satu kandidat muncul
+                                sekali per tahap. Tanpa penanda ini barisnya
+                                terlihat seperti duplikat, dan tidak ada cara
+                                mengetahui tahap mana yang sedang dinilai. */}
+                            {sub.section && (
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-500 text-[10px] font-bold">
+                                {sub.section.title}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

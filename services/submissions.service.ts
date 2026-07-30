@@ -7,6 +7,12 @@ export interface EnrollPayload {
 
 export interface SubmitSolutionPayload {
   enrollmentId: string;
+  /**
+   * Tahap yang dikumpulkan. Kosong berarti pengumpulan menyeluruh — bentuk
+   * lama, satu submisi untuk seluruh studi kasus, yang tetap dipakai studi
+   * kasus tanpa tahapan bergerbang.
+   */
+  sectionId?: string;
   solutionFilesUrl?: string;
   repositoryUrl?: string;
   figmaUrl?: string;
