@@ -189,7 +189,7 @@ export const Navbar = () => {
   // adalah pekerjaan utama seorang rekruter, tetapi sebelumnya hanya bisa
   // dicapai lewat tombol di dalam dasbor atau menu di balik foto profil —
   // sementara menu tetapnya berisi direktori sesama perusahaan.
-  const isCompanyOwner = user?.role === 'COMPANY' && !user?.profile?.isTeamMember;
+  const isCompanyOwner = user?.role === 'COMPANY' && user?.isCompanyOwner === true;
 
   const companyNavLinks = [
     { name: 'Dashboard', href: '/', icon: CheckCheck },

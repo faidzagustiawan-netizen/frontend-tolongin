@@ -16,18 +16,27 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
+/**
+ * Nama kolomnya mengikuti CompanyProfile di Prisma.
+ *
+ * Sebelumnya antarmuka ini menyebut `employeeCount`, `website`, `nibNumber`,
+ * `npwpNumber`, `nibDocumentUrl`, dan `npwpDocumentUrl` — enam nama yang tidak
+ * satu pun ada di basis data. Kartu tinjauan karena itu selalu menampilkan
+ * "—" dan "Tidak dilampirkan", dan admin menyetujui perusahaan tanpa pernah
+ * melihat dokumen apa pun.
+ */
 interface CompanyProfile {
   id: string;
   companyName: string;
   industry: string;
-  employeeCount: string;
-  location: string;
-  website: string;
-  description: string;
-  nibNumber: string | null;
-  npwpNumber: string | null;
-  nibDocumentUrl: string | null;
-  npwpDocumentUrl: string | null;
+  companySize: string | null;
+  location: string | null;
+  websiteUrl: string | null;
+  description: string | null;
+  legalEntityName: string | null;
+  businessRegistrationNumber: string | null;
+  legalDocumentUrl: string | null;
+  kybSubmittedAt: string | null;
   kybStatus: string;
   createdAt: string;
   user: {
@@ -156,7 +165,7 @@ export default function AdminCompanyVerificationsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Ukuran Perusahaan</p>
-                    <p className="font-medium text-foreground">{company.employeeCount || '—'}</p>
+                    <p className="font-medium text-foreground">{company.companySize || '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Lokasi</p>
@@ -164,9 +173,9 @@ export default function AdminCompanyVerificationsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Website</p>
-                    {company.website ? (
-                      <a href={company.website} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-400 flex items-center gap-1 hover:underline">
-                        {company.website} <ExternalLink className="h-3 w-3" />
+                    {company.websiteUrl ? (
+                      <a href={company.websiteUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-400 flex items-center gap-1 hover:underline">
+                        {company.websiteUrl} <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
                       <p className="font-medium text-foreground">—</p>
@@ -178,24 +187,27 @@ export default function AdminCompanyVerificationsPage() {
                   <p className="text-xs font-semibold text-foreground mb-2">Dokumen Legalitas</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-muted/30 p-3 rounded-lg border border-border">
-                      <p className="text-xs text-muted-foreground">Nomor Induk Berusaha (NIB)</p>
-                      <p className="font-mono text-sm mt-1">{company.nibNumber || 'Tidak dilampirkan'}</p>
-                      {company.nibDocumentUrl && (
-                        <a href={company.nibDocumentUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
-                          Lihat Dokumen <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
+                      <p className="text-xs text-muted-foreground">Nama Entitas Hukum</p>
+                      <p className="text-sm mt-1">{company.legalEntityName || 'Tidak dilampirkan'}</p>
                     </div>
                     <div className="bg-muted/30 p-3 rounded-lg border border-border">
-                      <p className="text-xs text-muted-foreground">NPWP Perusahaan</p>
-                      <p className="font-mono text-sm mt-1">{company.npwpNumber || 'Tidak dilampirkan'}</p>
-                      {company.npwpDocumentUrl && (
-                        <a href={company.npwpDocumentUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
+                      <p className="text-xs text-muted-foreground">Nomor NIB / NPWP</p>
+                      <p className="font-mono text-sm mt-1">{company.businessRegistrationNumber || 'Tidak dilampirkan'}</p>
+                      {company.legalDocumentUrl && (
+                        <a href={company.legalDocumentUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
                           Lihat Dokumen <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
                   </div>
+                  {/* Persetujuan tanpa dokumen adalah persetujuan buta. Ditandai
+                      terang-terangan supaya kasusnya tidak lolos begitu saja. */}
+                  {!company.legalDocumentUrl && (
+                    <p className="mt-3 text-xs text-amber-500">
+                      Perusahaan ini belum melampirkan dokumen legalitas apa pun.
+                      Tidak ada yang bisa ditinjau — mintalah dokumennya sebelum menyetujui.
+                    </p>
+                  )}
                 </div>
               </div>
 

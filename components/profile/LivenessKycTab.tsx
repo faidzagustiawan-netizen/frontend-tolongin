@@ -40,6 +40,12 @@ const STATUS_KYC: Record<StatusKyc, { label: string; ringkas: string; warna: str
 
 interface LivenessKycTabProps {
   isTalent: boolean;
+  /**
+   * Hanya pemilik akun perusahaan yang boleh mengirim legalitas usahanya.
+   * Backend menolak akun undangan lewat `CompanyOwnerGuard`; nilai ini menahan
+   * formulirnya agar penolakan itu tidak muncul sebagai galat mendadak.
+   */
+  isCompanyOwner?: boolean;
   talentProfile?: any;
   companyProfile?: any;
   verificationError: string | null;
@@ -61,6 +67,7 @@ interface LivenessKycTabProps {
 
 export const LivenessKycTab = ({
   isTalent,
+  isCompanyOwner = false,
   talentProfile,
   companyProfile,
   verificationError,
@@ -255,7 +262,16 @@ export const LivenessKycTab = ({
             </span>
           </div>
 
-          {companyProfile?.kybStatus !== 'VERIFIED' && companyProfile?.kybStatus !== 'PENDING' && (
+          {!isCompanyOwner && (
+            <p className="text-xs text-muted-foreground leading-relaxed pt-4 border-t border-border">
+              Dokumen legalitas dikirim oleh pemilik akun perusahaan. Hubungi
+              pemilik akun bila statusnya perlu diperbarui.
+            </p>
+          )}
+
+          {isCompanyOwner &&
+            companyProfile?.kybStatus !== 'VERIFIED' &&
+            companyProfile?.kybStatus !== 'PENDING' && (
             <form onSubmit={handleKybSubmit} className="space-y-4 pt-4 border-t border-border">
               <Input
                 label="Nama Entitas Hukum Resmi"

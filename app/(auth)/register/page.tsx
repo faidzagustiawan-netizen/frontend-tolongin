@@ -20,6 +20,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  ShieldCheck,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -52,6 +54,9 @@ const registerSchema = z
     fullName: z.string().optional(),
     companyName: z.string().optional(),
     industry: z.string().optional(),
+    legalEntityName: z.string().optional(),
+    businessRegistrationNumber: z.string().optional(),
+    legalDocumentUrl: z.string().optional(),
     acceptTerms: z.literal(true, {
       message: 'Anda perlu menyetujui Syarat Layanan dan Kebijakan Privasi',
     }),
@@ -81,6 +86,18 @@ const registerSchema = z
         }
         if (!data.industry) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Industri wajib diisi', path: ['industry'] });
+        }
+        // Legalitas ikut dikumpulkan di sini, bukan diserahkan ke halaman
+        // profil sesudahnya. Akun yang mendaftar tanpa dokumen tidak pernah
+        // masuk antrean tinjauan admin dan menunggu persetujuan yang tidak
+        // akan pernah datang.
+        if (!data.businessRegistrationNumber) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nomor NIB atau NPWP wajib diisi', path: ['businessRegistrationNumber'] });
+        }
+        if (!data.legalDocumentUrl) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Tautan dokumen legalitas wajib diisi', path: ['legalDocumentUrl'] });
+        } else if (!/^https?:\/\/\S+$/i.test(data.legalDocumentUrl)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Tautan dokumen harus berupa URL lengkap (diawali http:// atau https://)', path: ['legalDocumentUrl'] });
         }
       }
     }
@@ -437,6 +454,43 @@ function RegisterContent() {
                         )}
                       </div>
 
+                      {/* Legalitas usaha dikumpulkan di sini, bukan setelah
+                          pendaftaran selesai. Sebelumnya kotak di bawah hanya
+                          menjanjikan bahwa dokumennya diminta "di halaman
+                          profil"; akun yang tidak pernah ke sana tidak pernah
+                          masuk antrean tinjauan admin dan menunggu persetujuan
+                          yang memang tidak sedang berjalan. */}
+                      <Input
+                        label="Nama Entitas Hukum (opsional)"
+                        type="text"
+                        placeholder="PT Teknologi Masa Depan Indonesia"
+                        icon={<Building2 className="h-5 w-5" />}
+                        error={errors.legalEntityName?.message}
+                        {...register('legalEntityName')}
+                      />
+                      <Input
+                        label="Nomor NIB / NPWP"
+                        type="text"
+                        placeholder="12.345.678.9-012.000"
+                        icon={<ShieldCheck className="h-5 w-5" />}
+                        error={errors.businessRegistrationNumber?.message}
+                        {...register('businessRegistrationNumber')}
+                      />
+                      <Input
+                        label="Tautan Dokumen Legalitas"
+                        type="url"
+                        placeholder="https://drive.google.com/..."
+                        icon={<LinkIcon className="h-5 w-5" />}
+                        error={errors.legalDocumentUrl?.message}
+                        {...register('legalDocumentUrl')}
+                      />
+                      <p className="text-xs text-muted-foreground leading-relaxed -mt-2">
+                        Unggah NIB, NPWP, atau akta perusahaan ke penyimpanan
+                        Anda (Google Drive, Dropbox, situs resmi), lalu tempelkan
+                        tautannya di sini. Pastikan tautannya dapat dibuka tim
+                        peninjau.
+                      </p>
+
                       {/* Ekspektasi yang dulu tidak pernah disebutkan.
                           Perusahaan mengisi tiga langkah, menekan "Selesaikan
                           Pendaftaran", lalu langsung menabrak dinding
@@ -449,11 +503,10 @@ function RegisterContent() {
                             Akun perusahaan ditinjau dulu sebelum aktif
                           </p>
                           <p className="text-xs text-muted-foreground leading-relaxed">
-                            Setelah mendaftar Anda perlu mengirim dokumen
-                            legalitas usaha (NIB/NPWP) di halaman profil. Tim
-                            kami meninjaunya dalam 1x24 jam kerja. Membuat studi
-                            kasus dan melihat kandidat baru terbuka setelah
-                            peninjauan selesai.
+                            Dokumen legalitas yang Anda kirim di atas ditinjau
+                            tim kami dalam 1x24 jam kerja. Membuat studi kasus,
+                            melihat kandidat, mengelola tim, dan mengatur
+                            langganan baru terbuka setelah peninjauan selesai.
                           </p>
                         </div>
                       </div>

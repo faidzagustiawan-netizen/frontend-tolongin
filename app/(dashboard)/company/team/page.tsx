@@ -35,16 +35,25 @@ export default function TeamWorkspacePage() {
     }
   }, [isHydrated, user, router]);
 
+  // Kepemilikan menentukan apakah data ruang kerja boleh diminta sama sekali.
+  //
+  // Sebelumnya penanda ini hanya menyembunyikan tombol aksi (baris "Terbitkan
+  // Kode" dan tombol setujui/tolak), sementara kedua query di bawah tetap
+  // berjalan untuk anggota tim — daftar anggota beserta emailnya dan seluruh
+  // jejak audit perusahaan tetap sampai ke layarnya.
+  const isCompanyOwner = user?.isCompanyOwner === true;
+  const canLoadWorkspace = !!user && user.role === 'COMPANY' && isCompanyOwner;
+
   const { data: teamMembers, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['teamMembers'],
     queryFn: () => companiesService.getTeamMembers(),
-    enabled: !!user && user.role === 'COMPANY',
+    enabled: canLoadWorkspace,
   });
 
   const { data: activityLogs, isLoading: isLoadingLogs } = useQuery({
     queryKey: ['activityLogs'],
     queryFn: () => companiesService.getActivityLogs(),
-    enabled: !!user && user.role === 'COMPANY',
+    enabled: canLoadWorkspace,
   });
 
   const generateCodeMutation = useMutation({
@@ -97,6 +106,29 @@ export default function TeamWorkspacePage() {
     );
   }
 
+  // Tautan "Kelola Tim" memang disembunyikan dari navigasi anggota tim, tetapi
+  // menyembunyikan tautan bukan menutup halaman: alamatnya tetap bisa diketik
+  // langsung. Backend kini menolaknya lewat CompanyOwnerGuard; layar ini
+  // menjelaskan penolakan itu alih-alih menampilkan daftar kosong dan toast
+  // galat.
+  if (!isCompanyOwner) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="max-w-md text-center space-y-3 p-8 bg-card border border-border rounded-2xl">
+          <ShieldCheck className="h-10 w-10 text-muted-foreground mx-auto" aria-hidden="true" />
+          <h1 className="text-lg font-bold font-display text-foreground">
+            Khusus Pemilik Akun
+          </h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Kelola tim dan jejak aktivitas hanya dapat diakses oleh pemilik akun
+            perusahaan. Hubungi pemilik akun bila Anda memerlukan perubahan
+            keanggotaan.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const rawInviteCode = user?.profile?.inviteCode;
   const inviteExpiresAt = user?.profile?.inviteCodeExpiresAt
     ? new Date(user.profile.inviteCodeExpiresAt as string)
@@ -106,8 +138,6 @@ export default function TeamWorkspacePage() {
   // punya kode sampai pemilik menerbitkannya.
   const hasActiveInvite = !!rawInviteCode && !isInviteExpired;
   const inviteCode = hasActiveInvite ? rawInviteCode : 'Belum ada kode aktif';
-
-  const isCompanyOwner = !user?.profile?.isTeamMember;
 
   const copyToClipboard = () => {
     if (hasActiveInvite) {

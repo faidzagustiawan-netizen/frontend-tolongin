@@ -53,7 +53,9 @@ export default function BillingPage() {
   const { data: statusData } = useQuery({
     queryKey: ['subscription-status', user?.id],
     queryFn: () => subscriptionsService.getStatus(),
-    enabled: !!user && user.role === 'COMPANY',
+    // Endpoint statusnya kini khusus pemilik. Tanpa syarat ini anggota tim
+    // menembak permintaan yang pasti dijawab 403 setiap kali halaman terbuka.
+    enabled: !!user && user.role === 'COMPANY' && user.isCompanyOwner === true,
   });
 
   const currentTier =
@@ -152,6 +154,29 @@ export default function BillingPage() {
 
   if (!user || (user.role !== 'COMPANY' && user.role !== 'ADMIN')) {
     return null;
+  }
+
+  // Langganan dibeli atas nama perusahaan, dan hanya pemiliknya yang boleh
+  // membelanjakannya. Sebelumnya halaman ini hanya menyaring peran, sehingga
+  // akun yang masuk lewat kode undangan melihat seluruh kartu paket beserta
+  // tombol belinya. Menekannya bukan sekadar salah izin: webhook mengaktifkan
+  // paket lewat CompanyProfile milik pembayar, dan akun undangan tidak
+  // memilikinya — uangnya tertagih, paketnya tidak pernah aktif.
+  if (user.role === 'COMPANY' && user.isCompanyOwner !== true) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="max-w-md text-center space-y-3 p-8 bg-card border border-border rounded-2xl">
+          <Shield className="h-10 w-10 text-muted-foreground mx-auto" aria-hidden="true" />
+          <h1 className="text-lg font-bold font-display text-foreground">
+            Khusus Pemilik Akun
+          </h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Langganan dan tagihan dikelola oleh pemilik akun perusahaan.
+            Sampaikan kebutuhan peningkatan paket kepada pemilik akun Anda.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const activePlan = PLANS.find((p) => p.tier === currentTier) ?? PLANS[0];

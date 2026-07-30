@@ -51,7 +51,7 @@ export default function ProfilePage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  const isCompanyOwner = user?.role === 'COMPANY' && !user?.profile?.isTeamMember;
+  const isCompanyOwner = user?.role === 'COMPANY' && user?.isCompanyOwner === true;
 
   // Legalitas bisnis (KYB).
   const [kybEntityName, setKybEntityName] = useState('');
@@ -390,6 +390,7 @@ export default function ProfilePage() {
               dan handler-nya diisi stub kosong. */}
           <LivenessKycTab
             isTalent={isTalent}
+            isCompanyOwner={isCompanyOwner}
             talentProfile={talentProfile}
             companyProfile={companyProfile}
             showLivenessCam={showLivenessCam}
