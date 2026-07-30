@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronRight, CheckCircle2, Clock, Layers, BookmarkPlus } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Settings, ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Clock, Layers, BookmarkPlus, Wand2, Loader2 } from 'lucide-react';
 import { CreateChallengePayload } from '@/services/challenges.service';
 import {
   QuestionBankItem,
   bankItemToComponent,
   questionBankService,
 } from '@/services/questionBank.service';
+import { CATEGORY_SHORT_LABELS } from './options';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -28,6 +29,12 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
   const [mounted, setMounted] = useState(false);
   const [isBankOpen, setIsBankOpen] = useState(false);
   const [savingCompIdx, setSavingCompIdx] = useState<number | null>(null);
+  // Indeks yang sedang diseret. Disimpan di state, bukan hanya di dataTransfer,
+  // supaya kartu tujuan bisa memberi penanda sebelum dilepas.
+  const [draggingCompIdx, setDraggingCompIdx] = useState<number | null>(null);
+  const [dragOverCompIdx, setDragOverCompIdx] = useState<number | null>(null);
+  const [draggingSectionIdx, setDraggingSectionIdx] = useState<number | null>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   const { user } = useUserStore();
   // Hanya perusahaan yang punya koleksi pribadi; talenta tidak punya profil
@@ -36,25 +43,26 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
 
   useEffect(() => {
     setMounted(true);
-    
-    // Ensure all existing sections are set to QUIZ
-    if (manualData.sections && manualData.sections.length > 0) {
-      let needsUpdate = false;
-      const newSections = manualData.sections.map(sec => {
-        if (sec.stageType !== 'QUIZ') {
-          needsUpdate = true;
-          return { ...sec, stageType: 'QUIZ' };
-        }
-        return sec;
-      });
-      if (needsUpdate) {
-        setManualData(prev => ({ ...prev, sections: newSections as any }));
-      }
-    } else if (!manualData.sections || manualData.sections.length === 0) {
-      // Add default section if none exists
-      setManualData(prev => ({
+
+    // Tahap pertama dibuatkan bila belum ada.
+    //
+    // Yang dulu ada di sini juga MENIMPA stageType setiap tahap menjadi QUIZ
+    // saat komponen dipasang. Akibatnya mode ASSIGNMENT tidak pernah bisa
+    // dipilih — bahkan keadaan awal formulir yang sudah menyetelnya ke
+    // ASSIGNMENT langsung ditimpa — dan `renderAssignmentMode` di PreviewTab
+    // menjadi kode mati yang tidak akan pernah dieksekusi.
+    if (!manualData.sections || manualData.sections.length === 0) {
+      setManualData((prev) => ({
         ...prev,
-        sections: [{ title: 'Bagian 1', order: 0, components: [], timeLimit: null, stageType: 'QUIZ' }]
+        sections: [
+          {
+            title: 'Bagian 1',
+            order: 0,
+            components: [],
+            timeLimit: null,
+            stageType: 'QUIZ',
+          },
+        ],
       }));
       setSelectedSectionIdx(0);
     }
@@ -103,6 +111,55 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     const newSections = [...(manualData.sections || [])];
     newSections[secIdx] = { ...newSections[secIdx], timeLimit };
     setManualData({ ...manualData, sections: newSections });
+  };
+
+  const updateSectionStageType = (secIdx: number, stageType: 'QUIZ' | 'ASSIGNMENT') => {
+    const newSections = [...(manualData.sections || [])];
+    newSections[secIdx] = { ...newSections[secIdx], stageType };
+    setManualData({ ...manualData, sections: newSections });
+  };
+
+  /**
+   * Memindahkan soal ke posisi lain di dalam tahap yang sama.
+   *
+   * Sebelumnya kartu soal menampilkan pegangan geser lengkap dengan kursor
+   * `grab`, tetapi tidak ada satu pun penangan tarik di berkas ini — urutan
+   * soal sama sekali tidak bisa diubah selain dengan menghapus dan menulis
+   * ulang. `order` ikut ditulis ulang karena backend memakai nilai itu, bukan
+   * urutan larik.
+   */
+  const moveComponent = (secIdx: number, from: number, to: number) => {
+    if (from === to) return;
+
+    const newSections = [...(manualData.sections || [])];
+    const components = [...(newSections[secIdx].components || [])];
+    if (to < 0 || to >= components.length) return;
+
+    const [moved] = components.splice(from, 1);
+    components.splice(to, 0, moved);
+
+    newSections[secIdx] = {
+      ...newSections[secIdx],
+      components: components.map((comp, idx) => ({ ...comp, order: idx })),
+    };
+
+    setManualData({ ...manualData, sections: newSections });
+    setExpandedCompIdx(null);
+  };
+
+  const moveSection = (from: number, to: number) => {
+    const sections = [...(manualData.sections || [])];
+    if (from === to || to < 0 || to >= sections.length) return;
+
+    const [moved] = sections.splice(from, 1);
+    sections.splice(to, 0, moved);
+
+    setManualData({
+      ...manualData,
+      sections: sections.map((section, idx) => ({ ...section, order: idx })),
+    });
+    setSelectedSectionIdx(to);
+    setExpandedCompIdx(null);
   };
 
   const addComponent = (secIdx: number, type: string) => {
@@ -167,6 +224,84 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
     toast.success(
       `${items.length} soal ditambahkan ke ${section.title || 'tahap ini'}.`,
     );
+  };
+
+  /**
+   * Menyusun kerangka tahapan dari bank, memakai kategori dan level studi
+   * kasus yang sedang dibuat.
+   *
+   * Bank sudah tahu apa yang relevan, tetapi sebelumnya pengguna tetap harus
+   * menyaring lalu mencentang satu per satu — sepuluh klik untuk mencapai
+   * susunan yang paling lumrah. Yang dihasilkan di sini hanyalah titik awal:
+   * seluruh soalnya tetap bisa dihapus, diurutkan ulang, dan disunting.
+   */
+  const composeFromBank = async () => {
+    setIsComposing(true);
+    try {
+      const [technical, general] = await Promise.all([
+        // Soal bidang: dikunci ke kategori studi kasus.
+        questionBankService.getAll({
+          category: manualData.category,
+          difficulty: manualData.difficulty,
+          limit: 24,
+        }),
+        // Soal lintas bidang punya `category` null, jadi tidak bisa diminta
+        // lewat penyaring kategori — diambil terpisah lalu disaring di sini.
+        questionBankService.getAll({ limit: 40 }),
+      ]);
+
+      const crossField = general.data.filter((item) => item.companyId === null && !item.category);
+      const fieldOnly = technical.data.filter((item) => !!item.category);
+
+      const stages: { title: string; items: QuestionBankItem[] }[] = [
+        {
+          title: `Uji Teknis ${CATEGORY_SHORT_LABELS[manualData.category] ?? ''}`.trim(),
+          items: fieldOnly.slice(0, 5),
+        },
+        {
+          title: 'Soft Skill & Situasional',
+          items: crossField
+            .filter((item) => item.type === 'MULTIPLE_CHOICE' || item.type === 'ESSAY')
+            .slice(0, 4),
+        },
+        {
+          title: 'Wawancara Terekam',
+          items: crossField.filter((item) => item.type === 'VIDEO_UPLOAD').slice(0, 2),
+        },
+      ].filter((stage) => stage.items.length > 0);
+
+      if (stages.length === 0) {
+        toast.error('Bank soal belum punya bahan yang cocok untuk kategori ini.');
+        return;
+      }
+
+      const existing = manualData.sections || [];
+      // Tahap kosong bawaan digantikan, bukan disisakan menggantung di atas.
+      const keep = existing.filter((section) => (section.components?.length || 0) > 0);
+
+      const composed = stages.map((stage, idx) => ({
+        title: stage.title,
+        order: keep.length + idx,
+        timeLimit: null,
+        stageType: (stage.title === 'Wawancara Terekam' ? 'ASSIGNMENT' : 'QUIZ') as
+          | 'QUIZ'
+          | 'ASSIGNMENT',
+        components: stage.items.map((item, itemIdx) => bankItemToComponent(item, itemIdx)),
+      }));
+
+      setManualData({ ...manualData, sections: [...keep, ...composed] as any });
+      setSelectedSectionIdx(keep.length);
+      setExpandedCompIdx(null);
+
+      const totalAdded = composed.reduce((acc, stage) => acc + stage.components.length, 0);
+      toast.success(
+        `${composed.length} tahap tersusun dengan ${totalAdded} soal. Sesuaikan sesuai kebutuhan Anda.`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyusun tahapan dari bank soal.');
+    } finally {
+      setIsComposing(false);
+    }
   };
 
   /** Menyimpan soal yang sedang disusun ke koleksi pribadi perusahaan. */
@@ -265,12 +400,23 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
         
         <div className="flex overflow-x-auto custom-scrollbar gap-2">
           {(manualData.sections || []).map((section, secIdx) => (
-            <button 
+            <button
               key={secIdx}
+              draggable
+              onDragStart={() => setDraggingSectionIdx(secIdx)}
+              onDragEnd={() => setDraggingSectionIdx(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (draggingSectionIdx !== null) moveSection(draggingSectionIdx, secIdx);
+                setDraggingSectionIdx(null);
+              }}
               onClick={() => { setSelectedSectionIdx(secIdx); setExpandedCompIdx(null); }}
-              className={`px-6 py-3 rounded-t-xl font-bold text-sm transition-colors whitespace-nowrap border-b-2 ${
-                selectedSectionIdx === secIdx 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500' 
+              title="Seret untuk mengubah urutan tahap"
+              className={`px-6 py-3 rounded-t-xl font-bold text-sm transition-colors whitespace-nowrap border-b-2 cursor-grab active:cursor-grabbing ${
+                draggingSectionIdx === secIdx ? 'opacity-40' : ''
+              } ${
+                selectedSectionIdx === secIdx
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500'
                   : 'text-muted-foreground hover:bg-foreground/5 border-transparent'
               }`}
             >
@@ -309,6 +455,36 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                 placeholder="Tak Terbatas"
               />
             </div>
+            {/* Mode pengerjaan tahap. Sebelumnya dipaksa QUIZ oleh efek saat
+                komponen dipasang, sehingga ASSIGNMENT tidak pernah bisa dipilih
+                meski skema, DTO, dan tampilan pengerjaannya sudah mendukung. */}
+            <div className="flex-1 min-w-[250px]">
+              <label
+                htmlFor="section-stage-type"
+                className="text-xs text-muted-foreground font-bold mb-2 block uppercase tracking-wider"
+              >
+                Mode Pengerjaan
+              </label>
+              <select
+                id="section-stage-type"
+                value={manualData.sections[selectedSectionIdx].stageType || 'QUIZ'}
+                onChange={(e) =>
+                  updateSectionStageType(
+                    selectedSectionIdx,
+                    e.target.value as 'QUIZ' | 'ASSIGNMENT',
+                  )
+                }
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-emerald-500 font-semibold"
+              >
+                <option value="QUIZ">Kuis — satu soal per layar, berurutan</option>
+                <option value="ASSIGNMENT">Tugas — semua soal tampil sekaligus</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {manualData.sections[selectedSectionIdx].stageType === 'ASSIGNMENT'
+                  ? 'Cocok untuk pengerjaan bebas: kandidat bisa melompat antar soal.'
+                  : 'Cocok untuk ujian: kandidat maju satu per satu.'}
+              </p>
+            </div>
             <div className="pt-7">
               <button 
                 onClick={() => removeSection(selectedSectionIdx)} 
@@ -332,22 +508,85 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
                 const isExpanded = expandedCompIdx === compIdx;
                 
                 return (
-                  <motion.div 
+                  <motion.div
                     layout
                     key={compIdx}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draggingCompIdx !== null) setDragOverCompIdx(compIdx);
+                    }}
+                    onDragLeave={() => setDragOverCompIdx((prev) => (prev === compIdx ? null : prev))}
+                    onDrop={() => {
+                      if (draggingCompIdx !== null) {
+                        moveComponent(selectedSectionIdx, draggingCompIdx, compIdx);
+                      }
+                      setDraggingCompIdx(null);
+                      setDragOverCompIdx(null);
+                    }}
                     className={`bg-card border rounded-2xl overflow-hidden transition-colors ${
-                      isExpanded ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/5' : 'border-border hover:border-foreground/20 shadow-sm'
+                      draggingCompIdx === compIdx ? 'opacity-40' : ''
+                    } ${
+                      dragOverCompIdx === compIdx && draggingCompIdx !== compIdx
+                        ? 'border-cyan-400 ring-2 ring-cyan-400/30'
+                        : isExpanded
+                          ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/5'
+                          : 'border-border hover:border-foreground/20 shadow-sm'
                     }`}
                   >
                     {/* Card Header (Always visible) */}
-                    <div 
+                    <div
                       className="p-4 sm:p-5 flex items-start gap-4 cursor-pointer"
                       onClick={() => setExpandedCompIdx(isExpanded ? null : compIdx)}
                     >
-                      <div className="mt-1 opacity-50 cursor-grab active:cursor-grabbing">
-                        <GripVertical className="w-5 h-5 text-muted-foreground" />
+                      {/* Pegangan geser yang benar-benar bekerja. Sebelumnya ikon
+                          ini hanya hiasan: kursornya menjanjikan tarik-lepas,
+                          tetapi tidak ada penangan apa pun di belakangnya.
+                          Tombol panah disediakan berdampingan karena tarik-lepas
+                          tidak bisa dioperasikan dengan papan ketik. */}
+                      <div
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          setDraggingCompIdx(compIdx);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingCompIdx(null);
+                          setDragOverCompIdx(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Seret untuk mengubah urutan soal"
+                        className="mt-1 flex flex-col items-center gap-0.5 cursor-grab active:cursor-grabbing"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveComponent(selectedSectionIdx, compIdx, compIdx - 1);
+                          }}
+                          disabled={compIdx === 0}
+                          aria-label="Pindahkan soal ke atas"
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                        <GripVertical className="w-5 h-5 text-muted-foreground opacity-50" aria-hidden="true" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveComponent(selectedSectionIdx, compIdx, compIdx + 1);
+                          }}
+                          disabled={
+                            compIdx ===
+                            (manualData.sections?.[selectedSectionIdx]?.components?.length || 1) - 1
+                          }
+                          aria-label="Pindahkan soal ke bawah"
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
                       </div>
-                      
+
                       <div className="flex-1 min-w-0 pr-4">
                         <div className="flex items-center gap-3 mb-1">
                           <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide border border-emerald-500/20">
@@ -450,18 +689,31 @@ export default function QuestionBuilder({ manualData, setManualData }: QuestionB
             {/* Bank soal ditawarkan sebelum daftar tipe soal: menyusun dari
                 bahan yang sudah ada hampir selalu lebih cepat daripada menulis
                 dari nol, dan soal lintas bidang ikut terbawa di sana. */}
-            <div className="pt-6">
+            <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => void composeFromBank()}
+                disabled={isComposing}
+                className="flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border border-dashed border-emerald-500/40 bg-emerald-500/5 text-emerald-500 font-bold text-sm hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+              >
+                {isComposing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Wand2 className="w-5 h-5" aria-hidden="true" />
+                )}
+                Susunkan tahapan untuk saya
+              </button>
               <button
                 type="button"
                 onClick={() => setIsBankOpen(true)}
-                className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+                className="flex items-center justify-center gap-3 px-4 py-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
               >
                 <Layers className="w-5 h-5" aria-hidden="true" />
-                Ambil dari bank soal
+                Pilih sendiri dari bank
               </button>
-              <p className="text-[11px] text-muted-foreground text-center mt-2">
-                Soal siap pakai per topik, termasuk soft skill dan wawancara yang
-                berlaku lintas bidang.
+              <p className="text-[11px] text-muted-foreground text-center sm:col-span-2">
+                Penyusunan otomatis membuat tiga tahap — teknis, soft skill, dan
+                wawancara — dari bank soal. Semuanya tetap bisa Anda ubah.
               </p>
             </div>
 

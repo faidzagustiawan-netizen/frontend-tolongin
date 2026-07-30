@@ -20,6 +20,9 @@ import QuestionBuilder from './QuestionBuilder';
 import ScoringSecurityForm from './ScoringSecurityForm';
 import PreviewTab from './PreviewTab';
 import PublishSummary from './PublishSummary';
+import { BuilderTab, evaluateStep, firstBlockingStep } from './stepValidation';
+import { useServerDraft } from './useServerDraft';
+import DraftStatusBar from './DraftStatusBar';
 
 interface ManualBuilderProps {
   manualData: CreateChallengePayload;
@@ -28,7 +31,7 @@ interface ManualBuilderProps {
   isSubmitting: boolean;
 }
 
-type Tab = 'BASICS' | 'SCHEDULE' | 'QUESTIONS' | 'SCORING' | 'PREVIEW' | 'PUBLISH';
+type Tab = BuilderTab;
 
 /**
  * Langkah penyusunan dipecah menurut keputusan yang berbeda, bukan digabung
@@ -48,13 +51,6 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'PUBLISH', label: 'Review & Publish', icon: <CheckCircle className="w-5 h-5" /> },
 ];
 
-const RUBRIC_SYSTEM_KEYS = [
-  'proctoringSettings',
-  'customOutputs',
-  'durationHours',
-  'requireProctoring',
-];
-
 export default function ManualBuilder({
   manualData,
   setManualData,
@@ -62,17 +58,41 @@ export default function ManualBuilder({
   isSubmitting,
 }: ManualBuilderProps) {
   const [activeTab, setActiveTab] = useState<Tab>('BASICS');
+  /** Alasan penolakan baru ditampilkan setelah pengguna mencoba melanjutkan. */
+  const [showBlocker, setShowBlocker] = useState(false);
 
   const currentTabIndex = TABS.findIndex((t) => t.id === activeTab);
   const isFirstStep = currentTabIndex === 0;
   const isLastStep = currentTabIndex === TABS.length - 1;
 
+  const currentStatus = evaluateStep(activeTab, manualData);
+
+  // Autosave dimatikan saat pengiriman berjalan supaya tidak berlomba dengan
+  // permintaan simpan/terbit yang sedang dikirim pengguna.
+  const draft = useServerDraft(manualData, setManualData, {
+    enabled: !isSubmitting && manualData.status !== 'PUBLISHED' && manualData.status !== 'CLOSED',
+  });
+
   const handleNext = () => {
+    // Gerbang di sini, bukan hanya di layar terakhir. Sebelumnya enam langkah
+    // kosong bisa ditembus sampai ujung, dan penolakannya muncul jauh dari
+    // tempat kesalahannya dibuat.
+    if (currentStatus.blocker) {
+      setShowBlocker(true);
+      return;
+    }
+    setShowBlocker(false);
     if (!isLastStep) setActiveTab(TABS[currentTabIndex + 1].id);
   };
 
   const handleBack = () => {
+    setShowBlocker(false);
     if (!isFirstStep) setActiveTab(TABS[currentTabIndex - 1].id);
+  };
+
+  const goToTab = (tab: Tab) => {
+    setShowBlocker(false);
+    setActiveTab(tab);
   };
 
   // Backend menolak penyuntingan untuk PUBLISHED maupun CLOSED.
@@ -85,26 +105,14 @@ export default function ManualBuilder({
     0,
   );
 
-  // Rubrik holistik hanya berlaku ketika tidak ada soal berpoin; di situ
-  // backend mewajibkan totalnya 100%. Diperiksa di sini juga supaya penolakan
-  // tidak baru datang setelah seluruh formulir panjang selesai diisi.
-  const rubricWeights = Object.entries(manualData.gradingRubric || {}).filter(
-    ([key]) => !RUBRIC_SYSTEM_KEYS.includes(key),
-  );
-  const rubricTotal = rubricWeights.reduce((acc, [, value]) => acc + (Number(value) || 0), 0);
-  const rubricBlocksPublish =
-    totalComponents === 0 && rubricWeights.length > 0 && rubricTotal !== 100;
-
   const missingBasics = !manualData.title || !manualData.summary || !manualData.description;
-  const hasSection = (manualData.sections || []).length > 0;
 
-  const publishBlockReason = missingBasics
-    ? 'Judul, Ringkasan, dan Deskripsi wajib diisi di langkah Informasi Dasar.'
-    : !hasSection
-      ? 'Tambahkan minimal satu tahap di langkah Tahapan & Soal.'
-      : rubricBlocksPublish
-        ? `Total bobot rubrik harus 100%, saat ini ${rubricTotal}%.`
-        : null;
+  // Satu sumber kebenaran untuk seluruh langkah; layar publikasi tidak lagi
+  // menghitung ulang aturannya sendiri dan menyimpang dari stepper.
+  const publishBlocker = firstBlockingStep(manualData);
+  const publishBlockReason = publishBlocker
+    ? `${TABS.find((t) => t.id === publishBlocker.tab)?.label ?? ''} — ${publishBlocker.blocker}`
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,6 +128,8 @@ export default function ManualBuilder({
         </div>
       )}
 
+      {!isLocked && <DraftStatusBar draft={draft} />}
+
       {/* Stepper */}
       <div className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-xl w-full">
         <div className="flex items-center justify-between relative gap-1">
@@ -129,36 +139,54 @@ export default function ManualBuilder({
             style={{ width: `${(currentTabIndex / (TABS.length - 1)) * 100}%` }}
           />
 
+          {/* Centang menandakan langkahnya benar-benar lengkap, bukan sekadar
+              sudah dilewati. Tanda seru muncul untuk langkah yang sudah
+              disinggahi tetapi masih menahan penerbitan, sehingga pengguna tahu
+              harus kembali ke mana tanpa menebak. */}
           {TABS.map((tab, idx) => {
             const isActive = idx === currentTabIndex;
-            const isCompleted = idx < currentTabIndex;
+            const status = evaluateStep(tab.id, manualData);
+            const visited = idx < currentTabIndex;
+            const isComplete = status.complete && (visited || isActive);
+            const needsAttention = visited && !status.complete;
 
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => goToTab(tab.id)}
                 aria-current={isActive ? 'step' : undefined}
+                title={status.blocker ?? tab.label}
                 className="relative z-10 flex flex-col items-center gap-2 sm:bg-card sm:px-2 flex-1 min-w-0"
               >
                 <span
                   className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 flex-shrink-0 ${
                     isActive
                       ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 border-transparent text-white shadow-lg shadow-emerald-500/20 scale-110'
-                      : isCompleted
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                        : 'bg-background border-border text-muted-foreground hover:border-gray-500'
+                      : needsAttention
+                        ? 'bg-amber-500/15 border-amber-500/50 text-amber-500'
+                        : isComplete
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                          : 'bg-background border-border text-muted-foreground hover:border-gray-500'
                   }`}
                 >
-                  {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : tab.icon}
+                  {needsAttention ? (
+                    <AlertCircle className="w-6 h-6" aria-hidden="true" />
+                  ) : isComplete && !isActive ? (
+                    <CheckCircle2 className="w-6 h-6" aria-hidden="true" />
+                  ) : (
+                    tab.icon
+                  )}
                 </span>
                 <span
                   className={`text-[11px] sm:text-xs font-bold hidden sm:block text-center leading-tight ${
                     isActive
                       ? 'text-foreground'
-                      : isCompleted
-                        ? 'text-emerald-400'
-                        : 'text-muted-foreground'
+                      : needsAttention
+                        ? 'text-amber-500'
+                        : isComplete
+                          ? 'text-emerald-400'
+                          : 'text-muted-foreground'
                   }`}
                 >
                   {tab.label}
@@ -170,6 +198,46 @@ export default function ManualBuilder({
       </div>
 
       <div className="bg-card border border-border rounded-3xl p-6 md:p-10 shadow-xl w-full">
+        {/* Alasan penolakan muncul di langkah tempat kesalahannya dibuat,
+            bukan menumpuk di layar terakhir. Peringatan ringan selalu terlihat;
+            penghalang keras baru muncul setelah pengguna menekan Lanjutkan,
+            supaya formulir yang belum sempat diisi tidak langsung memerah. */}
+        {(showBlocker && currentStatus.blocker) || currentStatus.warnings.length > 0 ? (
+          <div className="mb-6 space-y-3">
+            {showBlocker && currentStatus.blocker && (
+              <div
+                role="alert"
+                className="bg-danger/10 border border-danger/30 rounded-xl p-4 flex items-start gap-3"
+              >
+                <AlertCircle
+                  className="w-5 h-5 text-danger flex-shrink-0 mt-0.5"
+                  aria-hidden="true"
+                />
+                <p className="text-sm text-danger leading-relaxed">
+                  {currentStatus.blocker}
+                </p>
+              </div>
+            )}
+
+            {currentStatus.warnings.length > 0 && (
+              <div
+                role="status"
+                className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3"
+              >
+                <AlertCircle
+                  className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                  aria-hidden="true"
+                />
+                <ul className="text-sm text-amber-500 leading-relaxed space-y-1">
+                  {currentStatus.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : null}
+
         <div className="min-h-[400px]">
           {activeTab === 'BASICS' && (
             <BasicsForm manualData={manualData} setManualData={setManualData} />
@@ -194,8 +262,8 @@ export default function ManualBuilder({
           {activeTab === 'PREVIEW' && (
             <PreviewTab
               manualData={manualData}
-              onClose={() => setActiveTab('QUESTIONS')}
-              onApprove={() => setActiveTab('PUBLISH')}
+              onClose={() => goToTab('QUESTIONS')}
+              onApprove={() => goToTab('PUBLISH')}
             />
           )}
 
@@ -211,22 +279,34 @@ export default function ManualBuilder({
                 </p>
               </div>
 
-              <PublishSummary manualData={manualData} onJumpTo={setActiveTab} />
+              <PublishSummary manualData={manualData} onJumpTo={goToTab} />
 
               {!isLocked && (
                 <div className="space-y-4">
-                  {publishBlockReason && (
+                  {publishBlockReason && publishBlocker && (
                     <div
                       role="status"
-                      className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3"
+                      className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <AlertCircle
-                        className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
-                        aria-hidden="true"
-                      />
-                      <p className="text-sm text-amber-500 leading-relaxed">
-                        Belum bisa diterbitkan: {publishBlockReason}
-                      </p>
+                      <div className="flex items-start gap-3">
+                        <AlertCircle
+                          className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                          aria-hidden="true"
+                        />
+                        <p className="text-sm text-amber-500 leading-relaxed">
+                          Belum bisa diterbitkan: {publishBlockReason}
+                        </p>
+                      </div>
+                      {/* Menyebut langkahnya saja belum cukup — pengguna tetap
+                          harus mencarinya sendiri di stepper. */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToTab(publishBlocker.tab)}
+                        className="flex-shrink-0"
+                      >
+                        Perbaiki sekarang
+                      </Button>
                     </div>
                   )}
 
