@@ -83,7 +83,12 @@ const formatSize = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 
 type Stage = 'IDLE' | 'READY' | 'COUNTDOWN' | 'RECORDING' | 'UPLOADING';
 
-export default function VideoRecordingSolver({ comp, value, onChange }: SolverProps) {
+export default function VideoRecordingSolver({
+  comp,
+  value,
+  onChange,
+  readOnly,
+}: SolverProps) {
   const [stage, setStage] = useState<Stage>('IDLE');
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [elapsed, setElapsed] = useState(0);
@@ -263,19 +268,31 @@ export default function VideoRecordingSolver({ comp, value, onChange }: SolverPr
               <Video className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <p className="text-sm font-bold truncate">Rekaman tersimpan</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                onChange(null);
-                setError(null);
-              }}
-              className="text-xs text-red-400 hover:text-red-300 font-bold px-3 py-1.5 bg-red-500/10 rounded-lg flex items-center gap-1 flex-shrink-0"
-            >
-              <RefreshCw className="w-3 h-3" aria-hidden="true" /> Rekam Ulang
-            </button>
+            {/* Sesudah dikumpulkan tidak ada yang bisa direkam ulang. Menyisakan
+                tombolnya berarti menjanjikan sesuatu yang tidak akan terjadi. */}
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(null);
+                  setError(null);
+                }}
+                className="text-xs text-red-400 hover:text-red-300 font-bold px-3 py-1.5 bg-red-500/10 rounded-lg flex items-center gap-1 flex-shrink-0"
+              >
+                <RefreshCw className="w-3 h-3" aria-hidden="true" /> Rekam Ulang
+              </button>
+            )}
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (readOnly) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        Tidak ada rekaman yang dikirim.
+      </p>
     );
   }
 

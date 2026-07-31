@@ -3,7 +3,10 @@ import { FileText, Wand2, ShieldCheck, Zap, CheckCircle2, AlertCircle, Lock } fr
 import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
-import { challengesService } from '../../services/challenges.service';
+import {
+  ChallengeCategoryValue,
+  challengesService,
+} from '../../services/challenges.service';
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -22,7 +25,8 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('FRONTEND');
+  const [role, setRole] = useState('');
+  const [category, setCategory] = useState<ChallengeCategoryValue>('FRONTEND');
   const [difficulty, setDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('INTERMEDIATE');
   const [durationHours, setDurationHours] = useState<number>(48);
   const [rewardDescription, setRewardDescription] = useState('Rp 5.000.000 + Kesempatan Perekrutan Penuh Waktu');
@@ -31,7 +35,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
 
   // AI Generator Form State
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiCategory, setAiCategory] = useState<'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT'>('BACKEND');
+  const [aiCategory, setAiCategory] = useState<ChallengeCategoryValue>('BACKEND');
   const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('ADVANCED');
   const [aiBlueprint, setAiBlueprint] = useState<any>(null);
 
@@ -59,6 +63,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
         title,
         summary,
         description,
+        role: role.trim() || undefined,
         category,
         difficulty,
         rewardDescription,
@@ -223,6 +228,16 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
               />
             </div>
 
+            {/* Posisi yang direkrut. Enam kategori di bawah adalah keranjang
+                bank soal, bukan daftar pekerjaan — dan satu-satunya keterangan
+                yang berarti ketika bidangnya "Bidang lain". */}
+            <Input
+              label="Posisi yang Dicari"
+              placeholder="Contoh: Frontend Engineer, Video Editor, Staf Akuntansi"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            />
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Bidang</label>
@@ -237,6 +252,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
                   <option value="DATA_SCIENCE">Data Science & AI</option>
                   <option value="MARKETING">Digital Marketing & SEO</option>
                   <option value="PRODUCT">Product Management</option>
+                  <option value="OTHER">Bidang lain (sebutkan di posisi)</option>
                 </select>
               </div>
 
@@ -355,6 +371,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
                         <option value="DATA_SCIENCE">Data Science & AI</option>
                         <option value="MARKETING">Digital Marketing & SEO</option>
                         <option value="PRODUCT">Product Management</option>
+                        <option value="OTHER">Bidang lain</option>
                       </select>
                     </div>
 

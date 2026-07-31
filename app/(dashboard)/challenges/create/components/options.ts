@@ -17,6 +17,10 @@ export const CATEGORY_OPTIONS: { value: ChallengeCategoryValue; label: string }[
   { value: 'DATA_SCIENCE', label: 'Data Science / ML' },
   { value: 'MARKETING', label: 'Digital Marketing' },
   { value: 'PRODUCT', label: 'Product Management' },
+  // Keenam di atas adalah taksonomi bank soal, bukan daftar pekerjaan yang
+  // boleh direkrut. Tanpa pilihan ini, perusahaan yang mencari Video Editor
+  // atau Akuntan terpaksa mengaku salah satu bidang yang bukan bidangnya.
+  { value: 'OTHER', label: 'Bidang lain (sebutkan di posisi)' },
 ];
 
 export const DIFFICULTY_OPTIONS: { value: ChallengeDifficultyValue; label: string }[] = [
@@ -33,6 +37,7 @@ export const CATEGORY_SHORT_LABELS: Record<string, string> = {
   DATA_SCIENCE: 'Data Science',
   MARKETING: 'Marketing',
   PRODUCT: 'Product',
+  OTHER: 'Bidang lain',
 };
 
 export const DIFFICULTY_SHORT_LABELS: Record<string, string> = {

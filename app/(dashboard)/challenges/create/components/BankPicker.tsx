@@ -420,6 +420,14 @@ export default function BankPicker({
                                 Koleksi saya
                               </span>
                             )}
+                            {/* Bukti bahwa menabung soal ada gunanya. Tanpa
+                                angka ini koleksi cuma daftar yang bertambah
+                                panjang tanpa alasan yang terlihat. */}
+                            {(item._count?.usedBy ?? 0) > 0 && (
+                              <span className="text-[10px] font-bold text-amber-500">
+                                Dipakai {item._count!.usedBy}×
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-sm text-foreground font-medium leading-relaxed">

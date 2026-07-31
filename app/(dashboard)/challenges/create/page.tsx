@@ -40,7 +40,7 @@ const EMPTY_MANUAL_DATA: CreateChallengePayload = {
   description: '',
   category: 'FRONTEND',
   difficulty: 'INTERMEDIATE',
-  sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
+  sections: [{ title: 'Tahap 1', order: 0, components: [] }],
 };
 
 /**
@@ -111,6 +111,10 @@ export default function CreateChallengePage() {
     setManualData((prev) => ({
       ...prev,
       title: prev.title || `Studi Kasus ${context.role}`,
+      // Peran yang dicari kini ikut tersimpan, bukan sekadar menyemai judul
+      // lalu hilang. Itu jawaban yang paling perusahaan yakini, dan satu-
+      // satunya tempat bidang di luar keenam kategori bisa disebutkan.
+      role: prev.role || context.role,
       category: context.category,
       difficulty: context.difficulty,
       deadlineAt: prev.deadlineAt ?? context.deadlineAt,
@@ -291,6 +295,9 @@ export default function CreateChallengePage() {
     try {
       await challengesService.generateAi({
         prompt: buildAiPrompt(aiPrompt),
+        // Jalur manual sudah menyimpan peran yang dicari; tanpa ini jalur AI
+        // membuangnya, dan challenge hasil AI lahir tanpa posisi.
+        role: context.role,
         category: context.category,
         difficulty: context.difficulty,
         blueprint: aiBlueprint,

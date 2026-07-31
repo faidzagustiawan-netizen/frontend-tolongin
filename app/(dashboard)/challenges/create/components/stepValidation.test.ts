@@ -15,7 +15,6 @@ const base = (over: Partial<CreateChallengePayload> = {}): CreateChallengePayloa
       {
         title: 'Tahap 1',
         order: 0,
-        stageType: 'QUIZ',
         components: [{ type: 'ESSAY', question: 'Q', points: 10, order: 0 }],
       },
     ],

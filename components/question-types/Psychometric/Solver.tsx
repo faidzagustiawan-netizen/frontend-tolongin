@@ -8,7 +8,12 @@ import { SolverProps } from '../types';
  * supaya tidak perlu kolom jawaban tersendiri. Backend yang menerjemahkannya
  * menjadi skor dimensi.
  */
-export default function PsychometricSolver({ comp, value, onChange }: SolverProps) {
+export default function PsychometricSolver({
+  comp,
+  value,
+  onChange,
+  readOnly,
+}: SolverProps) {
   const metadata = (comp.metadata || {}) as Record<string, any>;
   const scaleMin = Number(metadata.scaleMin ?? 1);
   const scaleMax = Number(metadata.scaleMax ?? 5);
@@ -34,7 +39,9 @@ export default function PsychometricSolver({ comp, value, onChange }: SolverProp
           return (
             <label
               key={scaleValue}
-              className={`flex-1 cursor-pointer rounded-xl border px-2 py-3 text-center transition-colors ${
+              className={`flex-1 rounded-xl border px-2 py-3 text-center transition-colors ${
+                readOnly ? 'cursor-default' : 'cursor-pointer'
+              } ${
                 isSelected
                   ? 'border-purple-500 bg-purple-500/10 text-purple-400'
                   : 'border-border bg-background text-muted-foreground hover:border-foreground/30'
@@ -45,6 +52,7 @@ export default function PsychometricSolver({ comp, value, onChange }: SolverProp
                 name={groupName}
                 value={scaleValue}
                 checked={isSelected}
+                disabled={readOnly}
                 onChange={() => onChange(String(scaleValue))}
                 className="sr-only"
               />

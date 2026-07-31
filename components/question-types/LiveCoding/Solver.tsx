@@ -4,7 +4,12 @@ import Editor from '@monaco-editor/react';
 import { Play } from 'lucide-react';
 import { pistonService } from '../../../services/piston.service';
 
-export default function LiveCodingSolver({ comp, value, onChange }: SolverProps) {
+export default function LiveCodingSolver({
+  comp,
+  value,
+  onChange,
+  readOnly,
+}: SolverProps) {
   const defaultLanguage = comp.metadata?.language || 'javascript';
   const initialCode = comp.metadata?.initialCode || '';
   
@@ -25,8 +30,11 @@ export default function LiveCodingSolver({ comp, value, onChange }: SolverProps)
     }
   };
 
+  // Kode awal disemai sekali sebagai jawaban, supaya kandidat yang tidak
+  // menyentuh editor tetap mengumpulkan sesuatu. Tidak berlaku setelah
+  // dikumpulkan — menulis apa pun ke jawaban yang sudah final itu salah.
   useEffect(() => {
-    if (!value && initialCode) {
+    if (!readOnly && !value && initialCode) {
       onChange(initialCode);
     }
   }, []);
@@ -59,6 +67,7 @@ export default function LiveCodingSolver({ comp, value, onChange }: SolverProps)
         value={code}
         onChange={handleEditorChange}
         options={{
+          readOnly,
           minimap: { enabled: false },
           fontSize: 14,
           fontFamily: "'JetBrains Mono', 'Fira Code', monospace",

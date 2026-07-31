@@ -26,6 +26,82 @@ export type StepStatus = {
 
 const isFilled = (value?: string | null) => !!value && value.trim().length > 0;
 
+/** Jenis masalah satu tahap, terpisah dari kalimatnya. */
+export type SectionIssueCode =
+  | 'UNTITLED'
+  | 'BROKEN_CHOICE'
+  | 'BROKEN_PSYCHOMETRIC'
+  | null;
+
+export type SectionStatus = {
+  /** Masalah yang menghalangi penerbitan, bila ada. */
+  code: SectionIssueCode;
+  /** Kalimat singkat untuk penanda di kartu tahap. */
+  label: string | null;
+  emptyOfQuestions: boolean;
+  blankQuestions: number;
+};
+
+/**
+ * Menilai satu tahap.
+ *
+ * Dipakai dua tempat dengan kata-kata berbeda: penanda di kartu tahap, dan
+ * kalimat penolakan di stepper. Aturannya cuma boleh hidup di satu tempat —
+ * dua salinan aturan yang perlahan berbeda persis seperti yang pernah membuat
+ * dua tipe soal bisa disusun tetapi tidak bisa dikerjakan.
+ */
+export function evaluateSection(section: any): SectionStatus {
+  const components = (section?.components || []) as any[];
+
+  const emptyOfQuestions = components.length === 0;
+  const blankQuestions = components.filter((c) => !isFilled(c?.question)).length;
+
+  if (!isFilled(section?.title)) {
+    return {
+      code: 'UNTITLED',
+      label: 'Judul tahap belum diisi',
+      emptyOfQuestions,
+      blankQuestions,
+    };
+  }
+
+  const brokenChoice = components.some((c) => {
+    if (c?.type !== 'MULTIPLE_CHOICE') return false;
+    const options = Array.isArray(c.options) ? c.options : [];
+    return (
+      options.length < 2 ||
+      options.filter((o: any) => o?.isCorrect === true).length !== 1 ||
+      options.some((o: any) => !String(o?.text ?? '').trim())
+    );
+  });
+
+  if (brokenChoice) {
+    return {
+      code: 'BROKEN_CHOICE',
+      label: 'Ada pilihan ganda yang opsinya belum benar',
+      emptyOfQuestions,
+      blankQuestions,
+    };
+  }
+
+  const brokenPsychometric = components.some((c) => {
+    if (c?.type !== 'PSYCHOMETRIC') return false;
+    const meta = (c.metadata || {}) as Record<string, any>;
+    return !isFilled(meta.dimension);
+  });
+
+  if (brokenPsychometric) {
+    return {
+      code: 'BROKEN_PSYCHOMETRIC',
+      label: 'Ada psikotes tanpa nama dimensi',
+      emptyOfQuestions,
+      blankQuestions,
+    };
+  }
+
+  return { code: null, label: null, emptyOfQuestions, blankQuestions };
+}
+
 /**
  * Menilai kelengkapan tiap langkah penyusunan.
  *
@@ -112,10 +188,12 @@ export function evaluateStep(
         };
       }
 
-      const emptySection = sections.findIndex(
-        (section) => (section.components?.length || 0) === 0,
-      );
-      const untitled = sections.findIndex((section) => !isFilled(section.title));
+      // Aturannya hidup di `evaluateSection`; di sini hanya dirangkum jadi
+      // kalimat untuk stepper.
+      const perSection = sections.map(evaluateSection);
+
+      const emptySection = perSection.findIndex((s) => s.emptyOfQuestions);
+      const untitled = perSection.findIndex((s) => s.code === 'UNTITLED');
 
       const blocker =
         untitled >= 0
@@ -130,27 +208,15 @@ export function evaluateStep(
       }
 
       // Soal tanpa pertanyaan lolos ke kandidat sebagai layar kosong.
-      const blankQuestions = sections.reduce(
-        (acc, section) =>
-          acc + (section.components || []).filter((c: any) => !isFilled(c.question)).length,
+      const blankQuestions = perSection.reduce(
+        (acc, s) => acc + s.blankQuestions,
         0,
       );
       if (blankQuestions > 0) {
         warnings.push(`${blankQuestions} soal belum diisi pertanyaannya.`);
       }
 
-      const brokenChoice = sections.some((section) =>
-        (section.components || []).some((c: any) => {
-          if (c.type !== 'MULTIPLE_CHOICE') return false;
-          const options = Array.isArray(c.options) ? c.options : [];
-          return (
-            options.length < 2 ||
-            options.filter((o: any) => o?.isCorrect === true).length !== 1 ||
-            options.some((o: any) => !String(o?.text ?? '').trim())
-          );
-        }),
-      );
-      if (brokenChoice) {
+      if (perSection.some((s) => s.code === 'BROKEN_CHOICE')) {
         return {
           complete: false,
           blocker:
@@ -159,14 +225,7 @@ export function evaluateStep(
         };
       }
 
-      const brokenPsychometric = sections.some((section) =>
-        (section.components || []).some((c: any) => {
-          if (c.type !== 'PSYCHOMETRIC') return false;
-          const meta = (c.metadata || {}) as Record<string, any>;
-          return !isFilled(meta.dimension);
-        }),
-      );
-      if (brokenPsychometric) {
+      if (perSection.some((s) => s.code === 'BROKEN_PSYCHOMETRIC')) {
         return {
           complete: false,
           blocker: 'Ada soal psikotes yang belum diisi nama dimensinya.',

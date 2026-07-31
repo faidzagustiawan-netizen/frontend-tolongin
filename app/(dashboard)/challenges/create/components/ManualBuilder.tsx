@@ -60,6 +60,8 @@ export default function ManualBuilder({
   const [activeTab, setActiveTab] = useState<Tab>('BASICS');
   /** Alasan penolakan baru ditampilkan setelah pengguna mencoba melanjutkan. */
   const [showBlocker, setShowBlocker] = useState(false);
+  /** Satu tahap sedang dibuka fokusnya di dalam langkah Tahapan & Soal. */
+  const [isStageFocused, setIsStageFocused] = useState(false);
 
   const currentTabIndex = TABS.findIndex((t) => t.id === activeTab);
   const isFirstStep = currentTabIndex === 0;
@@ -248,7 +250,11 @@ export default function ManualBuilder({
           )}
 
           {activeTab === 'QUESTIONS' && (
-            <QuestionBuilder manualData={manualData} setManualData={setManualData} />
+            <QuestionBuilder
+              manualData={manualData}
+              setManualData={setManualData}
+              onFocusChange={setIsStageFocused}
+            />
           )}
 
           {activeTab === 'SCORING' && (
@@ -310,6 +316,36 @@ export default function ManualBuilder({
                     </div>
                   )}
 
+                  {/* Koleksi soal tidak akan pernah tumbuh kalau mengisinya
+                      adalah pekerjaan terpisah. Di sini ia jadi hasil sampingan
+                      dari penerbitan — menyala secara bawaan, dan yang tidak
+                      menginginkannya cukup mematikannya sekali. */}
+                  {totalComponents > 0 && (
+                    <label className="flex items-start gap-3 bg-background border border-border rounded-xl p-4 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={manualData.saveQuestionsToBank !== false}
+                        onChange={(e) =>
+                          setManualData((prev) => ({
+                            ...prev,
+                            saveQuestionsToBank: e.target.checked,
+                          }))
+                        }
+                        className="mt-0.5 w-4 h-4 accent-emerald-500 flex-shrink-0"
+                      />
+                      <span className="text-sm text-foreground leading-relaxed">
+                        <span className="font-bold">
+                          Simpan soal tulisan sendiri ke koleksi saya
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          Soal yang Anda tulis di studi kasus ini masuk bank soal
+                          perusahaan, siap dipakai lagi. Soal yang dipungut dari
+                          bank tidak digandakan.
+                        </span>
+                      </span>
+                    </label>
+                  )}
+
                   <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
                     <Button
                       type="button"
@@ -353,8 +389,10 @@ export default function ManualBuilder({
 
         {/* Pratinjau punya tombol aksinya sendiri di bilah atasnya, jadi navigasi
             bawah disembunyikan di sana agar tidak ada dua jalan keluar yang
-            saling bersaing di satu layar. */}
-        {activeTab !== 'PUBLISH' && activeTab !== 'PREVIEW' && (
+            saling bersaing di satu layar. Alasan yang sama berlaku saat satu
+            tahap dibuka fokusnya: jalan keluarnya "Semua tahap", bukan
+            "Lanjutkan". */}
+        {activeTab !== 'PUBLISH' && activeTab !== 'PREVIEW' && !isStageFocused && (
           <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row gap-4 items-center justify-between">
             <Button
               variant="outline"

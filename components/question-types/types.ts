@@ -16,4 +16,13 @@ export interface SolverProps {
   comp: QuestionComponent;
   value: any;
   onChange: (value: any) => void;
+  /**
+   * Jawaban sudah dikumpulkan; tampilkan isinya tanpa bisa diubah.
+   *
+   * Layar pengerjaan sebelumnya menegakkan ini sendiri lewat `readOnly` di tiap
+   * kolom yang ditulisnya sendiri. Begitu tampilan soal dipusatkan di sini,
+   * aturannya harus ikut pindah — kalau tidak, kolom terlihat masih bisa
+   * diketik padahal perubahannya dibuang diam-diam.
+   */
+  readOnly?: boolean;
 }

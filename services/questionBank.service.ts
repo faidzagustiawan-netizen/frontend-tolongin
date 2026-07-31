@@ -23,6 +23,13 @@ export interface QuestionBankItem {
   difficulty: string;
   isActive: boolean;
   tags: { skill: { id: string; name: string } }[];
+  /**
+   * Berapa kali soal ini benar-benar dipakai di studi kasus.
+   *
+   * Koleksi soal selama ini kotak hitam — menabung berbiaya sekarang dan
+   * berbuah entah kapan. Angka ini yang memperlihatkan buahnya.
+   */
+  _count?: { usedBy: number };
 }
 
 export interface QuestionBankQuery {

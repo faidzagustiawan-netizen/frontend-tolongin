@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SolverProps } from '../types';
 
-export default function EssaySolver({ comp, value, onChange }: SolverProps) {
+export default function EssaySolver({ comp, value, onChange, readOnly }: SolverProps) {
   const [text, setText] = useState(value || '');
 
   useEffect(() => {
@@ -26,9 +26,12 @@ export default function EssaySolver({ comp, value, onChange }: SolverProps) {
         value={text}
         onChange={handleChange}
         rows={6}
+        readOnly={readOnly}
         maxLength={maxLength || undefined}
+        placeholder={
+          readOnly ? 'Tidak ada jawaban tertulis.' : 'Tuliskan jawaban Anda di sini...'
+        }
         className="w-full bg-bg border border-border rounded-xl p-4 text-title focus:outline-none focus:border-cyan-500 transition-colors resize-y min-h-[150px]"
-        placeholder="Tuliskan jawaban Anda di sini..."
       />
       <div className="flex items-center justify-between text-xs text-muted">
         <div>

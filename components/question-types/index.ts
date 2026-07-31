@@ -22,6 +22,24 @@ import PsychometricSolver from './Psychometric/Solver';
  * enum, jadi pencarian di sini selalu gagal dan kedua tipe soal itu tampil
  * sebagai "Tipe komponen belum didukung" baik saat disusun maupun dikerjakan.
  */
+/**
+ * Kolom `ComponentResponse` tempat jawaban tiap tipe disimpan.
+ *
+ * Layar pengerjaan dulu menuliskan pemetaan ini di dalam JSX-nya, satu cabang
+ * `&&` per tipe. Akibatnya menambah tipe soal berarti mengingat dua tempat, dan
+ * yang terlewat tidak berbunyi apa-apa — PSYCHOMETRIC dan VIDEO_UPLOAD sampai
+ * ke kandidat sebagai layar kosong justru karena itu.
+ */
+export const RESPONSE_FIELD: Record<string, 'textValue' | 'fileUrl'> = {
+  MULTIPLE_CHOICE: 'textValue',
+  ESSAY: 'textValue',
+  LIVE_CODING: 'textValue',
+  URL_SUBMISSION: 'textValue',
+  PSYCHOMETRIC: 'textValue',
+  FILE_UPLOAD: 'fileUrl',
+  VIDEO_UPLOAD: 'fileUrl',
+};
+
 export const QuestionTypeRegistry: Record<string, {
   Builder: React.FC<any>;
   Solver: React.FC<any>;

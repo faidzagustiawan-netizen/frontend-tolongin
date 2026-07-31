@@ -61,7 +61,6 @@ export interface Section {
   description?: string;
   order: number;
   timeLimit?: number | null;
-  stageType?: 'QUIZ' | 'ASSIGNMENT';
 
   /** Jendela buka-tutup tahap ini, di dalam jendela global challenge. */
   opensAt?: string | null;
@@ -88,7 +87,9 @@ export interface Challenge {
   title: string;
   summary?: string;
   description: string;
-  category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
+  /** Posisi yang direkrut, teks bebas. Kategori hanya keranjang bank soal. */
+  role?: string | null;
+  category: import('../services/challenges.service').ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   datasetUrl?: string;
   mockApiUrl?: string;

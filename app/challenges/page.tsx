@@ -243,6 +243,7 @@ export default function ChallengesDirectoryPage() {
                   title={challenge.title}
                   summary={challenge.summary}
                   category={challenge.category}
+                  role={challenge.role}
                   difficulty={challenge.difficulty}
                   type={challenge.challengeType}
                   companyName={challenge.challengeType === 'PUBLIC' ? (challenge.creator?.fullName || 'Talenta') : (challenge.company?.companyName || 'Perusahaan Mitra')}

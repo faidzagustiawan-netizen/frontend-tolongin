@@ -10,6 +10,14 @@ export interface ChallengeCardProps {
   title: string;
   summary: string;
   category: string;
+  /**
+   * Posisi yang direkrut, bila perusahaan menyebutkannya.
+   *
+   * Lebih spesifik daripada kategori, dan satu-satunya keterangan yang berarti
+   * ketika bidangnya OTHER — "Video Editor" jauh lebih berguna bagi kandidat
+   * daripada "Bidang lain".
+   */
+  role?: string | null;
   difficulty: string;
   companyName: string;
   logoUrl?: string;
@@ -27,6 +35,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   title,
   summary,
   category,
+  role,
   difficulty,
   companyName,
   logoUrl,
@@ -187,8 +196,11 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
         {/* 6. Role dan Level Tags (Fixed height 1 line) */}
         <div className="h-7 mb-5 flex items-center gap-2 overflow-hidden">
-          <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${getCategoryColor(category)}`}>
-            {getCategoryLabel(category)}
+          <span
+            title={role?.trim() ? `Posisi: ${role.trim()}` : undefined}
+            className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border truncate max-w-[60%] ${getCategoryColor(category)}`}
+          >
+            {role?.trim() || getCategoryLabel(category)}
           </span>
           <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${getDifficultyColor(difficulty)}`}>
             {difficulty}

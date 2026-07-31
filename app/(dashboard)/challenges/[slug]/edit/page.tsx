@@ -25,7 +25,7 @@ export default function EditChallengePage() {
     description: '',
     category: 'FRONTEND',
     difficulty: 'INTERMEDIATE',
-    sections: [{ title: 'Tahap 1', order: 0, components: [], stageType: 'ASSIGNMENT' }],
+    sections: [{ title: 'Tahap 1', order: 0, components: [] }],
   });
 
   useEffect(() => {
@@ -46,6 +46,8 @@ export default function EditChallengePage() {
             title: found.title,
             summary: found.summary,
             description: found.description,
+            // Ikut dimuat supaya penyimpanan ulang tidak mengosongkannya.
+            role: found.role ?? undefined,
             category: found.category,
             difficulty: found.difficulty,
             sections: found.sections || [],

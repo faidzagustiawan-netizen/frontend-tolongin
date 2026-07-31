@@ -7,13 +7,28 @@ import {
   StagePendingPolicy,
 } from '../types';
 
+/**
+ * Bidang pekerjaan sebagai taksonomi bank soal.
+ *
+ * Satu nama untuk daftarnya, bukan union yang ditulis ulang di tiap tempat:
+ * yang terakhir itu sudah pernah membuat penambahan `OTHER` gagal kompilasi di
+ * tiga berkas berbeda.
+ */
+export type ChallengeCategoryValue =
+  | 'UI_UX'
+  | 'FRONTEND'
+  | 'BACKEND'
+  | 'DATA_SCIENCE'
+  | 'MARKETING'
+  | 'PRODUCT'
+  | 'OTHER';
+
 export interface SectionPayload {
   id?: string;
   title: string;
   description?: string;
   order: number;
   timeLimit?: number | null;
-  stageType?: 'QUIZ' | 'ASSIGNMENT';
   opensAt?: string | null;
   closesAt?: string | null;
   gateMode?: StageGateMode;
@@ -45,8 +60,18 @@ export interface CreateChallengePayload {
   title: string;
   summary: string;
   description: string;
-  category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
+  /**
+   * Posisi yang direkrut, teks bebas.
+   *
+   * Sudah lama ditanyakan di layar pembuka tetapi dulu hanya dipakai menyemai
+   * judul lalu dibuang. Kategori cuma enam keranjang untuk menyaring bank soal;
+   * ini yang menyebut pekerjaannya apa sebenarnya.
+   */
+  role?: string;
+  category: ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  /** Menyalin soal tulisan sendiri ke koleksi perusahaan saat diterbitkan. */
+  saveQuestionsToBank?: boolean;
   datasetUrl?: string;
   mockApiUrl?: string;
   brandGuidelineUrl?: string;
@@ -65,7 +90,9 @@ export interface CreateChallengePayload {
 
 export interface GenerateAiChallengePayload {
   prompt: string;
-  category: 'UI_UX' | 'FRONTEND' | 'BACKEND' | 'DATA_SCIENCE' | 'MARKETING' | 'PRODUCT';
+  /** Posisi yang direkrut; ikut disimpan seperti di jalur manual. */
+  role?: string;
+  category: ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   blueprint?: any;
   previousBlueprint?: any;
@@ -106,7 +133,6 @@ const sanitizeSection = (section: SectionPayload, idx: number) => ({
   title: section.title,
   description: section.description,
   order: section.order ?? idx,
-  stageType: section.stageType,
   timeLimit: section.timeLimit,
   // Jadwal dan syarat masuk. Harus disebut satu per satu di sini: payload
   // disusun ulang secara eksplisit, jadi kolom yang tidak disalin hilang tanpa

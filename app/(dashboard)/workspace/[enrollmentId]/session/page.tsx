@@ -4,30 +4,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '@/services/submissions.service';
 import { verificationService } from '@/services/verification.service';
-import { pistonService } from '@/services/piston.service';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
-import { Textarea } from '@/components/common/Input';
-import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Clock, UserCheck, Layers, Code2, Eye
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Clock, UserCheck, Layers, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
+import { QuestionTypeRegistry, RESPONSE_FIELD } from '@/components/question-types';
 
-const Editor = dynamic(() => import('@monaco-editor/react'), {
-  ssr: false,
-  loading: () => (
-    <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">
-      Memuat IDE Eksternal...
-    </div>
-  ),
-});
 
 export default function ExamSessionPage() {
   const { user, loadUserFromStorage } = useUserStore();
@@ -57,10 +46,6 @@ export default function ExamSessionPage() {
   const [hasUnsavedDraft, setHasUnsavedDraft] = useState<boolean>(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null);
   const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Live Coding Execution States
-  const [executionOutput, setExecutionOutput] = useState<Record<string, string>>({});
-  const [isExecuting, setIsExecuting] = useState<Record<string, boolean>>({});
 
   // Stage & Question Navigation States
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
@@ -256,6 +241,16 @@ export default function ExamSessionPage() {
     };
   }, [componentResponses, customInputs, notes, tabSwitchCount, proctoringEvents, isLockedOut, completedSectionIndices]);
 
+  // React Compiler tidak sanggup mempertahankan memoisasi manual di sini, dan
+  // aturannya melaporkan itu sebagai galat. Aturannya dibungkam, bukan
+  // `useCallback`-nya yang dibuang: pengoptimal itu tidak dinyalakan di
+  // `next.config.ts`, jadi tanpa memoisasi manual `flushDraft` berganti
+  // identitas tiap render — dan efek di bawah yang memuatnya sebagai dependensi
+  // akan ikut berjalan ulang terus-menerus, menyimpan draf berkali-kali.
+  //
+  // Sebelumnya galat ini tidak muncul hanya karena komponennya terlalu besar
+  // untuk dianalisis; ia mengecil setelah tampilan soal pindah ke registry.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const flushDraft = useCallback(async () => {
     if (isSubmitted || !isHydrated || !selectedEnrollmentId) return;
     if (draftTimerRef.current) {
@@ -271,6 +266,7 @@ export default function ExamSessionPage() {
     } finally {
       setIsSavingDraft(false);
     }
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [isSubmitted, isHydrated, selectedEnrollmentId]);
 
   // Debounced Auto-Save (Server-Side)
@@ -449,20 +445,6 @@ export default function ExamSessionPage() {
         [field]: value,
       },
     }));
-  };
-
-  const handleRunCode = async (componentId: string, language: string) => {
-    setIsExecuting((prev) => ({ ...prev, [componentId]: true }));
-    setExecutionOutput((prev) => ({ ...prev, [componentId]: 'Executing...' }));
-    try {
-      const code = componentResponses[componentId]?.textValue || '';
-      const output = await pistonService.execute(language, code);
-      setExecutionOutput((prev) => ({ ...prev, [componentId]: output }));
-    } catch (err: any) {
-      setExecutionOutput((prev) => ({ ...prev, [componentId]: `[Error]\n${err.message}` }));
-    } finally {
-      setIsExecuting((prev) => ({ ...prev, [componentId]: false }));
-    }
   };
 
   /**
@@ -1021,124 +1003,53 @@ export default function ExamSessionPage() {
 
                     {/* INPUT TYPES */}
                     <div className="pt-2">
-                      {currentComp.type === 'MULTIPLE_CHOICE' && currentComp.options && (
-                        <div className="space-y-3">
-                          {(currentComp.options || []).map((opt: any, optIdx: number) => (
-                            <label 
-                              key={optIdx} 
-                              className={`flex items-start gap-4 p-4 rounded-2xl border ${isSubmitted ? 'cursor-default' : 'cursor-pointer'} transition-all ${
-                                componentResponses[currentComp.id]?.textValue === opt.id 
-                                  ? 'bg-[#1E7F4D]/10 border-[#1E7F4D] text-foreground font-semibold shadow-sm' 
-                                  : 'bg-background border-border text-muted-foreground hover:border-foreground/20'
-                              }`}
+                      {(() => {
+                        const entry = QuestionTypeRegistry[currentComp.type];
+                        const field = RESPONSE_FIELD[currentComp.type];
+
+                        // Tipe yang belum tergarap berkata apa adanya. Sebelumnya
+                        // di sini ada tujuh cabang `&&` tanpa penutup, jadi tipe
+                        // yang tidak punya cabang sampai ke kandidat sebagai
+                        // ruang kosong tanpa satu pun pesan.
+                        if (!entry || !field) {
+                          return (
+                            <div
+                              role="alert"
+                              className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30"
                             >
-                              <input 
-                                type="radio" 
-                                name={`q-${examQuestionIdx}`} 
-                                disabled={isSubmitted}
-                                className="mt-1 w-4 h-4 text-[#1E7F4D] focus:ring-[#1E7F4D]" 
-                                checked={componentResponses[currentComp.id]?.textValue === opt.id}
-                                onChange={() => handleComponentChange(currentComp.id, opt.id, 'textValue')}
+                              <AlertTriangle
+                                className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                                aria-hidden="true"
                               />
-                              <span className="flex-1 text-sm">{opt.text}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                              <div className="text-sm text-amber-500 leading-relaxed">
+                                <p className="font-bold mb-1">
+                                  Soal ini belum bisa dikerjakan di sini.
+                                </p>
+                                <p>
+                                  Tipe{' '}
+                                  <span className="font-mono">{currentComp.type}</span>{' '}
+                                  belum didukung layar pengerjaan. Laporkan ke
+                                  penyelenggara supaya soal ini tidak dihitung merugikan
+                                  Anda, lalu lanjutkan ke soal berikutnya.
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
 
-                      {currentComp.type === 'ESSAY' && (
-                        <Textarea
-                          placeholder={isSubmitted ? "Tidak ada jawaban tertulis." : "Ketik jawaban penjelasan Anda di sini..."}
-                          value={componentResponses[currentComp.id]?.textValue || ''}
-                          onChange={(e) => handleComponentChange(currentComp.id, e.target.value, 'textValue')}
-                          readOnly={isSubmitted}
-                          rows={8}
-                          className="bg-background"
-                        />
-                      )}
+                        const Solver = entry.Solver;
 
-                      {currentComp.type === 'URL_SUBMISSION' && (
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Masukkan Tautan (URL)</label>
-                          <input 
-                            type="url" 
+                        return (
+                          <Solver
+                            comp={currentComp}
+                            value={componentResponses[currentComp.id]?.[field] ?? null}
+                            onChange={(val: any) =>
+                              handleComponentChange(currentComp.id, val, field)
+                            }
                             readOnly={isSubmitted}
-                            value={componentResponses[currentComp.id]?.textValue || ''}
-                            onChange={(e) => handleComponentChange(currentComp.id, e.target.value, 'textValue')}
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-[#1E7F4D]"
-                            placeholder="https://github.com/username/repository"
                           />
-                        </div>
-                      )}
-
-                      {currentComp.type === 'FILE_UPLOAD' && (
-                        <div className="bg-background p-6 rounded-2xl border border-border space-y-4">
-                          {!isSubmitted && (
-                            <FileUploader
-                              onUploadComplete={(url) => handleComponentChange(currentComp.id, url, 'fileUrl')}
-                              maxSizeMB={25}
-                            />
-                          )}
-                          {componentResponses[currentComp.id]?.fileUrl ? (
-                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
-                              <span className="text-emerald-400 text-xs font-medium truncate pr-4">Berkas terunggah</span>
-                              <a href={componentResponses[currentComp.id].fileUrl} target="_blank" rel="noreferrer" className="text-xs bg-[#1E7F4D] text-white px-3 py-1.5 rounded-lg font-bold">Lihat Berkas</a>
-                            </div>
-                          ) : isSubmitted ? (
-                            <p className="text-xs text-muted-foreground italic">Tidak ada berkas yang diunggah.</p>
-                          ) : null}
-                        </div>
-                      )}
-
-                      {currentComp.type === 'LIVE_CODING' && (
-                        <div className="rounded-2xl overflow-hidden border border-border shadow-xl flex flex-col">
-                          <div className="bg-card px-4 py-3 border-b border-border flex flex-wrap gap-3 justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Code2 className="w-4 h-4 text-[#1E7F4D]" />
-                              <span className="text-xs font-mono text-foreground font-bold">
-                                Main.{currentComp.metadata?.language || 'js'}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRunCode(currentComp.id, currentComp.metadata?.language || 'javascript')}
-                              disabled={isExecuting[currentComp.id]}
-                              className="flex items-center gap-2 text-xs font-bold text-white bg-[#1E7F4D] hover:bg-[#196B40] disabled:opacity-50 px-4 py-2 rounded-xl transition-colors shadow-sm"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current" /> 
-                              {isExecuting[currentComp.id] ? 'Running...' : 'Run Code'}
-                            </button>
-                          </div>
-                          <div className="w-full">
-                            <Editor
-                              height="380px"
-                              language={currentComp.metadata?.language || 'javascript'}
-                              theme="vs-dark"
-                              value={componentResponses[currentComp.id]?.textValue || currentComp.metadata?.starterCode || ''}
-                              onChange={(value) => handleComponentChange(currentComp.id, value, 'textValue')}
-                              options={{
-                                readOnly: isSubmitted,
-                                minimap: { enabled: false },
-                                fontSize: 13,
-                                fontFamily: "'JetBrains Mono', monospace",
-                                wordWrap: "on"
-                              }}
-                            />
-                          </div>
-                          <div className="bg-[#18181b] border-t border-border flex flex-col">
-                            <div className="px-4 py-2 bg-black/40 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                              Output Terminal
-                            </div>
-                            <div className="p-4 h-28 overflow-y-auto font-mono text-xs text-muted-foreground">
-                              {executionOutput[currentComp.id] ? (
-                                <pre className="whitespace-pre-wrap">{executionOutput[currentComp.id]}</pre>
-                              ) : (
-                                <span className="text-gray-500 italic">Tekan 'Run Code' untuk menguji program...</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

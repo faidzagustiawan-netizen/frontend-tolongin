@@ -2,7 +2,7 @@ import React from 'react';
 import { SolverProps } from '../types';
 import { Link as LinkIcon } from 'lucide-react';
 
-export default function UrlLinkSolver({ comp, value, onChange }: SolverProps) {
+export default function UrlLinkSolver({ comp, value, onChange, readOnly }: SolverProps) {
   const expectedDomain = comp.metadata?.expectedDomain;
   
   return (
@@ -11,9 +11,10 @@ export default function UrlLinkSolver({ comp, value, onChange }: SolverProps) {
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <LinkIcon className="h-5 w-5 text-muted" />
         </div>
-        <input 
+        <input
           type="url"
           value={value || ''}
+          readOnly={readOnly}
           onChange={(e) => onChange(e.target.value)}
           className="w-full bg-bg border border-border rounded-xl pl-12 pr-4 py-4 text-title focus:outline-none focus:border-cyan-500 transition-colors"
           placeholder="https://..."

@@ -22,7 +22,6 @@ export interface StageView {
   sectionId: string;
   title: string;
   order: number;
-  stageType: 'QUIZ' | 'ASSIGNMENT';
   status: StageAttemptStatus;
   unlocked: boolean;
   lockReason: string | null;
