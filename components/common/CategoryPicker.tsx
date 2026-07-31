@@ -100,13 +100,20 @@ export const CategoryPicker = ({
 
   const options = term.trim().length >= 2 ? suggestions : popular;
 
+  /**
+   * `notice` adalah keterangan yang harus tetap terlihat SESUDAH bidang
+   * terpilih. Tanpa parameter ini `commit` selalu mengosongkan `resolution`,
+   * sehingga pemberitahuan "bidang baru ditambahkan" terhapus pada render yang
+   * sama dengan saat ia dipasang — perusahaan menambah baris ke direktori
+   * bersama tanpa satu pun tanda bahwa itu terjadi.
+   */
   const commit = useCallback(
-    (name: string) => {
+    (name: string, notice: CategoryResolution | null = null) => {
       setTerm(name);
       setSuggestions([]);
       setFocusedIndex(-1);
       setIsOpen(false);
-      setResolution(null);
+      setResolution(notice);
       onChange(name);
     },
     [onChange],
@@ -137,11 +144,17 @@ export const CategoryPicker = ({
       setIsResolving(true);
       try {
         const result = await skillsService.resolveCategory(name, force);
-        setResolution(result);
 
         if (result.status === 'EXACT' || result.status === 'CREATED') {
-          commit(result.category.name);
+          // Hanya CREATED yang perlu diberitahukan. EXACT berarti bidangnya
+          // memang sudah ada — mengabarkannya cuma menambah bunyi pada jalur
+          // yang paling sering dilalui.
+          commit(
+            result.category.name,
+            result.status === 'CREATED' ? result : null,
+          );
         } else {
+          setResolution(result);
           // SUGGESTION dan REJECTED menunggu keputusan perusahaan; nilai lama
           // sengaja tidak ditimpa supaya draf tidak menyimpan bidang yang
           // belum disetujui siapa pun.
