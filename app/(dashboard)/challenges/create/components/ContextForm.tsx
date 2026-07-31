@@ -3,11 +3,8 @@ import { ArrowRight, Compass } from 'lucide-react';
 import { Input } from '@/components/common/Input';
 import { DateTimePicker } from '@/components/common/DateTimePicker';
 import { Button } from '@/components/common/Button';
-import {
-  CATEGORY_OPTIONS,
-  DIFFICULTY_OPTIONS,
-  ChallengeContext,
-} from './options';
+import { CategoryPicker } from '@/components/common/CategoryPicker';
+import { DIFFICULTY_OPTIONS, ChallengeContext } from './options';
 
 interface ContextFormProps {
   context: ChallengeContext;
@@ -68,28 +65,13 @@ export default function ContextForm({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label
-            htmlFor="context-category"
-            className="block text-sm font-medium text-muted-foreground mb-2"
-          >
-            Kategori pekerjaan
-          </label>
-          <select
-            id="context-category"
-            value={context.category}
-            onChange={(e) =>
-              setContext({ ...context, category: e.target.value as ChallengeContext['category'] })
-            }
-            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
-          >
-            {CATEGORY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CategoryPicker
+          id="context-category"
+          label="Bidang pekerjaan"
+          value={context.category}
+          onChange={(category) => setContext((prev) => ({ ...prev, category }))}
+          helperText="Belum ada di daftar? Ketik saja — bidang yang sah langsung ditambahkan."
+        />
 
         <div>
           <label

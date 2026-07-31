@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { FileText, Pencil } from 'lucide-react';
 import { Input, Textarea } from '@/components/common/Input';
 import { CreateChallengePayload } from '@/services/challenges.service';
+import { CategoryPicker } from '@/components/common/CategoryPicker';
 import {
-  CATEGORY_OPTIONS,
-  CATEGORY_SHORT_LABELS,
   DIFFICULTY_OPTIONS,
   DIFFICULTY_SHORT_LABELS,
+  categoryLabel as toCategoryLabel,
 } from './options';
 
 interface BasicsFormProps {
@@ -34,8 +34,7 @@ const selectClass =
 export default function BasicsForm({ manualData, setManualData }: BasicsFormProps) {
   const [isEditingContext, setIsEditingContext] = useState(false);
 
-  const categoryLabel =
-    CATEGORY_SHORT_LABELS[manualData.category] ?? manualData.category;
+  const categoryLabel = toCategoryLabel(manualData.category);
   const difficultyLabel =
     DIFFICULTY_SHORT_LABELS[manualData.difficulty] ?? manualData.difficulty;
 
@@ -95,36 +94,19 @@ export default function BasicsForm({ manualData, setManualData }: BasicsFormProp
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label
-                htmlFor="basics-category"
-                className="block text-sm font-medium text-muted-foreground mb-2"
-              >
-                Kategori Pekerjaan
-              </label>
-              <select
-                id="basics-category"
-                value={manualData.category}
-                onChange={(e) =>
-                  setManualData({ ...manualData, category: e.target.value as any })
-                }
-                className={selectClass}
-                required
-              >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {manualData.category === 'OTHER' && (
-                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                  Bank soal akan menawarkan soal lintas bidang — soft skill,
-                  situasional, dan wawancara — karena tidak ada bidang khusus
-                  yang cocok.
-                </p>
-              )}
-            </div>
+            <CategoryPicker
+              id="basics-category"
+              label="Bidang Pekerjaan"
+              value={manualData.category ?? ''}
+              onChange={(category) =>
+                setManualData((prev) => ({ ...prev, category }))
+              }
+              helperText={
+                manualData.category
+                  ? undefined
+                  : 'Dikosongkan berarti lintas bidang — bank soal akan menawarkan soal soft skill, situasional, dan wawancara.'
+              }
+            />
 
             <div>
               <label

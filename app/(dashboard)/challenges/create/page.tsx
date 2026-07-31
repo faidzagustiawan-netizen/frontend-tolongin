@@ -18,10 +18,10 @@ import ManualBuilder from './components/ManualBuilder';
 import ContextForm from './components/ContextForm';
 import PathPicker from './components/PathPicker';
 import {
-  CATEGORY_SHORT_LABELS,
   DIFFICULTY_SHORT_LABELS,
   ChallengeContext,
   EMPTY_CONTEXT,
+  categoryLabel,
 } from './components/options';
 import { CompanyAccessGate } from '@/components/company/CompanyAccessGate';
 import {
@@ -38,7 +38,7 @@ const EMPTY_MANUAL_DATA: CreateChallengePayload = {
   title: '',
   summary: '',
   description: '',
-  category: 'FRONTEND',
+  category: '',
   difficulty: 'INTERMEDIATE',
   sections: [{ title: 'Tahap 1', order: 0, components: [] }],
 };
@@ -690,7 +690,7 @@ export default function CreateChallengePage() {
                       {context.role}
                     </span>
                     <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
-                      {CATEGORY_SHORT_LABELS[context.category] ?? context.category}
+                      {categoryLabel(context.category)}
                     </span>
                     <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
                       {DIFFICULTY_SHORT_LABELS[context.difficulty] ?? context.difficulty}

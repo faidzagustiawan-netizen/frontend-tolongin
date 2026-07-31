@@ -662,7 +662,9 @@ export default function EnrollmentWorkspacePage() {
               </div>
               <div className="text-sm font-bold text-foreground">
                 <span className="text-[10px] uppercase border border-border px-3 py-1 rounded-full tracking-wider">
-                  {selectedEnrollment.challenge.category || 'DATA SCIENCE'}
+                  {/* Sebelumnya jatuh ke "DATA SCIENCE" saat bidangnya kosong —
+                      menampilkan bidang yang tidak pernah dipilih siapa pun. */}
+                  {selectedEnrollment.challenge.category || 'Lintas bidang'}
                 </span>
               </div>
             </div>

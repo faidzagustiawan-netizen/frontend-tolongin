@@ -89,7 +89,8 @@ export interface Challenge {
   description: string;
   /** Posisi yang direkrut, teks bebas. Kategori hanya keranjang bank soal. */
   role?: string | null;
-  category: import('../services/challenges.service').ChallengeCategoryValue;
+  /** Nama bidang dari direktori keahlian; null berarti lintas bidang. */
+  category?: string | null;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   datasetUrl?: string;
   mockApiUrl?: string;

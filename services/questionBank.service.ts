@@ -19,7 +19,8 @@ export interface QuestionBankItem {
   options?: any;
   metadata?: any;
   defaultPoints: number;
-  category: string;
+  /** Nama bidang dari direktori keahlian; null berarti lintas bidang. */
+  category: string | null;
   difficulty: string;
   isActive: boolean;
   tags: { skill: { id: string; name: string } }[];
@@ -51,7 +52,8 @@ export interface SaveQuestionBankItemPayload {
   options?: any;
   metadata?: any;
   defaultPoints?: number;
-  category: string;
+  /** Dikosongkan berarti soal berlaku lintas bidang. */
+  category?: string;
   difficulty: string;
   skillIds?: string[];
 }

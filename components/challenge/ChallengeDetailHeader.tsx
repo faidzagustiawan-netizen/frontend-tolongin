@@ -45,7 +45,7 @@ export const ChallengeDetailHeader = ({
               <h4 className="text-base font-bold text-gray-200">{challenge.company?.companyName || 'Perusahaan Mitra'}</h4>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 <span className="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-foreground/5 border border-foreground/10 text-muted-foreground">
-                  {challenge.category.replace('_', ' ')}
+                  {challenge.category?.trim() || 'Lintas bidang'}
                 </span>
                 <span className={`text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
                   {challenge.difficulty}

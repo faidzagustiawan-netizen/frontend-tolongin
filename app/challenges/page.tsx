@@ -12,15 +12,7 @@ import { StaggerContainer, StaggerItem } from '../../components/animations';
 
 import { CreateChallengeModal } from '../../components/challenge/CreateChallengeModal';
 import { ChallengeFilterBar } from '../../components/challenge/ChallengeFilterBar';
-
-const CATEGORIES = [
-  { id: 'UI_UX', name: 'UI/UX Design' },
-  { id: 'FRONTEND', name: 'Frontend Engineering' },
-  { id: 'BACKEND', name: 'Backend & API' },
-  { id: 'DATA_SCIENCE', name: 'Data Science & AI' },
-  { id: 'MARKETING', name: 'Digital Marketing & SEO' },
-  { id: 'PRODUCT', name: 'Product Management' },
-];
+import { skillsService } from '../../services/skills.service';
 
 const DIFFICULTIES = [
   { id: 'BEGINNER', name: 'Beginner' },
@@ -62,7 +54,34 @@ export default function ChallengesDirectoryPage() {
   // Search & Multi-Select Filters State (Default is ALL selected)
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(CATEGORIES.map(c => c.id));
+  // Daftar bidang tidak lagi konstanta enam nilai; yang ditawarkan sebagai
+  // penyaring adalah bidang yang benar-benar dipakai studi kasus, sehingga
+  // "Video Editor" yang baru ditambahkan perusahaan langsung bisa dicari.
+  const { data: categoryRows = [] } = useQuery({
+    queryKey: ['job-categories'],
+    queryFn: () => skillsService.listCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = useMemo(
+    () => categoryRows.map((row) => ({ id: row.name, name: row.name })),
+    [categoryRows],
+  );
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoriesTouched, setCategoriesTouched] = useState(false);
+
+  // Bawaannya semua tercentang, tetapi daftarnya baru tiba setelah render
+  // pertama. Tanpa penyetelan ulang ini seluruh kotak tampil kosong padahal
+  // hasilnya memang seluruh direktori.
+  useEffect(() => {
+    if (categoriesTouched || categories.length === 0) return;
+    setSelectedCategories(categories.map((c) => c.id));
+  }, [categories, categoriesTouched]);
+
+  const chooseCategories = (next: string[]) => {
+    setCategoriesTouched(true);
+    setSelectedCategories(next);
+  };
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(DIFFICULTIES.map(d => d.id));
   const [selectedPublishers, setSelectedPublishers] = useState<string[]>(PUBLISHERS.map(p => p.id));
   const [sortBy, setSortBy] = useState<string>('TERBARU'); // 'TERBARU' | 'TERLAMA'
@@ -109,7 +128,8 @@ export default function ChallengesDirectoryPage() {
   // Filter dan penomoran halaman dikerjakan di server. Sebelumnya seluruh
   // direktori diunduh sekaligus lalu disaring di peramban, sehingga muatan
   // permintaan tumbuh sebanding dengan jumlah studi kasus.
-  const isAllCategories = selectedCategories.length === CATEGORIES.length;
+  const isAllCategories =
+    categories.length === 0 || selectedCategories.length === categories.length;
   const isAllDifficulties = selectedDifficulties.length === DIFFICULTIES.length;
   const isAllPublishers = selectedPublishers.length === PUBLISHERS.length;
 
@@ -204,14 +224,14 @@ export default function ChallengesDirectoryPage() {
         search={search}
         setSearch={setSearch}
         selectedCategories={selectedCategories}
-        setSelectedCategories={setSelectedCategories}
+        setSelectedCategories={chooseCategories}
         selectedDifficulties={selectedDifficulties}
         setSelectedDifficulties={setSelectedDifficulties}
         selectedPublishers={selectedPublishers}
         setSelectedPublishers={setSelectedPublishers}
         sortBy={sortBy}
         setSortBy={setSortBy}
-        categories={CATEGORIES}
+        categories={categories}
         difficulties={DIFFICULTIES}
         publishers={PUBLISHERS}
       />

@@ -8,20 +8,16 @@ import {
 } from '../types';
 
 /**
- * Bidang pekerjaan sebagai taksonomi bank soal.
+ * Nama bidang pekerjaan, apa adanya seperti tersimpan di direktori keahlian.
  *
- * Satu nama untuk daftarnya, bukan union yang ditulis ulang di tiap tempat:
- * yang terakhir itu sudah pernah membuat penambahan `OTHER` gagal kompilasi di
- * tiga berkas berbeda.
+ * Dulu union tujuh nilai yang ditulis tangan. Union berarti bidang baru butuh
+ * penyuntingan kode di sini, di enum Prisma, dan di setiap daftar `<option>` —
+ * jadi perusahaan yang mencari Video Editor hanya punya "OTHER". Sekarang
+ * bidang adalah baris direktori yang sama dengan keahlian talenta, dan aliasnya
+ * tinggal `string`; yang menjaga kewarasan isinya adalah
+ * `skillsService.resolveCategory`, bukan tipe.
  */
-export type ChallengeCategoryValue =
-  | 'UI_UX'
-  | 'FRONTEND'
-  | 'BACKEND'
-  | 'DATA_SCIENCE'
-  | 'MARKETING'
-  | 'PRODUCT'
-  | 'OTHER';
+export type ChallengeCategoryValue = string;
 
 export interface SectionPayload {
   id?: string;
@@ -68,7 +64,8 @@ export interface CreateChallengePayload {
    * ini yang menyebut pekerjaannya apa sebenarnya.
    */
   role?: string;
-  category: ChallengeCategoryValue;
+  /** Kosong berarti lintas bidang. */
+  category?: ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   /** Menyalin soal tulisan sendiri ke koleksi perusahaan saat diterbitkan. */
   saveQuestionsToBank?: boolean;
@@ -92,7 +89,7 @@ export interface GenerateAiChallengePayload {
   prompt: string;
   /** Posisi yang direkrut; ikut disimpan seperti di jalur manual. */
   role?: string;
-  category: ChallengeCategoryValue;
+  category?: ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   blueprint?: any;
   previousBlueprint?: any;

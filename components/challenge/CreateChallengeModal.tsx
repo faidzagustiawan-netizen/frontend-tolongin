@@ -7,6 +7,7 @@ import {
   ChallengeCategoryValue,
   challengesService,
 } from '../../services/challenges.service';
+import { CategoryPicker } from '../common/CategoryPicker';
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
   const [role, setRole] = useState('');
-  const [category, setCategory] = useState<ChallengeCategoryValue>('FRONTEND');
+  const [category, setCategory] = useState<ChallengeCategoryValue>('');
   const [difficulty, setDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('INTERMEDIATE');
   const [durationHours, setDurationHours] = useState<number>(48);
   const [rewardDescription, setRewardDescription] = useState('Rp 5.000.000 + Kesempatan Perekrutan Penuh Waktu');
@@ -35,7 +36,7 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
 
   // AI Generator Form State
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiCategory, setAiCategory] = useState<ChallengeCategoryValue>('BACKEND');
+  const [aiCategory, setAiCategory] = useState<ChallengeCategoryValue>('');
   const [aiDifficulty, setAiDifficulty] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('ADVANCED');
   const [aiBlueprint, setAiBlueprint] = useState<any>(null);
 
@@ -239,22 +240,12 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Bidang</label>
-                <select
-                  value={category}
-                  onChange={(e: any) => setCategory(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="FRONTEND">Frontend Engineering</option>
-                  <option value="BACKEND">Backend & API</option>
-                  <option value="UI_UX">UI/UX Design</option>
-                  <option value="DATA_SCIENCE">Data Science & AI</option>
-                  <option value="MARKETING">Digital Marketing & SEO</option>
-                  <option value="PRODUCT">Product Management</option>
-                  <option value="OTHER">Bidang lain (sebutkan di posisi)</option>
-                </select>
-              </div>
+              <CategoryPicker
+                id="modal-category"
+                label="Bidang Pekerjaan"
+                value={category}
+                onChange={setCategory}
+              />
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan</label>
@@ -358,22 +349,12 @@ export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">Kategori Keahlian</label>
-                      <select
-                        value={aiCategory}
-                        onChange={(e: any) => setAiCategory(e.target.value)}
-                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs text-foreground focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="BACKEND">Backend & API</option>
-                        <option value="FRONTEND">Frontend Engineering</option>
-                        <option value="UI_UX">UI/UX Design</option>
-                        <option value="DATA_SCIENCE">Data Science & AI</option>
-                        <option value="MARKETING">Digital Marketing & SEO</option>
-                        <option value="PRODUCT">Product Management</option>
-                        <option value="OTHER">Bidang lain</option>
-                      </select>
-                    </div>
+                    <CategoryPicker
+                      id="modal-ai-category"
+                      label="Bidang Pekerjaan"
+                      value={aiCategory}
+                      onChange={setAiCategory}
+                    />
 
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tingkat Kesulitan Target</label>

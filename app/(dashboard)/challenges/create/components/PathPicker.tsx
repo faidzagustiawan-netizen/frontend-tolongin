@@ -5,9 +5,9 @@ import { Layers, Loader2, Lock, Pencil, PlusCircle, Sparkles } from 'lucide-reac
 import { Button } from '@/components/common/Button';
 import { questionBankService } from '@/services/questionBank.service';
 import {
-  CATEGORY_SHORT_LABELS,
   DIFFICULTY_SHORT_LABELS,
   ChallengeContext,
+  categoryLabel,
 } from './options';
 
 interface PathPickerProps {
@@ -63,7 +63,7 @@ export default function PathPicker({
             {context.role}
           </span>
           <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
-            {CATEGORY_SHORT_LABELS[context.category] ?? context.category}
+            {categoryLabel(context.category)}
           </span>
           <span className="px-3 py-1 bg-foreground/5 text-foreground text-xs font-bold rounded-full border border-border">
             {DIFFICULTY_SHORT_LABELS[context.difficulty] ?? context.difficulty}

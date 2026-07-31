@@ -9,13 +9,13 @@ export interface ChallengeCardProps {
   slug: string;
   title: string;
   summary: string;
-  category: string;
+  /** Nama bidang dari direktori keahlian; kosong berarti lintas bidang. */
+  category?: string | null;
   /**
    * Posisi yang direkrut, bila perusahaan menyebutkannya.
    *
-   * Lebih spesifik daripada kategori, dan satu-satunya keterangan yang berarti
-   * ketika bidangnya OTHER — "Video Editor" jauh lebih berguna bagi kandidat
-   * daripada "Bidang lain".
+   * Lebih spesifik daripada bidang — "Video Editor Senior" menyebut pekerjaan
+   * yang sebenarnya, sementara bidangnya cukup "Video Editing".
    */
   role?: string | null;
   difficulty: string;
@@ -60,13 +60,12 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     }
   };
 
-  const getCategoryColor = (cat: string) => {
-    return 'text-foreground bg-white dark:bg-card border-border';
-  };
+  const categoryTagClass = 'text-foreground bg-white dark:bg-card border-border';
 
-  const getCategoryLabel = (cat: string) => {
-    return cat.replace('_', ' ');
-  };
+  // Bidang kini nama biasa dari direktori keahlian, dan boleh kosong (lintas
+  // bidang). Dulu kode enum yang selalu terisi, jadi label cukup mengganti
+  // garis bawah dengan spasi.
+  const categoryLabel = category?.trim() || 'Lintas bidang';
 
   const daysLeft = deadlineAt ? Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
   const daysUntilStart = startsAt ? Math.max(0, Math.ceil((new Date(startsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
@@ -198,9 +197,9 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
         <div className="h-7 mb-5 flex items-center gap-2 overflow-hidden">
           <span
             title={role?.trim() ? `Posisi: ${role.trim()}` : undefined}
-            className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border truncate max-w-[60%] ${getCategoryColor(category)}`}
+            className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border truncate max-w-[60%] ${categoryTagClass}`}
           >
-            {role?.trim() || getCategoryLabel(category)}
+            {role?.trim() || categoryLabel}
           </span>
           <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${getDifficultyColor(difficulty)}`}>
             {difficulty}

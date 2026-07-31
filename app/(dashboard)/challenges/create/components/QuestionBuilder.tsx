@@ -26,7 +26,7 @@ import {
   bankItemToComponent,
   questionBankService,
 } from '@/services/questionBank.service';
-import { CATEGORY_SHORT_LABELS } from './options';
+import { categoryLabel } from './options';
 import { useUserStore } from '@/store/userStore';
 import { DurationPicker } from '@/components/common/DurationPicker';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -424,7 +424,7 @@ export default function QuestionBuilder({
 
       const stages: { title: string; items: QuestionBankItem[] }[] = [
         {
-          title: `Uji Teknis ${CATEGORY_SHORT_LABELS[manualData.category] ?? ''}`.trim(),
+          title: `Uji Teknis ${manualData.category ?? ''}`.trim(),
           items: fieldOnly.slice(0, 5),
         },
         {

@@ -162,7 +162,7 @@ export default function MyChallengesPage() {
                     {statusLabels[challenge.status] ?? challenge.status}
                   </span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
-                    {challenge.category}
+                    {challenge.category || 'Lintas bidang'}
                   </span>
                   <span className="text-xs font-medium text-muted-foreground">
                     {challenge.difficulty}

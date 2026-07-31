@@ -215,7 +215,9 @@ export default function SubmissionDetailPage() {
                 <p className="text-success font-medium mt-1">{submission.challenge.title}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                   <span>Terkumpul: {new Date(submission.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  <span>Kategori: {submission.challenge.category}</span>
+                  <span>
+                    Bidang: {submission.challenge.category || 'Lintas bidang'}
+                  </span>
                 </div>
 
                 {/* Profil lengkap kandidat sebelumnya hanya bisa dicapai dari

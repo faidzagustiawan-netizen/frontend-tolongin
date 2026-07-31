@@ -16,13 +16,13 @@ import {
   QuestionBankScope,
   questionBankService,
 } from '@/services/questionBank.service';
+import { skillsService } from '@/services/skills.service';
 import {
-  CATEGORY_OPTIONS,
-  CATEGORY_SHORT_LABELS,
   DIFFICULTY_OPTIONS,
   DIFFICULTY_SHORT_LABELS,
   ChallengeCategoryValue,
   ChallengeDifficultyValue,
+  categoryLabel,
 } from './options';
 
 const PAGE_SIZE = 12;
@@ -122,6 +122,24 @@ export default function BankPicker({
     queryFn: () => questionBankService.getTags(scope),
     enabled: open,
   });
+
+  // Bidang tidak lagi enum, jadi daftarnya diambil dari yang benar-benar
+  // dipakai. Bidang studi kasus yang sedang disusun ikut disisipkan walaupun
+  // belum pernah dipakai siapa pun — tanpa itu penyaring bawaannya menunjuk
+  // nilai yang tidak ada di daftar dan `<select>` tampil kosong.
+  const { data: knownCategories = [] } = useQuery({
+    queryKey: ['job-categories'],
+    queryFn: () => skillsService.listCategories(),
+    enabled: open,
+  });
+
+  const categoryOptions = useMemo(() => {
+    const names = knownCategories.map((c) => c.name);
+    if (defaultCategory && !names.some((n) => n === defaultCategory)) {
+      names.unshift(defaultCategory);
+    }
+    return names;
+  }, [knownCategories, defaultCategory]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -258,13 +276,13 @@ export default function BankPicker({
                 setCategory(e.target.value);
                 setPage(1);
               }}
-              aria-label="Kategori"
+              aria-label="Bidang pekerjaan"
               className="bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-emerald-500 font-semibold"
             >
-              <option value="">Semua kategori</option>
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              <option value="">Semua bidang</option>
+              {categoryOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
             </select>
@@ -405,9 +423,7 @@ export default function BankPicker({
                               {TYPE_LABELS[item.type] ?? item.type}
                             </span>
                             <span className="px-2 py-0.5 bg-foreground/5 text-muted-foreground text-[10px] font-bold rounded border border-border">
-                              {item.category
-                                ? CATEGORY_SHORT_LABELS[item.category] ?? item.category
-                                : 'Lintas bidang'}
+                              {categoryLabel(item.category)}
                             </span>
                             <span className="text-[10px] font-medium text-muted-foreground">
                               {DIFFICULTY_SHORT_LABELS[item.difficulty] ?? item.difficulty}

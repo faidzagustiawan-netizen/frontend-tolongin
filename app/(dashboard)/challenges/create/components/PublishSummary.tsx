@@ -9,10 +9,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { CreateChallengePayload } from '@/services/challenges.service';
-import {
-  CATEGORY_SHORT_LABELS,
-  DIFFICULTY_SHORT_LABELS,
-} from './options';
+import { DIFFICULTY_SHORT_LABELS, categoryLabel } from './options';
 import { PROCTORING_SETTINGS } from './proctoringCatalog';
 import { describeStageGate } from './StageGateSettings';
 import { Section } from '@/types';
@@ -174,10 +171,7 @@ export default function PublishSummary({ manualData, onJumpTo }: PublishSummaryP
           label="Judul"
           value={manualData.title || <Missing>Belum diisi</Missing>}
         />
-        <Row
-          label="Kategori"
-          value={CATEGORY_SHORT_LABELS[manualData.category] ?? manualData.category}
-        />
+        <Row label="Bidang" value={categoryLabel(manualData.category)} />
         <Row
           label="Tingkat kesulitan"
           value={DIFFICULTY_SHORT_LABELS[manualData.difficulty] ?? manualData.difficulty}

@@ -23,7 +23,7 @@ export default function EditChallengePage() {
     title: '',
     summary: '',
     description: '',
-    category: 'FRONTEND',
+    category: '',
     difficulty: 'INTERMEDIATE',
     sections: [{ title: 'Tahap 1', order: 0, components: [] }],
   });
@@ -48,7 +48,7 @@ export default function EditChallengePage() {
             description: found.description,
             // Ikut dimuat supaya penyimpanan ulang tidak mengosongkannya.
             role: found.role ?? undefined,
-            category: found.category,
+            category: found.category ?? '',
             difficulty: found.difficulty,
             sections: found.sections || [],
             gradingRubric: found.gradingRubric,
