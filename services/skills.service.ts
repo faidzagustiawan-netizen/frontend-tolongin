@@ -36,10 +36,11 @@ export const skillsService = {
     const res = await apiClient.get('/skills', { params: { q: query } });
     return res.data;
   },
-  createSkill: async (name: string): Promise<SkillRef> => {
-    const res = await apiClient.post('/skills', { name });
-    return res.data;
-  },
+  // `createSkill` sengaja tidak lagi disediakan di sini. Endpoint POST /skills
+  // masih ada dan kini tervalidasi, tetapi ia menulis ke direktori tanpa
+  // memeriksa salah ketik — dan direktori itu sekarang juga menyetir bidang
+  // pekerjaan yang dicari perusahaan. Semua penambahan dari antarmuka harus
+  // lewat `resolveSkill` atau `resolveCategory`.
   /** Bidang pekerjaan yang benar-benar dipakai, terurut dari yang tersering. */
   listCategories: async (): Promise<(SkillRef & { usage: number })[]> => {
     const res = await apiClient.get('/skills/categories');
@@ -57,6 +58,21 @@ export const skillsService = {
       name,
       force,
     });
+    return res.data;
+  },
+  /**
+   * Versi keahlian dari pemeriksaan yang sama.
+   *
+   * Direktorinya satu tabel dengan bidang pekerjaan, tetapi ukuran kelayakannya
+   * berbeda: "React" keahlian yang sah dan bukan bidang pekerjaan. Tanpa
+   * endpoint terpisah, keahlian talenta akan dinilai dengan ukuran bidang dan
+   * ditolak.
+   */
+  resolveSkill: async (
+    name: string,
+    force = false,
+  ): Promise<CategoryResolution> => {
+    const res = await apiClient.post('/skills/resolve', { name, force });
     return res.data;
   },
 };

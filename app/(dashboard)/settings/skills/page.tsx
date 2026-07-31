@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
-import { ArrowLeft, Pencil, Plus, X, Search } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Pencil, Plus, Sparkles, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/common/Button';
-import { skillsService } from '@/services/skills.service';
+import { CategoryResolution, skillsService } from '@/services/skills.service';
 
 export default function SkillsSettingsPage() {
   const router = useRouter();
@@ -21,6 +21,8 @@ export default function SkillsSettingsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  /** Putusan pemeriksaan yang menunggu keputusan talenta. */
+  const [resolution, setResolution] = useState<CategoryResolution | null>(null);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -108,26 +110,61 @@ export default function SkillsSettingsPage() {
     }
   };
 
-  const handleSaveAdd = async () => {
+  /**
+   * Pintu kedua ke direktori, di samping kartu Keahlian di halaman profil.
+   *
+   * Keduanya dulu memanggil `createSkill` tanpa syarat, jadi menutup salah
+   * satunya saja tidak ada gunanya: salah ketik cukup lewat sini untuk sampai
+   * ke direktori yang sama — yang kini juga menyetir bidang pekerjaan yang
+   * dicari perusahaan.
+   */
+  const handleSaveAdd = async (force = false) => {
     const trimmedSearch = searchTerm.trim();
     if (!trimmedSearch) {
       setIsAddModalOpen(false);
       return;
     }
 
-    if (skills.some(s => s.toLowerCase() === trimmedSearch.toLowerCase())) {
+    if (!force && skills.some(s => s.toLowerCase() === trimmedSearch.toLowerCase())) {
       toast.error(`Keahlian "${trimmedSearch}" sudah ditambahkan di profil Anda`);
       return;
     }
 
     setIsSaving(true);
-    const newSkills = [...skills, trimmedSearch];
-    await handleUpdate(newSkills);
-    
-    skillsService.createSkill(trimmedSearch).catch(() => {});
+    try {
+      const result = await skillsService.resolveSkill(trimmedSearch, force);
+
+      if (result.status === 'EXACT' || result.status === 'CREATED') {
+        await commitSkill(result.category.name);
+        return;
+      }
+
+      setResolution(result);
+      setSuggestions([]);
+      setIsSaving(false);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          'Keahlian tidak bisa diperiksa sekarang. Coba lagi sebentar lagi.',
+      );
+      setIsSaving(false);
+    }
+  };
+
+  /** Menyimpan nama baku dari direktori, bukan ketikan mentahnya. */
+  const commitSkill = async (name: string) => {
+    if (skills.some(s => s.toLowerCase() === name.toLowerCase())) {
+      toast.error(`Keahlian "${name}" sudah ditambahkan di profil Anda`);
+      setResolution(null);
+      setIsSaving(false);
+      return;
+    }
+
+    await handleUpdate([...skills, name]);
 
     setSearchTerm('');
     setSuggestions([]);
+    setResolution(null);
     setIsSaving(false);
     setIsAddModalOpen(false);
   };
@@ -240,6 +277,7 @@ export default function SkillsSettingsPage() {
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setFocusedIndex(-1);
+                      setResolution(null);
                     }}
                     onKeyDown={handleKeyDown}
                     placeholder="Keahlian (mis: Manajemen Proyek)"
@@ -269,10 +307,67 @@ export default function SkillsSettingsPage() {
                   </div>
                 )}
               </div>
+
+              {resolution?.status === 'SUGGESTION' && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <span>{resolution.reason}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSaving(true);
+                        void commitSkill(resolution.suggestion.name);
+                      }}
+                      className="px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                    >
+                      Pakai &quot;{resolution.suggestion.name}&quot;
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveAdd(true)}
+                      className="px-3 py-1.5 rounded-full border border-border text-xs font-semibold text-foreground hover:bg-foreground/5 transition-colors"
+                    >
+                      Tetap pakai &quot;{resolution.input}&quot;
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {resolution?.status === 'REJECTED' && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 space-y-2">
+                  <p className="text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <span>{resolution.reason}</span>
+                  </p>
+                  {resolution.suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {resolution.suggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setIsSaving(true);
+                            void commitSkill(s.name);
+                          }}
+                          className="px-3 py-1.5 rounded-full border border-border text-xs font-semibold text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="p-6 border-t border-border flex justify-end items-center">
-              <Button onClick={handleSaveAdd} isLoading={isSaving} className="rounded-full px-6">
+              {/* Dibungkus arrow function: `onClick={handleSaveAdd}` akan
+                  meneruskan MouseEvent sebagai `force` dan membuat setiap klik
+                  Simpan melewati pemeriksaan. */}
+              <Button onClick={() => handleSaveAdd()} isLoading={isSaving} className="rounded-full px-6">
                 Simpan
               </Button>
             </div>
