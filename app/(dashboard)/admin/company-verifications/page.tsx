@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { readAuthToken } from '@/lib/authStorage';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 import {
   Building2,
   ShieldCheck,
@@ -13,8 +13,6 @@ import {
   Clock,
   ExternalLink,
 } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 /**
  * Nama kolomnya mengikuti CompanyProfile di Prisma.
@@ -52,22 +50,16 @@ export default function AdminCompanyVerificationsPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
-  const token = readAuthToken();
-
   const fetchPendingCompanies = useCallback(async () => {
-    if (!user || user.role !== 'ADMIN') return;
+    if (user?.role !== 'ADMIN') return;
     try {
-      const res = await fetch(`${API_URL}/admin/companies/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Gagal memuat daftar perusahaan');
-      setCompanies(await res.json());
+      setCompanies(await adminApi.getPendingCompanies());
     } catch (err) {
-      toast.error('Gagal memuat antrean verifikasi perusahaan');
+      toast.error(apiErrorMessage(err, 'Gagal memuat antrean verifikasi perusahaan.'));
     } finally {
       setLoading(false);
     }
-  }, [user, token]);
+  }, [user]);
 
   useEffect(() => {
     fetchPendingCompanies();
@@ -80,24 +72,24 @@ export default function AdminCompanyVerificationsPage() {
 
     if (!confirm(`Anda akan ${label}. Lanjutkan?`)) return;
 
+    // Alasan penolakan ikut dikirim ke perusahaan lewat notifikasi; tanpa itu
+    // yang ditolak tidak punya cara tahu dokumen mana yang bermasalah.
+    const reason =
+      status === 'FAILED'
+        ? prompt('Alasan penolakan (dikirim ke perusahaan):') || undefined
+        : undefined;
+    if (status === 'FAILED' && !reason) return;
+
     setProcessing(companyId);
     try {
-      const res = await fetch(`${API_URL}/admin/companies/${companyId}/verify`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error('Gagal menyimpan keputusan');
+      await adminApi.verifyCompany(companyId, status, reason);
 
       toast.success(
         status === 'VERIFIED' ? 'Perusahaan disetujui dan aktif.' : 'Perusahaan ditolak.'
       );
       setCompanies((prev) => prev.filter((c) => c.id !== companyId));
     } catch (err) {
-      toast.error('Gagal menyimpan keputusan. Coba lagi.');
+      toast.error(apiErrorMessage(err, 'Gagal menyimpan keputusan. Coba lagi.'));
     } finally {
       setProcessing(null);
     }

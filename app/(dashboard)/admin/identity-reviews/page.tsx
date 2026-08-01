@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { readAuthToken } from '@/lib/authStorage';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 import {
   ScanFace,
   ShieldCheck,
@@ -14,8 +14,6 @@ import {
   Clock,
   Inbox,
 } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 interface ProfilRingkas {
   id: string;
@@ -47,23 +45,16 @@ export default function AdminIdentityReviewsPage() {
   const [sedangProses, setSedangProses] = useState<string | null>(null);
   const [catatan, setCatatan] = useState<Record<string, string>>({});
 
-  const token =
-    readAuthToken();
-
   const ambilAntrean = useCallback(async () => {
-    if (!user || user.role !== 'ADMIN') return;
+    if (user?.role !== 'ADMIN') return;
     try {
-      const res = await fetch(`${API_URL}/admin/identity-reviews`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Gagal memuat antrean');
-      setAntrean(await res.json());
+      setAntrean(await adminApi.getIdentityReviews());
     } catch (err) {
-      toast.error('Gagal memuat antrean tinjauan identitas');
+      toast.error(apiErrorMessage(err, 'Gagal memuat antrean tinjauan identitas.'));
     } finally {
       setMemuat(false);
     }
-  }, [user, token]);
+  }, [user]);
 
   useEffect(() => {
     ambilAntrean();
@@ -78,22 +69,18 @@ export default function AdminIdentityReviewsPage() {
 
     setSedangProses(talentId);
     try {
-      const res = await fetch(`${API_URL}/admin/identity-reviews/${talentId}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ approve, note: catatan[talentId] || undefined }),
-      });
-      if (!res.ok) throw new Error('Gagal menyimpan keputusan');
+      await adminApi.resolveIdentityReview(
+        talentId,
+        approve,
+        catatan[talentId] || undefined,
+      );
 
       toast.success(
         approve ? 'Profil disetujui dan kini terverifikasi.' : 'Profil ditolak.',
       );
       setAntrean((baris) => baris.filter((b) => b.id !== talentId));
     } catch (err) {
-      toast.error('Gagal menyimpan keputusan. Coba lagi.');
+      toast.error(apiErrorMessage(err, 'Gagal menyimpan keputusan. Coba lagi.'));
     } finally {
       setSedangProses(null);
     }

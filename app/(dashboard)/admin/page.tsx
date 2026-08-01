@@ -1,67 +1,53 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUserStore } from '@/store/userStore';
+import { useCallback, useEffect, useState } from 'react';
 import { ShieldAlert, Users, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { readAuthToken } from '@/lib/authStorage';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+import toast from 'react-hot-toast';
+import { useUserStore } from '@/store/userStore';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 
 export default function AdminDashboardPage() {
   const { user } = useUserStore();
-  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([]);
-  const token = readAuthToken();
+
+  const fetchData = useCallback(async () => {
+    if (user?.role !== 'ADMIN') return;
+
+    try {
+      const [statsData, companiesData] = await Promise.all([
+        adminApi.getStats(),
+        adminApi.getPendingCompanies(),
+      ]);
+      setStats(statsData);
+      setPendingCompanies(companiesData);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Gagal memuat data dasbor admin.'));
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'ADMIN') {
-      router.push('/');
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const headers = { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        };
-        const statsRes = await fetch(`${API_URL}/admin/stats`, { headers });
-        const statsData = await statsRes.json();
-        setStats(statsData);
-        
-        const companiesRes = await fetch(`${API_URL}/admin/companies/pending`, { headers });
-        const companiesData = await companiesRes.json();
-        setPendingCompanies(companiesData);
-      } catch (err) {
-        console.error('Failed to fetch admin data', err);
-      }
-    };
-
-    fetchData();
-  }, [user, router, token]);
+    void fetchData();
+  }, [fetchData]);
 
   const handleVerify = async (companyId: string, status: 'VERIFIED' | 'FAILED') => {
+    // Penolakan mencabut akses perusahaan dan dikirim ke pemiliknya, jadi
+    // alasannya diminta di sini alih-alih membiarkan mereka menebak.
+    const reason =
+      status === 'FAILED'
+        ? prompt('Alasan penolakan (dikirim ke perusahaan):') || undefined
+        : undefined;
+    if (status === 'FAILED' && !reason) return;
+
     try {
-      const headers = { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-      await fetch(`${API_URL}/admin/companies/${companyId}/verify`, { 
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ status })
-      });
-      setPendingCompanies(prev => prev.filter(c => c.id !== companyId));
+      await adminApi.verifyCompany(companyId, status, reason);
+      setPendingCompanies((prev) => prev.filter((c) => c.id !== companyId));
+      toast.success(status === 'VERIFIED' ? 'Perusahaan diverifikasi.' : 'Verifikasi ditolak.');
     } catch (err) {
-      alert('Gagal memverifikasi perusahaan');
+      toast.error(apiErrorMessage(err, 'Gagal memperbarui verifikasi perusahaan.'));
     }
   };
-
-  if (!user || user.role !== 'ADMIN') return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -81,7 +67,7 @@ export default function AdminDashboardPage() {
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
         <h2 className="text-xl font-bold text-white mb-6">Perusahaan Menunggu Verifikasi (KYB)</h2>
-        
+
         {pendingCompanies.length === 0 ? (
           <p className="text-zinc-400 text-center py-8">Tidak ada perusahaan yang menunggu verifikasi.</p>
         ) : (
@@ -96,16 +82,24 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {pendingCompanies.map(company => (
+                {pendingCompanies.map((company) => (
                   <tr key={company.id} className="border-b border-zinc-800/50">
                     <td className="py-4 px-4">
                       <div className="font-medium text-white">{company.companyName}</div>
                       <div className="text-sm text-zinc-500">{company.industry}</div>
                     </td>
-                    <td className="py-4 px-4 text-zinc-300">{company.user.email}</td>
+                    <td className="py-4 px-4 text-zinc-300">{company.user?.email}</td>
                     <td className="py-4 px-4">
-                      {company.legalDocsUrl ? (
-                        <a href={company.legalDocsUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 text-sm">
+                      {/* Kolomnya bernama `legalDocumentUrl` di skema. Halaman ini
+                          membaca `legalDocsUrl`, nama yang tidak pernah ada, jadi
+                          tautan dokumennya tidak pernah muncul sekali pun. */}
+                      {company.legalDocumentUrl ? (
+                        <a
+                          href={company.legalDocumentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-400 hover:text-indigo-300 text-sm"
+                        >
                           Lihat Dokumen
                         </a>
                       ) : (

@@ -1,57 +1,72 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Ban, ChevronLeft, ChevronRight, Search, MailWarning } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
-import { ShieldAlert, Ban, Search, MailWarning } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { readAuthToken } from '@/lib/authStorage';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const PAGE_SIZE = 25;
 
 export default function AdminUsersPage() {
   const { user } = useUserStore();
   const [usersList, setUsersList] = useState<any[]>([]);
-  const token = readAuthToken();
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Pencarian kini dikerjakan server, jadi setiap ketikan tidak boleh langsung
+  // jadi satu permintaan.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') return;
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setUsersList(data);
-      } catch (err) {
-        console.error('Failed to fetch users', err);
-      }
-    };
+  const fetchUsers = useCallback(async () => {
+    if (user?.role !== 'ADMIN') return;
 
-    fetchUsers();
-  }, [user, token]);
+    setIsLoading(true);
+    try {
+      const result = await adminApi.getUsers({
+        page,
+        limit: PAGE_SIZE,
+        search: debouncedSearch || undefined,
+      });
+      setUsersList(result.data);
+      setTotal(result.total);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Gagal memuat daftar pengguna.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, page, debouncedSearch]);
+
+  useEffect(() => {
+    void fetchUsers();
+  }, [fetchUsers]);
 
   const handleBanToggle = async (userId: string, currentStatus: boolean) => {
-    const confirmBan = confirm(`Apakah Anda yakin ingin ${currentStatus ? 'membuka blokir' : 'memblokir'} pengguna ini?`);
-    if (!confirmBan) return;
+    const action = currentStatus ? 'membuka blokir' : 'memblokir';
+    if (!confirm(`Apakah Anda yakin ingin ${action} pengguna ini?`)) return;
+
+    // Alasan ikut tersimpan di jejak audit dan dikirim ke penggunanya.
+    const reason = currentStatus
+      ? undefined
+      : prompt('Alasan pemblokiran (opsional):') || undefined;
 
     try {
-      const res = await fetch(`${API_URL}/admin/users/${userId}/ban`, {
-        method: 'PATCH',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isBanned: !currentStatus })
-      });
-      if (res.ok) {
-        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !currentStatus } : u));
-      } else {
-        alert('Gagal mengubah status blokir.');
-      }
+      await adminApi.toggleBanUser(userId, !currentStatus, reason);
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isBanned: !currentStatus } : u)),
+      );
+      toast.success(currentStatus ? 'Blokir dicabut.' : 'Pengguna diblokir.');
     } catch (err) {
-      alert('Terjadi kesalahan.');
+      toast.error(apiErrorMessage(err, 'Gagal mengubah status blokir.'));
     }
   };
 
@@ -60,35 +75,24 @@ export default function AdminUsersPage() {
     if (!message) return;
 
     try {
-      const res = await fetch(`${API_URL}/admin/users/${userId}/warning`, {
-        method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message })
-      });
-      if (res.ok) {
-        alert('Peringatan berhasil dikirim!');
-      } else {
-        alert('Gagal mengirim peringatan.');
-      }
+      await adminApi.sendWarning(userId, message);
+      toast.success('Peringatan berhasil dikirim.');
     } catch (err) {
-      alert('Terjadi kesalahan.');
+      toast.error(apiErrorMessage(err, 'Gagal mengirim peringatan.'));
     }
   };
 
-  const filteredUsers = usersList.filter(u => 
-    u.email?.toLowerCase().includes(search.toLowerCase()) || 
-    u.fullName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white mb-2">Manajemen Pengguna</h1>
-          <p className="text-zinc-400">Pantau dan kelola seluruh pengguna di platform.</p>
+          <p className="text-zinc-400">
+            Pantau dan kelola seluruh pengguna di platform.
+            {total > 0 && <span className="ml-1 text-zinc-500">({total} akun)</span>}
+          </p>
         </div>
       </div>
 
@@ -96,8 +100,8 @@ export default function AdminUsersPage() {
         <div className="p-4 border-b border-zinc-800">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Cari email atau nama..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -117,7 +121,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map(u => (
+              {usersList.map((u) => (
                 <tr key={u.id} className="border-t border-zinc-800/50 hover:bg-zinc-800/20">
                   <td className="py-3 px-4">
                     <div className="font-medium text-white">{u.fullName || 'No Name'}</div>
@@ -150,12 +154,19 @@ export default function AdminUsersPage() {
                       </button>
                       <button
                         onClick={() => handleBanToggle(u.id, u.isBanned)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          u.isBanned 
-                            ? 'text-emerald-500 hover:bg-emerald-500/10' 
+                        disabled={u.id === user?.id}
+                        className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                          u.isBanned
+                            ? 'text-emerald-500 hover:bg-emerald-500/10'
                             : 'text-red-500 hover:bg-red-500/10'
                         }`}
-                        title={u.isBanned ? 'Buka Blokir' : 'Blokir'}
+                        title={
+                          u.id === user?.id
+                            ? 'Anda tidak dapat memblokir akun sendiri'
+                            : u.isBanned
+                              ? 'Buka Blokir'
+                              : 'Blokir'
+                        }
                       >
                         <Ban className="w-4 h-4" />
                       </button>
@@ -163,18 +174,50 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
+              {!isLoading && usersList.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-zinc-500">
                     Tidak ada pengguna ditemukan.
                   </td>
                 </tr>
               )}
+              {isLoading && (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-zinc-500">
+                    Memuat...
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-zinc-800">
+            <span className="text-sm text-zinc-500">
+              Halaman {page} dari {totalPages}
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="p-2 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white disabled:opacity-30"
+                aria-label="Halaman sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-2 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white disabled:opacity-30"
+                aria-label="Halaman berikutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

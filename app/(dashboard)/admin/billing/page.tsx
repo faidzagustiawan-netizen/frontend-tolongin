@@ -4,36 +4,30 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { CreditCard, Search, ArrowUpRight, ArrowDownRight, FileText } from 'lucide-react';
 import { format } from 'date-fns';
-import { readAuthToken } from '@/lib/authStorage';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+import toast from 'react-hot-toast';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 
 export default function AdminBillingPage() {
   const { user } = useUserStore();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const token = readAuthToken();
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') return;
+    if (user?.role !== 'ADMIN') return;
 
     const fetchBilling = async () => {
       try {
-        const res = await fetch(`${API_URL}/admin/billing`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setTransactions(data);
+        setTransactions(await adminApi.getBilling());
       } catch (err) {
-        console.error('Failed to fetch billing', err);
+        toast.error(apiErrorMessage(err, 'Gagal memuat riwayat transaksi.'));
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBilling();
-  }, [user, token]);
+    void fetchBilling();
+  }, [user]);
 
   const filtered = transactions.filter(t => 
     t.user?.email?.toLowerCase().includes(search.toLowerCase()) || 

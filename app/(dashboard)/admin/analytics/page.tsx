@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { BarChart3, TrendingUp, Users, Target } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { readAuthToken } from '@/lib/authStorage';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+import toast from 'react-hot-toast';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 
@@ -14,27 +13,22 @@ export default function AdminAnalyticsPage() {
   const { user } = useUserStore();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const token = readAuthToken();
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') return;
+    if (user?.role !== 'ADMIN') return;
 
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`${API_URL}/admin/analytics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const result = await res.json();
-        setData(result);
+        setData(await adminApi.getAnalytics());
       } catch (err) {
-        console.error('Failed to fetch analytics', err);
+        toast.error(apiErrorMessage(err, 'Gagal memuat data analitik.'));
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
-  }, [user, token]);
+    void fetchAnalytics();
+  }, [user]);
 
   if (loading) {
     return <div className="py-12 text-center text-zinc-500">Memuat data analitik...</div>;

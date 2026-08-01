@@ -4,36 +4,30 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import { FileText, Search, Activity } from 'lucide-react';
 import { format } from 'date-fns';
-import { readAuthToken } from '@/lib/authStorage';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+import toast from 'react-hot-toast';
+import { adminApi, apiErrorMessage } from '@/services/adminApi';
 
 export default function AdminAuditLogsPage() {
   const { user } = useUserStore();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const token = readAuthToken();
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') return;
+    if (user?.role !== 'ADMIN') return;
 
     const fetchLogs = async () => {
       try {
-        const res = await fetch(`${API_URL}/admin/audit-logs`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        setLogs(data);
+        setLogs(await adminApi.getAuditLogs());
       } catch (err) {
-        console.error('Failed to fetch audit logs', err);
+        toast.error(apiErrorMessage(err, 'Gagal memuat jejak audit.'));
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLogs();
-  }, [user, token]);
+    void fetchLogs();
+  }, [user]);
 
   const filtered = logs.filter(log => 
     log.action?.toLowerCase().includes(search.toLowerCase()) || 

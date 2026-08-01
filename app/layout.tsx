@@ -5,6 +5,7 @@ import Providers from "./providers";
 import { Navbar } from "../components/common/Navbar";
 import { Footer } from "../components/common/Footer";
 import { AuthGuard } from "../components/providers/AuthGuard";
+import { AnnouncementBanner } from "../components/common/AnnouncementBanner";
 import Script from "next/script";
 
 const inter = Inter({
@@ -83,6 +84,7 @@ export default function RootLayout({
         <Providers>
           <AuthGuard>
             <Navbar />
+            <AnnouncementBanner />
             <main id="konten-utama" className="flex-grow">{children}</main>
             <Footer />
           </AuthGuard>

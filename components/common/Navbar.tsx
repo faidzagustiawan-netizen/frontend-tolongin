@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit, ClipboardList, UserSearch } from 'lucide-react';
+import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit, ClipboardList, UserSearch, LifeBuoy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -437,6 +437,16 @@ export const Navbar = () => {
                             </Link>
                           </>
                         )}
+                        {/* Tiket bantuan sebelumnya hanya punya sisi admin —
+                            tidak ada jalan bagi pengguna untuk membukanya. */}
+                        <Link
+                          href="/support"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          <LifeBuoy className="h-4 w-4 text-sky-400" />
+                          Bantuan
+                        </Link>
                         <div className="border-t border-border my-1" />
                         <button
                           onClick={() => {
@@ -613,6 +623,14 @@ export const Navbar = () => {
                             </Link>
                           </>
                         )}
+                        <Link
+                          href="/support"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-base text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                        >
+                          <LifeBuoy className="h-5 w-5 text-sky-400" />
+                          Bantuan
+                        </Link>
                       </motion.div>
                     )}
                   </AnimatePresence>

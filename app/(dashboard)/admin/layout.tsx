@@ -3,14 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, ShieldAlert, BarChart3, CreditCard, LifeBuoy, FileText, Megaphone, ScanFace, Building2 } from 'lucide-react';
-import { useUserStore } from '@/store/userStore';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useUserStore();
+  const { isAdmin, isHydrated } = useAdminGuard();
 
-  if (!user || user.role !== 'ADMIN') {
-    return null; // The AuthGuard or page-level effect will handle redirect
+  // Bukan admin: `useAdminGuard` sudah menjadwalkan pengalihan, jadi yang
+  // tersisa hanya menahan isi halaman selama satu render. Sebelumnya tidak ada
+  // pengalihan sama sekali dan `null` di sini adalah layar kosong permanen.
+  if (!isHydrated || !isAdmin) {
+    return null;
   }
 
   const tabs = [
