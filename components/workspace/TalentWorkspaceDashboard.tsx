@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Briefcase, Timer, ArrowRight, Coins, Code2, Plus, Building2, User, BadgeCheck, Bookmark, Lock, CheckCircle2 } from 'lucide-react';
+import { Briefcase, ArrowRight, Coins, Code2, Plus, Building2, User, BadgeCheck } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {

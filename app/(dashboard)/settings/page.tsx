@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
 import { verificationService } from '@/services/verification.service';
@@ -27,7 +27,6 @@ import { CompanySettingsTab } from '@/components/profile/CompanySettingsTab';
 
 export default function ProfilePage() {
   const { user, loadUserFromStorage, updateUserProfile } = useUserStore();
-  const queryClient = useQueryClient();
   const router = useRouter();
 
   const [isEditIntroOpen, setIsEditIntroOpen] = useState(false);

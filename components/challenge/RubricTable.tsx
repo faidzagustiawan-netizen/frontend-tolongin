@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, FileText } from 'lucide-react';
+import { CheckCircle2, FileText } from 'lucide-react';
 
 export interface RubricTableProps {
   rubric: Record<string, any>;
@@ -22,7 +22,6 @@ export const RubricTable: React.FC<RubricTableProps> = ({ rubric }) => {
   };
 
   const totalWeight = weightEntries.reduce((acc, [, weight]) => acc + Number(weight), 0);
-  const durationHours = rubric.durationHours || 72;
   const customOutputs: Array<{ id: string; label: string; placeholder: string; required?: boolean }> =
     Array.isArray(rubric.customOutputs) ? rubric.customOutputs : [];
 

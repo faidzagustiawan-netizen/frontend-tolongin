@@ -16,7 +16,7 @@ interface CreateChallengeModalProps {
   isStartupTier: boolean;
 }
 
-export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier }: CreateChallengeModalProps) => {
+export const CreateChallengeModal = ({ isOpen, onClose, onSuccess, isStartupTier: _isStartupTier }: CreateChallengeModalProps) => {
   const [createTab, setCreateTab] = useState<'MANUAL' | 'AI'>('MANUAL');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

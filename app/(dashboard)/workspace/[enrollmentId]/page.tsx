@@ -7,14 +7,13 @@ import { verificationService } from '@/services/verification.service';
 import { pistonService } from '@/services/piston.service';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
-import { Input, Textarea } from '@/components/common/Input';
+import { Textarea } from '@/components/common/Input';
 import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, EyeOff, Copy, Check, Cloud, CloudOff, Maximize2, Minimize2, Terminal, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Layers, Code2, Video, Link2, Loader2, ChevronDown, ChevronUp
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -35,10 +34,10 @@ export default function EnrollmentWorkspacePage() {
   const selectedEnrollmentId = params.enrollmentId as string;
 
   // State untuk Talenta
-  const [solutionFilesUrl, setSolutionFilesUrl] = useState<string>('');
-  const [repositoryUrl, setRepositoryUrl] = useState<string>('');
-  const [figmaUrl, setFigmaUrl] = useState<string>('');
-  const [liveDemoUrl, setLiveDemoUrl] = useState<string>('');
+  const [solutionFilesUrl] = useState<string>('');
+  const [repositoryUrl] = useState<string>('');
+  const [figmaUrl] = useState<string>('');
+  const [liveDemoUrl] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,9 +48,7 @@ export default function EnrollmentWorkspacePage() {
   const [componentResponses, setComponentResponses] = useState<Record<string, any>>({});
   
   // UX Optimization States
-  const [hideTimer, setHideTimer] = useState<boolean>(false);
-  const [runTour, setRunTour] = useState<boolean>(false);
-  const [copySuccess, setCopySuccess] = useState<Record<string, boolean>>({});
+  const [, setRunTour] = useState<boolean>(false);
   // Auto-Save State
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
@@ -67,7 +64,6 @@ export default function EnrollmentWorkspacePage() {
   const [currentStep, setCurrentStep] = useState<Step>('OVERVIEW');
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [examQuestionIdx, setExamQuestionIdx] = useState(0);
-  const [activeTahapanPage, setActiveTahapanPage] = useState(0);
   const [showNotes, setShowNotes] = useState<boolean>(false);
 
   useEffect(() => {
@@ -104,8 +100,6 @@ export default function EnrollmentWorkspacePage() {
   
   const [faceVerified, setFaceVerified] = useState<boolean | null>(null);
   const [isVerifyingFace, setIsVerifyingFace] = useState<boolean>(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [webcamOpen, setWebcamOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -146,7 +140,6 @@ export default function EnrollmentWorkspacePage() {
     selectedEnrollment?.challenge?.proctoringSettings
     || selectedEnrollment?.challenge?.gradingRubric?.proctoringSettings
     || {};
-  const requireFaceScan = proctoringSettings.requireFaceScan !== false && isProctored; // Default true jika isProctored
   const trackTabSwitches = proctoringSettings.trackTabSwitches ?? isProctored;
   const maxTabSwitches = proctoringSettings.maxTabSwitches || 0;
   const blockCopyPaste = proctoringSettings.blockCopyPaste || false;
@@ -185,10 +178,6 @@ export default function EnrollmentWorkspacePage() {
     }
   }, [isTalentLoading, selectedEnrollment, router]);
 
-  const finishTour = () => {
-    setRunTour(false);
-    localStorage.setItem('hasSeenWorkspaceTour', 'true');
-  };
 
   // Hydration Draft Data (Auto-Load)
   useEffect(() => {
@@ -607,7 +596,10 @@ export default function EnrollmentWorkspacePage() {
         {/* Banner Image */}
         <div className="h-48 w-full relative overflow-hidden bg-background">
           <Image
-            src={selectedEnrollment.challenge.bannerUrl || '/images/challenge-banner.png'}
+            // Versi .jpg, bukan .png: isinya foto, dan PNG-nya 5 MB untuk
+            // gambar yang dirender setinggi 192 px. Keduanya sempat ada di
+            // public/, hanya PNG yang pernah dirujuk.
+            src={selectedEnrollment.challenge.bannerUrl || '/images/challenge-banner.jpg'}
             alt={selectedEnrollment.challenge.title || 'Banner Studi Kasus'}
             fill
             sizes="100vw"

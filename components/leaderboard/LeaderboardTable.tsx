@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, MapPin, Zap, User, CheckCircle2, Calendar, Globe, ChevronDown, Check, Filter } from 'lucide-react';
-import Image from 'next/image';
+import { MapPin, Zap, User, CheckCircle2, Calendar, ChevronDown, Check, Filter } from 'lucide-react';
 import Link from 'next/link';
 import type { LeaderboardEntry } from '@/services/portfolios.service';
 

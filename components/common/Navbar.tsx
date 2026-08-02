@@ -11,7 +11,7 @@ import { notificationsService, NotificationItem } from '../../services/notificat
 import { tokenService } from '../../services/tokenService';
 import { useSocket } from '../../contexts/SocketContext';
 import { Button } from './Button';
-import { Code2, Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit, ClipboardList, UserSearch, LifeBuoy } from 'lucide-react';
+import { Trophy, Briefcase, Menu, X, User as UserIcon, LogOut, Bell, CheckCheck, Info, Coins, CreditCard, Sun, Moon, Building2, Users, MoreVertical, LayoutDashboard, BarChart3, FileEdit, ClipboardList, UserSearch, LifeBuoy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -146,7 +146,7 @@ export const Navbar = () => {
     };
   }, [socket, user, queryClient]);
 
-  const { data: tokenData, refetch: refetchTokens } = useQuery({
+  const { data: tokenData } = useQuery({
     queryKey: ['tokens', user?.id],
     queryFn: () => tokenService.getBalance(),
     enabled: isAuthenticated && user?.role === 'TALENT',
@@ -244,7 +244,6 @@ export const Navbar = () => {
 
             <div className="hidden md:flex items-center gap-1.5">
               {navLinks.map((link) => {
-                const Icon = link.icon;
                 const isActive = isLinkActive(link.href);
 
                 return (
@@ -534,7 +533,6 @@ export const Navbar = () => {
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Menu Utama</span>
               </div>
               {navLinks.map((link) => {
-                const Icon = link.icon;
                 const isActive = isLinkActive(link.href);
 
                 return (

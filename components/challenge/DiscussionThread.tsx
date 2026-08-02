@@ -27,8 +27,8 @@ export interface DiscussionThreadProps {
   onNewComment: (message: string, parentId?: string) => Promise<void>;
 }
 
-export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId, discussions, onNewComment }) => {
-  const { isAuthenticated, user } = useUserStore();
+export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId: _challengeId, discussions, onNewComment }) => {
+  const { isAuthenticated } = useUserStore();
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');

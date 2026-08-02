@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, RefreshCw, ChevronDown, Check, SlidersHorizontal, User, Building2 } from 'lucide-react';
+import { Search, RefreshCw, ChevronDown, Check, User, Building2 } from 'lucide-react';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { motion, AnimatePresence } from 'framer-motion';

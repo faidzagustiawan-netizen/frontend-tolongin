@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Plus, X, Search, Pencil, Trash, ArrowLeft, Sparkles } from 'lucide-react';
+import { AlertTriangle, Plus, X, Search, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '../common/Button';
 import { CategoryResolution, skillsService } from '../../services/skills.service';
 import toast from 'react-hot-toast';

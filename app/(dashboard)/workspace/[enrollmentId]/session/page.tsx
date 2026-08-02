@@ -3,13 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '@/services/submissions.service';
-import { verificationService } from '@/services/verification.service';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Clock, UserCheck, Layers, Eye
+  CheckCircle2, AlertCircle, Send, Timer, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';

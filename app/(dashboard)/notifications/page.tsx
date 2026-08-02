@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { notificationsService, NotificationItem } from '@/services/notifications.service';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
-import { Bell, CheckCheck, Info, ArrowLeft, Trash2, ArrowRight } from 'lucide-react';
+import { Bell, CheckCheck, Info, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';

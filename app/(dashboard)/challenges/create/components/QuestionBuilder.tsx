@@ -26,7 +26,6 @@ import {
   bankItemToComponent,
   questionBankService,
 } from '@/services/questionBank.service';
-import { categoryLabel } from './options';
 import { useUserStore } from '@/store/userStore';
 import { DurationPicker } from '@/components/common/DurationPicker';
 import { motion, AnimatePresence } from 'framer-motion';

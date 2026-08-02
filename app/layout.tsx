@@ -6,7 +6,6 @@ import { Navbar } from "../components/common/Navbar";
 import { Footer } from "../components/common/Footer";
 import { AuthGuard } from "../components/providers/AuthGuard";
 import { AnnouncementBanner } from "../components/common/AnnouncementBanner";
-import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",

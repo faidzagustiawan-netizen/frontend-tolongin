@@ -45,7 +45,7 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
           setIsReady(true);
         }
       })
-      .catch((err) => {
+      .catch((_err) => {
         setWarningMessage("Akses kamera ditolak. Sistem tidak dapat memverifikasi kehadiran Anda.");
         onViolation("Kamera dimatikan atau akses ditolak selama pengerjaan.");
       });

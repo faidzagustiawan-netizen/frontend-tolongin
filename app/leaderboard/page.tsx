@@ -5,12 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import { portfoliosService } from '../../services/portfolios.service';
 import { skillsService } from '../../services/skills.service';
 import { useUserStore } from '../../store/userStore';
-import { Trophy, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Podium } from '../../components/leaderboard/Podium';
 import { LeaderboardTable } from '../../components/leaderboard/LeaderboardTable';
-import { FadeIn, StaggerContainer, StaggerItem } from '../../components/animations';
 
 const RANKS = [
   { minLevel: 1, maxLevel: 1, name: 'Bronze', color: 'text-[#CD7F32]', border: 'border-[#CD7F32]/50', bg: 'bg-[#CD7F32]/10' },
@@ -98,7 +96,6 @@ export default function LeaderboardPage() {
   );
 
   const topThree = filteredLeaderboard.slice(0, 3);
-  const remaining = filteredLeaderboard.slice(3);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 font-jakarta font-[family-name:var(--font-plus-jakarta)]">

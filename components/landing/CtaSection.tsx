@@ -11,7 +11,10 @@ export function CtaSection() {
     <div className="w-full pb-20">
       <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <FadeIn y={30} className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-emerald-950 via-teal-900 to-cyan-950 border border-emerald-500/30 p-6 sm:p-12 lg:p-20 text-center shadow-2xl">
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+          {/* Lapisan tekstur noise dibuang: berkas gambarnya tidak pernah ada
+              di public/ maupun di riwayat repo, jadi lapisan itu selalu 404
+              dan tidak pernah menggambar apa pun — hanya satu permintaan gagal
+              setiap kali halaman depan dibuka. */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-500/20 to-transparent rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-500/20 to-transparent rounded-full blur-[100px] pointer-events-none" />
 

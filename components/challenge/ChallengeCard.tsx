@@ -1,8 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Building2, ChevronRight, Lock, CheckCircle2, Bookmark, BadgeCheck, Coins, Zap, User } from 'lucide-react';
-import { Button } from '../common/Button';
+import { Building2, Lock, CheckCircle2, BadgeCheck, Coins, Zap, User } from 'lucide-react';
 
 export interface ChallengeCardProps {
   id: string;

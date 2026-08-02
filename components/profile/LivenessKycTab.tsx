@@ -1,7 +1,6 @@
 import React from 'react';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { ShieldCheck, AlertCircle, User, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import Link from 'next/link';

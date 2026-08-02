@@ -29,10 +29,10 @@ export default function TokenTopUpPage() {
             alert('Pembayaran sukses! Token Anda akan segera bertambah.');
             window.location.reload();
           },
-          onPending: function(result: any) {
+          onPending: function(_result: any) {
             alert('Menunggu pembayaran Anda...');
           },
-          onError: function(result: any) {
+          onError: function(_result: any) {
             alert('Pembayaran gagal.');
           },
           onClose: function() {

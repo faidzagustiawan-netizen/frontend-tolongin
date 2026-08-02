@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { verificationService } from '@/services/verification.service';
@@ -102,9 +102,13 @@ export default function KycVerificationPage() {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
-  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+  // `setCroppedAreaPixels` harus disebut walau setter useState stabil: React
+  // Compiler menyimpulkan dependensinya sendiri, dan ketika hasilnya tidak
+  // cocok dengan yang ditulis tangan ia MELEWATI optimasi seluruh komponen —
+  // dilaporkan sebagai error lint, bukan peringatan.
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+  }, [setCroppedAreaPixels]);
 
   const createImage = (url: string): Promise<HTMLImageElement> =>
     new Promise((resolve, reject) => {
@@ -165,7 +169,7 @@ export default function KycVerificationPage() {
       setKtpPreview(croppedImage);
       setKtpFileError(null);
       setStep('LIVENESS');
-    } catch (e) {
+    } catch (_e) {
       toast.error('Gagal memotong gambar');
     } finally {
       setIsProcessing(false);

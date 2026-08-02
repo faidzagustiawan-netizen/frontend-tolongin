@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { companiesService } from '../../services/companies.service';
 import { useUserStore } from '../../store/userStore';
 import { Button } from '../../components/common/Button';
-import { Building2, ArrowRight, ShieldCheck, Users } from 'lucide-react';
+import { Building2, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 

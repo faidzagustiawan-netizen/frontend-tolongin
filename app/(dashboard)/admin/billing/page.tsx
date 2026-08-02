@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
-import { CreditCard, Search, ArrowUpRight, ArrowDownRight, FileText } from 'lucide-react';
+import { CreditCard, Search, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';

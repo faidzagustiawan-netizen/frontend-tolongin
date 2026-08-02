@@ -1,5 +1,4 @@
 import { apiClient } from './api';
-import { SubmissionResponse } from '../types';
 
 export interface EnrollPayload {
   challengeId: string;

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '../../services/submissions.service';
 import { useUserStore } from '../../store/userStore';
-import { Briefcase, ArrowRight, X, Info, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Briefcase, ArrowRight, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export const GlobalToaster = () => {

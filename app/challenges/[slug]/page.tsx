@@ -8,7 +8,7 @@ type Props = {
 
 export async function generateMetadata(
   { params }: Props,
-  parent: ResolvingMetadata
+  _parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
@@ -34,7 +34,7 @@ export async function generateMetadata(
         type: 'website',
       },
     };
-  } catch (e) {
+  } catch (_e) {
     return {
       title: "Challenge | Tolongin.co"
     };
@@ -49,7 +49,7 @@ export default async function ChallengePage({ params }: Props) {
   try {
     const { data } = await challengesService.getOne(slug);
     initialChallenge = data;
-  } catch (e) {
+  } catch (_e) {
     // Client akan menangani error state (misalnya 404)
   }
 

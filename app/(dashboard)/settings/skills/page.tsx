@@ -45,7 +45,7 @@ export default function SkillsSettingsPage() {
       await authService.updateProfile({ skills: newSkills });
       setSkills(newSkills);
       toast.success('Keahlian berhasil diperbarui');
-    } catch (e: any) {
+    } catch (_e: any) {
       toast.error('Gagal memperbarui keahlian');
     }
     setIsSaving(false);

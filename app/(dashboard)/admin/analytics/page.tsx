@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
-import { BarChart3, TrendingUp, Users, Target } from 'lucide-react';
+import { BarChart3, TrendingUp, Target } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import toast from 'react-hot-toast';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';

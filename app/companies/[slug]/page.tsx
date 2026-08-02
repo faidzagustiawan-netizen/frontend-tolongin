@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { companiesService } from '../../../services/companies.service';
 import { ChallengeCard } from '../../../components/challenge/ChallengeCard';
-import { Button } from '../../../components/common/Button';
 import { Building2, ShieldCheck, Globe, Users, Briefcase, CalendarClock, CheckCircle2, PlayCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
