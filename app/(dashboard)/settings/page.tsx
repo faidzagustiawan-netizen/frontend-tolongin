@@ -235,8 +235,39 @@ export default function ProfilePage() {
     setIsAddSectionOpen(false);
   };
 
-  const handleRemoveSection = (key: string) => {
-    setVisibleSections(visibleSections.filter(s => s !== key));
+  /**
+   * Isi yang dikosongkan ketika satu bagian dihapus.
+   *
+   * `PATCH /users/me/profile` sudah menerima keempatnya, jadi tidak ada rute
+   * baru yang dibutuhkan. Untuk `experiences` dan `educations`, UsersService
+   * memakai pola hapus-lalu-tulis-ulang: array kosong berarti seluruh barisnya
+   * dibuang dan tidak ada yang menggantikan.
+   */
+  const SECTION_RESET: Record<string, Record<string, unknown>> = {
+    about: { bio: '' },
+    skills: { skills: [] },
+    experience: { experiences: [] },
+    education: { educations: [] },
+  };
+
+  /**
+   * Menghapus satu bagian dari profil — betulan, bukan menyembunyikan.
+   *
+   * Sebelumnya fungsi ini hanya membuang satu entri dari `visibleSections`,
+   * sementara dialognya berbunyi "menghapus dari profil Anda". Tidak ada data
+   * yang tersentuh dan bagiannya kembali pada pemuatan halaman berikutnya,
+   * karena efek di atas menyalakan ulang setiap bagian yang datanya ada.
+   *
+   * Urutannya penting: server dulu, tampilan belakangan. `handleUpdateProfile`
+   * melempar ketika gagal, jadi bagian yang datanya masih utuh tidak ikut
+   * hilang dari layar.
+   */
+  const handleRemoveSection = async (key: string) => {
+    const reset = SECTION_RESET[key];
+    if (reset) {
+      await handleUpdateProfile(reset);
+    }
+    setVisibleSections((prev) => prev.filter((s) => s !== key));
   };
 
   if (isLoading) {
@@ -424,11 +455,12 @@ export default function ProfilePage() {
         onSave={handleUpdateProfile}
       />
 
-      <EditAboutModal 
+      <EditAboutModal
         isOpen={isEditAboutOpen}
         onClose={() => setIsEditAboutOpen(false)}
         talentProfile={talentProfile}
         onSave={handleUpdateProfile}
+        onRemoveSection={() => handleRemoveSection('about')}
       />
 
       <AddSectionModal 

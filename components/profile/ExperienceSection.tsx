@@ -6,7 +6,7 @@ import { Experience, ExperienceModal } from './ExperienceModal';
 interface ExperienceSectionProps {
   experiences: Experience[];
   onUpdate: (experiences: Experience[]) => Promise<void>;
-  onRemoveSection?: () => void;
+  onRemoveSection?: () => Promise<void> | void;
   autoOpenAddModal?: boolean;
   onModalOpened?: () => void;
 }
@@ -34,11 +34,22 @@ export const ExperienceSection = ({ experiences: initialExperiences, onUpdate, o
     setIsAddModalOpen(false);
   };
 
-  const handleRemoveWholeSection = () => {
+  /**
+   * `onRemoveSection` sekarang menghubungi server, jadi hasilnya ditunggu.
+   * `handleUpdateProfile` sudah menampilkan toast galatnya lalu melempar
+   * ulang; lemparan itu ditelan di sini supaya tidak menjadi unhandled
+   * rejection.
+   */
+  const handleRemoveWholeSection = async () => {
     if (window.confirm(
-      'Sembunyikan bagian Pengalaman dari tampilan ini? Datanya tidak dihapus, dan bagian ini muncul lagi saat halaman dimuat ulang.',
+      'Hapus bagian Pengalaman dari profil Anda? Seluruh pengalaman kerja akan dihapus dan tidak bisa dikembalikan.',
     )) {
-      if (onRemoveSection) onRemoveSection();
+      if (!onRemoveSection) return;
+      try {
+        await onRemoveSection();
+      } catch {
+        // handleUpdateProfile sudah memberi tahu talentanya.
+      }
     }
   };
 

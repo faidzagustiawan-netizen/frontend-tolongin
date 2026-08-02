@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 interface SkillsSectionProps {
   skills: string[];
   onUpdate: (skills: string[]) => Promise<void>;
-  onRemoveSection?: () => void;
+  onRemoveSection?: () => Promise<void> | void;
   autoOpenAddModal?: boolean;
   onModalOpened?: () => void;
 }
@@ -175,12 +175,25 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
     }
   };
 
-  const handleRemoveWholeSection = () => {
+  /**
+   * `onRemoveSection` sekarang menghubungi server, jadi hasilnya ditunggu.
+   * `handleUpdateProfile` sudah menampilkan toast galatnya lalu melempar
+   * ulang; lemparan itu ditelan di sini supaya tidak menjadi unhandled
+   * rejection.
+   */
+  const handleRemoveWholeSection = async () => {
     if (window.confirm(
-      'Sembunyikan bagian Keahlian dari tampilan ini? Datanya tidak dihapus, dan bagian ini muncul lagi saat halaman dimuat ulang.',
+      'Hapus bagian Keahlian dari profil Anda? Seluruh keahlian yang sudah ditambahkan akan dikosongkan dan tidak bisa dikembalikan.',
     )) {
-      if (onRemoveSection) {
-        onRemoveSection();
+      if (!onRemoveSection) return;
+      setIsSaving(true);
+      try {
+        await onRemoveSection();
+        setIsAddModalOpen(false);
+      } catch {
+        // handleUpdateProfile sudah memberi tahu talentanya.
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -331,7 +344,7 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
                     onClick={handleRemoveWholeSection}
                     className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
                   >
-                    Sembunyikan Bagian Ini
+                    Hapus Bagian Ini
                   </Button>
                 )}
               </div>

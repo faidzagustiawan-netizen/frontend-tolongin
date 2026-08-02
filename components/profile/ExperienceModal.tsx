@@ -406,7 +406,7 @@ export const ExperienceModal = ({ isOpen, onClose, experience, onSave, onDelete,
           <div>
             {onRemoveSection && (
               <Button variant="outline" onClick={onRemoveSection} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50">
-                Sembunyikan Bagian Ini
+                Hapus Bagian Ini
               </Button>
             )}
           </div>

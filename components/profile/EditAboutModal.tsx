@@ -8,9 +8,16 @@ interface EditAboutModalProps {
   onClose: () => void;
   talentProfile: any;
   onSave: (data: any) => Promise<void>;
+  /**
+   * Menghapus seluruh bagian Tentang. Dulu modal ini memanggil
+   * `onSave({ bio: '' })` sendiri — satu-satunya bagian yang menghapus lewat
+   * jalurnya sendiri, sehingga halaman induk tidak tahu bagiannya sudah hilang
+   * dan `visibleSections` tidak ikut diperbarui.
+   */
+  onRemoveSection?: () => Promise<void> | void;
 }
 
-export const EditAboutModal = ({ isOpen, onClose, talentProfile, onSave }: EditAboutModalProps) => {
+export const EditAboutModal = ({ isOpen, onClose, talentProfile, onSave, onRemoveSection }: EditAboutModalProps) => {
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -83,21 +90,30 @@ export const EditAboutModal = ({ isOpen, onClose, talentProfile, onSave }: EditA
 
         <div className="p-6 border-t border-border flex justify-between items-center">
           <div>
-            <Button 
-              variant="outline" 
-              onClick={async (e) => {
-                e.preventDefault();
-                if (window.confirm('Yakin ingin menghapus bagian Tentang dari profil Anda?')) {
-                  setIsSaving(true);
-                  await onSave({ bio: '' });
-                  setIsSaving(false);
-                  onClose();
-                }
-              }} 
-              className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
-            >
-              Sembunyikan Bagian Ini
-            </Button>
+            {onRemoveSection && (
+              <Button
+                variant="outline"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (
+                    window.confirm(
+                      'Hapus bagian Tentang dari profil Anda? Deskripsi yang sudah ditulis akan dikosongkan dan tidak bisa dikembalikan.',
+                    )
+                  ) {
+                    setIsSaving(true);
+                    try {
+                      await onRemoveSection();
+                      onClose();
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }
+                }}
+                className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
+              >
+                Hapus Bagian Ini
+              </Button>
+            )}
           </div>
           <Button onClick={handleSubmit} isLoading={isSaving} disabled={!bio.trim()} className="rounded-full px-6">
             Simpan
