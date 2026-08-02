@@ -176,7 +176,9 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
   };
 
   const handleRemoveWholeSection = () => {
-    if (window.confirm('Yakin ingin menghapus seluruh bagian Keahlian dari profil Anda?')) {
+    if (window.confirm(
+      'Sembunyikan bagian Keahlian dari tampilan ini? Datanya tidak dihapus, dan bagian ini muncul lagi saat halaman dimuat ulang.',
+    )) {
       if (onRemoveSection) {
         onRemoveSection();
       }
@@ -317,7 +319,22 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
               )}
             </div>
 
-            <div className="p-6 border-t border-border flex justify-end items-center">
+            <div className="p-6 border-t border-border flex justify-between items-center">
+              {/* Sejajar dengan EducationModal dan ExperienceSection: menghapus
+                  seluruh bagian dari profil hanya bisa dari dalam modalnya,
+                  bukan dari ikon di kepala kartu, supaya tidak bersebelahan
+                  dengan tombol tambah dan edit. */}
+              <div>
+                {onRemoveSection && (
+                  <Button
+                    variant="outline"
+                    onClick={handleRemoveWholeSection}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
+                  >
+                    Sembunyikan Bagian Ini
+                  </Button>
+                )}
+              </div>
               {/* Dibungkus arrow function: `onClick={handleSaveAdd}` akan
                   meneruskan MouseEvent sebagai argumen pertama, yang di sini
                   berarti `force` dan membuat setiap klik Simpan melewati

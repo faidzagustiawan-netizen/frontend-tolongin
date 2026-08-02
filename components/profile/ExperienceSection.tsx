@@ -35,7 +35,9 @@ export const ExperienceSection = ({ experiences: initialExperiences, onUpdate, o
   };
 
   const handleRemoveWholeSection = () => {
-    if (window.confirm('Yakin ingin menghapus seluruh bagian Pengalaman dari profil Anda?')) {
+    if (window.confirm(
+      'Sembunyikan bagian Pengalaman dari tampilan ini? Datanya tidak dihapus, dan bagian ini muncul lagi saat halaman dimuat ulang.',
+    )) {
       if (onRemoveSection) onRemoveSection();
     }
   };

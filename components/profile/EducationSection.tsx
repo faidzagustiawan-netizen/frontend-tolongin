@@ -35,7 +35,9 @@ export const EducationSection = ({ educations: initialEducations, onUpdate, onRe
   };
 
   const handleRemoveWholeSection = () => {
-    if (window.confirm('Yakin ingin menghapus seluruh bagian Pendidikan dari profil Anda?')) {
+    if (window.confirm(
+      'Sembunyikan bagian Pendidikan dari tampilan ini? Datanya tidak dihapus, dan bagian ini muncul lagi saat halaman dimuat ulang.',
+    )) {
       if (onRemoveSection) onRemoveSection();
     }
   };

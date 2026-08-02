@@ -96,7 +96,7 @@ export const EditAboutModal = ({ isOpen, onClose, talentProfile, onSave }: EditA
               }} 
               className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
             >
-              Hapus Bagian Ini
+              Sembunyikan Bagian Ini
             </Button>
           </div>
           <Button onClick={handleSubmit} isLoading={isSaving} disabled={!bio.trim()} className="rounded-full px-6">
