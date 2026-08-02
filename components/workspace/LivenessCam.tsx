@@ -39,7 +39,6 @@ export const LivenessCam: React.FC<LivenessCamProps> = ({ onCaptureComplete }) =
 
   useEffect(() => {
     if (step !== 'DONE') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       startCamera();
     } else {
       stopCamera();
