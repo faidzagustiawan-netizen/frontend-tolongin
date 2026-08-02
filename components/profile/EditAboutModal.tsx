@@ -93,21 +93,14 @@ export const EditAboutModal = ({ isOpen, onClose, talentProfile, onSave, onRemov
             {onRemoveSection && (
               <Button
                 variant="outline"
-                onClick={async (e) => {
+                onClick={(e) => {
+                  // Modal ini menutup diri lebih dulu, baru meminta halaman
+                  // profil membuka ConfirmDialog-nya. ConfirmDialog merender
+                  // `Modal` pada z-index yang sama dengan modal ini, jadi
+                  // menumpuknya membuat dua jebakan fokus aktif bersamaan.
                   e.preventDefault();
-                  if (
-                    window.confirm(
-                      'Hapus bagian Tentang dari profil Anda? Deskripsi yang sudah ditulis akan dikosongkan dan tidak bisa dikembalikan.',
-                    )
-                  ) {
-                    setIsSaving(true);
-                    try {
-                      await onRemoveSection();
-                      onClose();
-                    } finally {
-                      setIsSaving(false);
-                    }
-                  }
+                  onClose();
+                  onRemoveSection();
                 }}
                 className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50"
               >

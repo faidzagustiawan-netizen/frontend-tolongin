@@ -35,22 +35,17 @@ export const ExperienceSection = ({ experiences: initialExperiences, onUpdate, o
   };
 
   /**
-   * `onRemoveSection` sekarang menghubungi server, jadi hasilnya ditunggu.
-   * `handleUpdateProfile` sudah menampilkan toast galatnya lalu melempar
-   * ulang; lemparan itu ditelan di sini supaya tidak menjadi unhandled
-   * rejection.
+   * Konfirmasinya dipegang halaman profil, bukan di sini.
+   *
+   * `window.confirm` diganti `ConfirmDialog`, dan `ConfirmDialog` merender
+   * `Modal` — sementara tombol ini berada di dalam modal yang digulung tangan
+   * pada z-index yang sama. Menumpuk keduanya membuat dua jebakan fokus aktif
+   * bersamaan, jadi modal ini menutup diri lebih dulu dan dialognya muncul
+   * sendirian di atas halaman.
    */
-  const handleRemoveWholeSection = async () => {
-    if (window.confirm(
-      'Hapus bagian Pengalaman dari profil Anda? Seluruh pengalaman kerja akan dihapus dan tidak bisa dikembalikan.',
-    )) {
-      if (!onRemoveSection) return;
-      try {
-        await onRemoveSection();
-      } catch {
-        // handleUpdateProfile sudah memberi tahu talentanya.
-      }
-    }
+  const handleRemoveWholeSection = () => {
+    setIsAddModalOpen(false);
+    onRemoveSection?.();
   };
 
   return (

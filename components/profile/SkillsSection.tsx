@@ -176,26 +176,17 @@ export const SkillsSection = ({ skills: initialSkills, onUpdate, onRemoveSection
   };
 
   /**
-   * `onRemoveSection` sekarang menghubungi server, jadi hasilnya ditunggu.
-   * `handleUpdateProfile` sudah menampilkan toast galatnya lalu melempar
-   * ulang; lemparan itu ditelan di sini supaya tidak menjadi unhandled
-   * rejection.
+   * Konfirmasinya dipegang halaman profil, bukan di sini.
+   *
+   * `window.confirm` diganti `ConfirmDialog`, dan `ConfirmDialog` merender
+   * `Modal` — sementara tombol ini berada di dalam modal yang digulung tangan
+   * pada z-index yang sama. Menumpuk keduanya membuat dua jebakan fokus aktif
+   * bersamaan, jadi modal ini menutup diri lebih dulu dan dialognya muncul
+   * sendirian di atas halaman.
    */
-  const handleRemoveWholeSection = async () => {
-    if (window.confirm(
-      'Hapus bagian Keahlian dari profil Anda? Seluruh keahlian yang sudah ditambahkan akan dikosongkan dan tidak bisa dikembalikan.',
-    )) {
-      if (!onRemoveSection) return;
-      setIsSaving(true);
-      try {
-        await onRemoveSection();
-        setIsAddModalOpen(false);
-      } catch {
-        // handleUpdateProfile sudah memberi tahu talentanya.
-      } finally {
-        setIsSaving(false);
-      }
-    }
+  const handleRemoveWholeSection = () => {
+    setIsAddModalOpen(false);
+    onRemoveSection?.();
   };
 
   return (

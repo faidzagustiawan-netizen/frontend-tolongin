@@ -8,6 +8,7 @@ import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
 import { verificationService } from '@/services/verification.service';
 import { Button } from '@/components/common/Button';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AlertCircle, Building2 } from 'lucide-react';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -250,6 +251,27 @@ export default function ProfilePage() {
     education: { educations: [] },
   };
 
+  /** Nama bagian dan apa yang hilang bersamanya, untuk dialog konfirmasi. */
+  const SECTION_COPY: Record<string, { nama: string; hilang: string }> = {
+    about: { nama: 'Tentang', hilang: 'Deskripsi profil yang sudah Anda tulis' },
+    skills: { nama: 'Keahlian', hilang: 'Seluruh keahlian yang sudah ditambahkan' },
+    experience: { nama: 'Pengalaman', hilang: 'Seluruh riwayat pengalaman kerja' },
+    education: { nama: 'Pendidikan', hilang: 'Seluruh riwayat pendidikan' },
+  };
+
+  /**
+   * Konfirmasi penghapusan dipegang halaman ini, bukan tiap bagian.
+   *
+   * `ConfirmDialog` merender `Modal`, sementara keempat tombolnya berada di
+   * dalam modal profil yang digulung tangan — semuanya `fixed inset-0 z-50`,
+   * sama persis dengan `Modal`. Menumpuk keduanya berarti dua jebakan fokus
+   * aktif bersamaan dan urutan tumpukan yang bergantung pada urutan render.
+   * Karena itu bagian yang bersangkutan menutup modalnya sendiri lebih dulu,
+   * lalu dialog ini muncul sendirian di atas halaman.
+   */
+  const [pendingRemoval, setPendingRemoval] = useState<string | null>(null);
+  const [isRemovingSection, setIsRemovingSection] = useState(false);
+
   /**
    * Menghapus satu bagian dari profil — betulan, bukan menyembunyikan.
    *
@@ -260,14 +282,24 @@ export default function ProfilePage() {
    *
    * Urutannya penting: server dulu, tampilan belakangan. `handleUpdateProfile`
    * melempar ketika gagal, jadi bagian yang datanya masih utuh tidak ikut
-   * hilang dari layar.
+   * hilang dari layar — dan dialognya sengaja dibiarkan terbuka supaya
+   * kegagalannya terlihat.
    */
-  const handleRemoveSection = async (key: string) => {
-    const reset = SECTION_RESET[key];
-    if (reset) {
-      await handleUpdateProfile(reset);
+  const handleConfirmRemoveSection = async () => {
+    if (!pendingRemoval) return;
+    const reset = SECTION_RESET[pendingRemoval];
+    setIsRemovingSection(true);
+    try {
+      if (reset) {
+        await handleUpdateProfile(reset);
+      }
+      setVisibleSections((prev) => prev.filter((s) => s !== pendingRemoval));
+      setPendingRemoval(null);
+    } catch {
+      // handleUpdateProfile sudah menampilkan toast galatnya.
+    } finally {
+      setIsRemovingSection(false);
     }
-    setVisibleSections((prev) => prev.filter((s) => s !== key));
   };
 
   if (isLoading) {
@@ -375,7 +407,7 @@ export default function ProfilePage() {
             <ExperienceSection 
               experiences={talentProfile?.experiences || []} 
               onUpdate={(experiences) => handleUpdateProfile({ experiences })}
-              onRemoveSection={() => handleRemoveSection('experience')}
+              onRemoveSection={() => setPendingRemoval('experience')}
               autoOpenAddModal={autoOpenSection === 'experience'}
               onModalOpened={() => setAutoOpenSection(null)}
             />
@@ -385,7 +417,7 @@ export default function ProfilePage() {
             <EducationSection 
               educations={talentProfile?.educations || []} 
               onUpdate={(educations) => handleUpdateProfile({ educations })}
-              onRemoveSection={() => handleRemoveSection('education')}
+              onRemoveSection={() => setPendingRemoval('education')}
               autoOpenAddModal={autoOpenSection === 'education'}
               onModalOpened={() => setAutoOpenSection(null)}
             />
@@ -395,7 +427,7 @@ export default function ProfilePage() {
             <SkillsSection 
               skills={talentProfile?.skills || []} 
               onUpdate={(skills) => handleUpdateProfile({ skills })}
-              onRemoveSection={() => handleRemoveSection('skills')}
+              onRemoveSection={() => setPendingRemoval('skills')}
               autoOpenAddModal={autoOpenSection === 'skills'}
               onModalOpened={() => setAutoOpenSection(null)}
             />
@@ -460,10 +492,30 @@ export default function ProfilePage() {
         onClose={() => setIsEditAboutOpen(false)}
         talentProfile={talentProfile}
         onSave={handleUpdateProfile}
-        onRemoveSection={() => handleRemoveSection('about')}
+        onRemoveSection={() => setPendingRemoval('about')}
       />
 
-      <AddSectionModal 
+      <ConfirmDialog
+        open={!!pendingRemoval}
+        destructive
+        title={`Hapus bagian ${SECTION_COPY[pendingRemoval ?? '']?.nama ?? ''}?`}
+        confirmLabel="Ya, hapus"
+        cancelLabel="Batal"
+        isBusy={isRemovingSection}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={() => void handleConfirmRemoveSection()}
+      >
+        <p>
+          <strong>{SECTION_COPY[pendingRemoval ?? '']?.hilang}</strong> akan
+          dihapus dari profil Anda.
+        </p>
+        <p className="text-muted-foreground">
+          Tindakan ini tidak bisa dibatalkan. Bagiannya bisa ditambahkan lagi
+          lewat &quot;Tambahkan bagian&quot;, tetapi isinya harus ditulis ulang.
+        </p>
+      </ConfirmDialog>
+
+      <AddSectionModal
         isOpen={isAddSectionOpen}
         onClose={() => setIsAddSectionOpen(false)}
         onAddSection={handleAddSection}
