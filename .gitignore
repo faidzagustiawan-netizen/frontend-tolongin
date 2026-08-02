@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+# Keluaran Playwright. Keduanya sempat ter-commit — laporan HTML 525 KB yang
+# ditulis ulang setiap kali suite dijalankan.
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/

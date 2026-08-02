@@ -1,12 +1,11 @@
-export interface User {
-  id: string;
-  email: string;
-  role: 'TALENT' | 'COMPANY' | 'ADMIN';
-  /** Pemilik akun perusahaan; akun undangan selalu false. */
-  isCompanyOwner?: boolean;
-  profile?: UserProfile;
-}
-
+/**
+ * Kolom profil yang dibaca antarmuka. Sengaja longgar: bentuknya berbeda-beda
+ * antara talenta dan perusahaan, dan yang membacanya selalu satu-dua kolom.
+ *
+ * Bentuk penggunanya sendiri ada di `UserData` (`store/userStore.ts`) — di
+ * sinilah dulu ada `User` kedua yang tidak pernah diimpor siapa pun dan
+ * perlahan menyimpang dari yang dipakai.
+ */
 export interface UserProfile {
   id?: string;
   name?: string;
@@ -81,70 +80,25 @@ export interface Section {
   components: ComponentData[];
 }
 
-export interface Challenge {
-  id: string;
-  slug?: string;
-  title: string;
-  summary?: string;
-  description: string;
-  /** Posisi yang direkrut, teks bebas. Kategori hanya keranjang bank soal. */
-  role?: string | null;
-  /** Nama bidang dari direktori keahlian; null berarti lintas bidang. */
-  category?: string | null;
-  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  datasetUrl?: string;
-  mockApiUrl?: string;
-  brandGuidelineUrl?: string;
-  rewardDescription?: string;
-  deadlineAt?: string;
-  gradingRubric?: Record<string, unknown>;
-  sections?: Section[];
-  status?: 'DRAFT' | 'PUBLISHED';
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface SubmissionResponse {
   componentId: string;
   value: string | number | boolean | Record<string, unknown> | null;
 }
 
-export interface Enrollment {
-  id: string;
-  challengeId: string;
-  talentId: string;
-  status: 'IN_PROGRESS' | 'SUBMITTED' | 'EVALUATED';
-  score?: number | null;
-  responses?: SubmissionResponse[];
-  startedAt?: string;
-  submittedAt?: string;
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  rank: number;
-  score: number;
-  talent: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  challenge?: Partial<Challenge>;
-}
-
-export interface Discussion {
-  id: string;
-  message: string;
-  authorId: string;
-  parentId?: string;
-  createdAt: string;
-  author?: UserProfile;
-  replies?: Discussion[];
-}
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: number;
-  features: string[];
-}
+/*
+ * Pernah ada di sini: `User`, `Challenge`, `Enrollment`, `LeaderboardEntry`,
+ * `Discussion`, `SubscriptionPlan`. Tidak satu pun pernah diimpor.
+ *
+ * Karena tidak dipakai, tidak ada yang menyadari ketika isinya menyimpang dari
+ * basis data: `Enrollment.status` kehilangan `ENROLLED` — justru status awal
+ * setiap pendaftaran — dan `DROPPED`, sementara `Challenge.status` kehilangan
+ * `CLOSED`. Definisi yang benar dan memang dipakai ada di berkas layanan yang
+ * bersangkutan, sedekat mungkin dengan permintaan yang memakainya:
+ * `CreateChallengePayload` di `services/challenges.service.ts`,
+ * `LeaderboardEntry` di `services/portfolios.service.ts`, `StageView` di
+ * `services/stages.service.ts`.
+ *
+ * Berkas ini menyisakan yang benar-benar dipakai bersama lintas layar:
+ * bentuk penyusun studi kasus (`Section`, `ComponentData`, enum gerbang tahap)
+ * dan dua bentuk kecil di atas.
+ */

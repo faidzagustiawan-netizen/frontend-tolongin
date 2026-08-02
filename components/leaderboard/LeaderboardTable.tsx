@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Medal, MapPin, Zap, User, CheckCircle2, Calendar, Globe, ChevronDown, Check, Filter } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import type { LeaderboardEntry } from '@/services/portfolios.service';
 
 interface RankInfo {
   minLevel: number;
@@ -14,8 +15,9 @@ interface RankInfo {
 }
 
 interface LeaderboardTableProps {
-  fullLeaderboard: any[];
-  currentUser?: any;
+  fullLeaderboard: LeaderboardEntry[];
+  /** Sesi yang sedang masuk; `id` di sini adalah id `User`. */
+  currentUser?: { id: string } | null;
   getRankInfo: (level: number) => RankInfo;
   categories?: string[];
   regions?: string[];
@@ -257,22 +259,28 @@ export const LeaderboardTable = ({
     pageItems = fullLeaderboard.slice(3, 10);
   }
 
-  const currentUserIndex = fullLeaderboard.findIndex((talent) => 
-    (currentUser?.email && (talent.user?.email === currentUser.email || talent.email === currentUser.email)) ||
-    (currentUser?.id && (talent.userId === currentUser.id || talent.user?.id === currentUser.id || talent.id === currentUser.id))
-  );
-  
+  /**
+   * `userId` adalah satu-satunya penghubung ke sesi.
+   *
+   * Sebelumnya baris ini juga memeriksa `talent.user?.email`, `talent.email`,
+   * dan `talent.user?.id`. Tidak satu pun pernah dikirim: `getLeaderboard`
+   * hanya memilih kolom publik `TalentProfile` dan tidak pernah menyertakan
+   * relasi `user`. `talent.id` pun bukan padanan `currentUser.id` — yang satu
+   * id `TalentProfile`, yang lain id `User`.
+   */
+  const isSameUser = (talent: LeaderboardEntry) =>
+    Boolean(currentUser?.id) && talent.userId === currentUser!.id;
+
+  const currentUserIndex = fullLeaderboard.findIndex(isSameUser);
+
   const isUserInCurrentPage = currentUserIndex >= startIndex && currentUserIndex < endIndex;
   const shouldShowPinnedUser = currentUserIndex !== -1 && !isUserInCurrentPage;
   const pinnedUser = shouldShowPinnedUser ? fullLeaderboard[currentUserIndex] : null;
 
-  const renderRow = (talent: any, originalIndex: number, localIndex: number, isPinned = false) => {
+  const renderRow = (talent: LeaderboardEntry, originalIndex: number, localIndex: number, isPinned = false) => {
     const rank = originalIndex + 1;
     const rankInfo = getRankInfo(talent.level || 1);
-    const isCurrentUser = currentUser && (
-      (currentUser.email && (talent.user?.email === currentUser.email || talent.email === currentUser.email)) ||
-      (currentUser.id && (talent.userId === currentUser.id || talent.user?.id === currentUser.id || talent.id === currentUser.id))
-    );
+    const isCurrentUser = isSameUser(talent);
 
     return (
       <Link key={talent.id + (isPinned ? '-pinned' : '')} href={`/talents/${talent.slug || talent.userId}`} className="block">

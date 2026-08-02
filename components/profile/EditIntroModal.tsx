@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useDialogA11y } from '../../utils/useDialogA11y';
 import { Button } from '../common/Button';
+import { skillsService } from '@/services/skills.service';
 
 interface EditIntroModalProps {
   isOpen: boolean;
@@ -16,8 +18,25 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
     lastName: '',
     headline: '',
     location: '',
+    roleCategory: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  /**
+   * `roleCategory` sudah lama diterima `PATCH /users/me/profile` dan disaring
+   * `GET /talents` maupun `GET /leaderboard`, tetapi tidak ada satu pun ruas
+   * di antarmuka yang mengisinya — jadi kolomnya null untuk setiap talenta dan
+   * penyaring bidang tidak pernah punya apa pun untuk disaring.
+   *
+   * Pilihannya dari direktori keahlian, sama dengan yang dibaca penyaring di
+   * papan peringkat.
+   */
+  const { data: categories } = useQuery({
+    queryKey: ['skill-categories'],
+    queryFn: () => skillsService.listCategories(),
+    staleTime: 5 * 60 * 1000,
+    enabled: isOpen,
+  });
 
   useEffect(() => {
     if (talentProfile) {
@@ -29,6 +48,7 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
         lastName: lName,
         headline: talentProfile.headline || '',
         location: talentProfile.location || '',
+        roleCategory: talentProfile.roleCategory || '',
       });
     }
   }, [talentProfile]);
@@ -46,15 +66,32 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  // Nilai lama yang tidak (lagi) ada di direktori tetap ditawarkan, supaya
+  // menyimpan profil tidak diam-diam mengosongkan bidang talenta.
+  const categoryNames = (categories ?? []).map((c) => c.name);
+  const categoryOptions =
+    formData.roleCategory && !categoryNames.includes(formData.roleCategory)
+      ? [formData.roleCategory, ...categoryNames]
+      : categoryNames;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-    await onSave({ fullName, headline: formData.headline, location: formData.location });
+    await onSave({
+      fullName,
+      headline: formData.headline,
+      location: formData.location,
+      roleCategory: formData.roleCategory,
+    });
     setIsSaving(false);
     onClose();
   };
@@ -116,13 +153,40 @@ export const EditIntroModal = ({ isOpen, onClose, talentProfile, onSave }: EditI
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Lokasi</label>
-            <input 
+            <input
               name="location"
               value={formData.location}
               onChange={handleChange}
               placeholder="Cth: Jakarta, Indonesia"
               className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="roleCategory"
+              className="text-sm font-medium text-foreground"
+            >
+              Kategori Peran Utama
+            </label>
+            <select
+              id="roleCategory"
+              name="roleCategory"
+              value={formData.roleCategory}
+              onChange={handleChange}
+              className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+            >
+              <option value="">Pilih kategori...</option>
+              {categoryOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Dipakai perusahaan untuk menyaring papan peringkat dan direktori
+              talenta.
+            </p>
           </div>
         </div>
 

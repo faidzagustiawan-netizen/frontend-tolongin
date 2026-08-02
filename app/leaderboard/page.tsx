@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { portfoliosService } from '../../services/portfolios.service';
+import { skillsService } from '../../services/skills.service';
 import { useUserStore } from '../../store/userStore';
 import { Trophy, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,42 +21,81 @@ const RANKS = [
   { minLevel: 6, maxLevel: 99, name: 'Grandmaster', color: 'text-purple-400', border: 'border-purple-400/50', bg: 'bg-purple-400/10' },
 ];
 
-const CATEGORIES = ['All Roles', 'UI/UX Design', 'Frontend Engineering', 'Backend & API', 'Data Science & AI', 'Digital Marketing & SEO'];
-const REGIONS = ['Global', 'Indonesia', 'Jakarta', 'Bandung', 'Yogyakarta'];
+/** Menampilkan seluruh bidang; bukan nilai yang pernah dikirim ke server. */
+const ALL_ROLES = 'Semua Bidang';
+/** Menampilkan seluruh wilayah; bukan nilai `location` milik siapa pun. */
+const ALL_REGIONS = 'Semua Wilayah';
 
 export default function LeaderboardPage() {
   const { user } = useUserStore();
-  const [selectedCategory, setSelectedCategory] = useState('All Roles');
-  const [selectedRegion, setSelectedRegion] = useState('Global');
-  
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: () => portfoliosService.getLeaderboard(50),
+  const [selectedCategory, setSelectedCategory] = useState(ALL_ROLES);
+  const [selectedRegion, setSelectedRegion] = useState(ALL_REGIONS);
+
+  /**
+   * Bidang diambil dari direktori keahlian — sumber yang sama dengan yang
+   * dipakai `<select>` di profil talenta dan pemilih kategori di pembuatan
+   * studi kasus.
+   *
+   * Sebelumnya daftar ini ditulis tangan di berkas ini ("Frontend
+   * Engineering", "Backend & API", ...) sementara profil menyimpan "Frontend"
+   * dan "Backend". Tidak satu pun cocok, jadi setiap penyaringan kategori
+   * mengosongkan papan peringkat.
+   */
+  const { data: categories } = useQuery({
+    queryKey: ['skill-categories'],
+    queryFn: () => skillsService.listCategories(),
+    staleTime: 5 * 60 * 1000,
   });
 
-  const rawLeaderboard = data?.data || [];
+  const { data, isLoading, isError } = useQuery({
+    // Kategori ikut kunci: penyaringan dikerjakan server, jadi ganti bidang
+    // berarti permintaan baru — bukan menyaring ulang 50 baris yang sama.
+    queryKey: ['leaderboard', selectedCategory],
+    queryFn: () =>
+      portfoliosService.getLeaderboard({
+        limit: 50,
+        roleCategory:
+          selectedCategory === ALL_ROLES ? undefined : selectedCategory,
+      }),
+  });
+
+  const rawLeaderboard = useMemo(() => data?.data ?? [], [data]);
 
   const getRankInfo = (level: number) => {
     return RANKS.find(r => level >= r.minLevel && level <= r.maxLevel) || RANKS[0];
   };
 
-  const filteredLeaderboard = rawLeaderboard.filter((talent: any) => {
-    // Kategori/Role filtering
-    if (selectedCategory !== 'All Roles' && selectedCategory !== 'Semua Kategori') {
-      if (talent.roleCategory !== selectedCategory && !talent.roleCategory?.includes(selectedCategory)) {
-        return false;
-      }
+  const categoryOptions = useMemo(
+    () => [ALL_ROLES, ...(categories ?? []).map((c) => c.name)],
+    [categories],
+  );
+
+  /**
+   * Wilayah disimpulkan dari baris yang benar-benar ada, bukan daftar tetap.
+   *
+   * `location` adalah ruas teks bebas di profil, jadi tidak ada himpunan nilai
+   * sah yang bisa ditulis di muka — daftar tetap yang lama ("Jakarta",
+   * "Bandung", "Yogyakarta") meleset dari apa pun yang diketik talenta.
+   */
+  const regionOptions = useMemo(() => {
+    const found = new Set<string>();
+    for (const talent of rawLeaderboard) {
+      const location = talent.location?.trim();
+      if (location) found.add(location);
     }
-    
-    // Region filtering
-    if (selectedRegion !== 'Global' && selectedRegion !== 'Indonesia') {
-      if (talent.location !== selectedRegion) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
+    return [ALL_REGIONS, ...Array.from(found).sort((a, b) => a.localeCompare(b))];
+  }, [rawLeaderboard]);
+
+  // Wilayah disaring di peramban: pilihannya sendiri berasal dari hasil ini,
+  // jadi menyaringnya di server akan mempersempit daftar pilihan sampai hanya
+  // menyisakan yang sedang dipilih.
+  const filteredLeaderboard = useMemo(
+    () =>
+      selectedRegion === ALL_REGIONS
+        ? rawLeaderboard
+        : rawLeaderboard.filter((talent) => talent.location === selectedRegion),
+    [rawLeaderboard, selectedRegion],
+  );
 
   const topThree = filteredLeaderboard.slice(0, 3);
   const remaining = filteredLeaderboard.slice(3);
@@ -102,8 +142,8 @@ export default function LeaderboardPage() {
             fullLeaderboard={filteredLeaderboard}
             currentUser={user}
             getRankInfo={getRankInfo}
-            categories={CATEGORIES}
-            regions={REGIONS}
+            categories={categoryOptions}
+            regions={regionOptions}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             selectedRegion={selectedRegion}

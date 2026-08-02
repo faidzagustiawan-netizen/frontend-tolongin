@@ -17,6 +17,14 @@ export interface PublicTalent {
 export interface TalentDirectoryQuery {
   search?: string;
   skill?: string;
+  /**
+   * Nama bidang, persis seperti di direktori keahlian.
+   *
+   * Sudah lama diterima `GET /talents` dan disaring di Prisma, tetapi tidak
+   * pernah disebut di sini — jadi penyaringnya tidak bisa dipanggil dari mana
+   * pun di antarmuka.
+   */
+  roleCategory?: string;
   page?: number;
   limit?: number;
 }

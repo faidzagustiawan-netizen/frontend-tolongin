@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 import { Trophy, Medal, Zap, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import type { LeaderboardEntry } from '@/services/portfolios.service';
 
 interface PodiumProps {
-  topThree: any[];
+  topThree: LeaderboardEntry[];
 }
 
-const PodiumItem = ({ item, rank, delay }: { item: any; rank: number; delay: number }) => {
+const PodiumItem = ({ item, rank, delay }: { item: LeaderboardEntry; rank: number; delay: number }) => {
   const getRankBadge = (rank: number) => {
     switch (rank) {
       case 1: return 'bg-yellow-400/20 text-yellow-400';

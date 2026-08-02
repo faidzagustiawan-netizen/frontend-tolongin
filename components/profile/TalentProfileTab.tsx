@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Image as ImageIcon, X } from 'lucide-react';
+import { skillsService } from '@/services/skills.service';
 
 interface TalentProfileTabProps {
   talentProfile: any;
@@ -22,6 +24,30 @@ export const TalentProfileTab = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [avatarMethod, setAvatarMethod] = useState<'url' | 'upload'>('url');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Bidang diambil dari direktori keahlian, bukan daftar tetap di berkas ini.
+   *
+   * Tujuh pilihan yang dulu ditulis tangan di sini ("Frontend", "Backend",
+   * "UI/UX", ...) adalah satu-satunya sumber nilai `roleCategory` yang pernah
+   * tersimpan, dan tidak satu pun cocok dengan penyaring di papan peringkat
+   * maupun dengan nama bidang yang dipakai perusahaan saat membuat studi
+   * kasus. Ketiganya sekarang membaca direktori yang sama.
+   */
+  const { data: categories } = useQuery({
+    queryKey: ['skill-categories'],
+    queryFn: () => skillsService.listCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Nilai lama yang sudah tersimpan tetapi tidak (lagi) ada di direktori harus
+  // tetap muncul sebagai pilihan. Tanpa ini `<select>` jatuh ke "Pilih
+  // Kategori..." dan menyimpan profil diam-diam menghapus bidang talenta.
+  const categoryOptions = React.useMemo(() => {
+    const names = (categories ?? []).map((c) => c.name);
+    const current = editFormData.roleCategory?.trim();
+    return current && !names.includes(current) ? [current, ...names] : names;
+  }, [categories, editFormData.roleCategory]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -179,13 +205,11 @@ export const TalentProfileTab = ({
               onChange={(e) => setEditFormData({ ...editFormData, roleCategory: e.target.value })}
             >
               <option value="">Pilih Kategori...</option>
-              <option value="Frontend">Frontend</option>
-              <option value="Backend">Backend</option>
-              <option value="Fullstack">Fullstack</option>
-              <option value="UI/UX">UI/UX</option>
-              <option value="Data Science">Data Science</option>
-              <option value="Mobile">Mobile Developer</option>
-              <option value="Product Manager">Product Manager</option>
+              {categoryOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
           ) : (
             <div className="w-full h-11 bg-background border border-border rounded-xl px-4 text-sm flex items-center opacity-70">

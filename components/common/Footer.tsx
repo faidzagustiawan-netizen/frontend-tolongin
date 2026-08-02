@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { API_ORIGIN } from '@/lib/apiConfig';
 export const Footer = () => {
   return (
     <footer className="w-full border-t border-border bg-background py-12 px-4 sm:px-6 lg:px-8 mt-20">
@@ -54,7 +55,7 @@ export const Footer = () => {
               </Link>
             </li>
             <li>
-              <a href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001'}/api/docs`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-cyan-400 transition-colors">
+              <a href={`${API_ORIGIN}/api/docs`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-cyan-400 transition-colors">
                 Dokumentasi API (Swagger)
               </a>
             </li>

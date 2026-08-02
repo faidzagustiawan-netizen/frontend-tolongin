@@ -85,14 +85,32 @@ export interface CreateChallengePayload {
   status?: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 }
 
+/**
+ * Dua endpoint AI memakai DTO yang bidangnya tidak beririsan, jadi tipenya
+ * juga dua.
+ *
+ * Sebelumnya keduanya berbagi satu tipe yang memuat gabungan semua bidang:
+ * `role`, `blueprint`, DAN `previousBlueprint`. Backend memasang
+ * `forbidNonWhitelisted: true`, sehingga satu bidang yang tidak dikenal DTO
+ * tujuannya membuat seluruh permintaan ditolak 400 — dan tipenya justru
+ * mengizinkan persis kekeliruan itu di kedua arah.
+ */
+export interface GenerateAiBlueprintPayload {
+  prompt: string;
+  category?: ChallengeCategoryValue;
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  /** Kerangka sebelumnya, untuk revisi. Tidak dikenal oleh `/ai-generate`. */
+  previousBlueprint?: any;
+}
+
 export interface GenerateAiChallengePayload {
   prompt: string;
   /** Posisi yang direkrut; ikut disimpan seperti di jalur manual. */
   role?: string;
   category?: ChallengeCategoryValue;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  blueprint?: any;
-  previousBlueprint?: any;
+  /** Wajib: kerangka yang sudah disetujui perusahaan. */
+  blueprint: any;
 }
 
 export interface CreateDiscussionPayload {
@@ -243,7 +261,7 @@ export const challengesService = {
     );
     return { data };
   },
-  generateAiBlueprint: async (payload: GenerateAiChallengePayload) => {
+  generateAiBlueprint: async (payload: GenerateAiBlueprintPayload) => {
     const { data } = await apiClient.post('/challenges/ai-generate-blueprint', payload);
     return { data };
   },

@@ -1,8 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { clearAuthSession, readAuthToken } from '../lib/authStorage';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://podorukunspk.fun/api/v1';
+import { API_BASE_URL } from '../lib/apiConfig';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
