@@ -122,9 +122,17 @@ const PodiumItem = ({ item, rank, delay }: { item: LeaderboardEntry; rank: numbe
 
           {/* Original Podium PNG Image - Unified Hover & Attached */}
           <div className="w-full relative flex items-end justify-center" style={{ lineHeight: 0 }}>
-            <img
+            {/* Satu-satunya gambar di aplikasi ini yang benar-benar untung
+                dioptimalkan: tiga PNG statis ~130 KB yang dirender selebar
+                224 px. Sisanya avatar dan logo dari URL yang diketik
+                pengguna — lihat catatan di next.config.ts. */}
+            <Image
               src={getPodiumImg(rank)}
               alt={`Podium ${rank}`}
+              width={217}
+              height={687}
+              sizes="(min-width: 768px) 14rem, (min-width: 640px) 12rem, 8rem"
+              priority={rank === 1}
               className="w-32 sm:w-48 md:w-56 h-auto object-contain max-h-[220px] sm:max-h-[320px] drop-shadow-xl scale-125 origin-bottom transition-all duration-300 group-hover:-translate-y-2 group-hover:brightness-110 group-hover:drop-shadow-[0_12px_24px_rgba(0,188,125,0.35)]"
             />
           </div>
