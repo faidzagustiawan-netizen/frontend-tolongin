@@ -80,14 +80,10 @@ export interface Section {
   components: ComponentData[];
 }
 
-export interface SubmissionResponse {
-  componentId: string;
-  value: string | number | boolean | Record<string, unknown> | null;
-}
-
 /*
  * Pernah ada di sini: `User`, `Challenge`, `Enrollment`, `LeaderboardEntry`,
- * `Discussion`, `SubscriptionPlan`. Tidak satu pun pernah diimpor.
+ * `Discussion`, `SubscriptionPlan`, `SubmissionResponse`. Tidak satu pun
+ * pernah dipakai.
  *
  * Karena tidak dipakai, tidak ada yang menyadari ketika isinya menyimpang dari
  * basis data: `Enrollment.status` kehilangan `ENROLLED` — justru status awal
@@ -98,7 +94,7 @@ export interface SubmissionResponse {
  * `LeaderboardEntry` di `services/portfolios.service.ts`, `StageView` di
  * `services/stages.service.ts`.
  *
- * Berkas ini menyisakan yang benar-benar dipakai bersama lintas layar:
- * bentuk penyusun studi kasus (`Section`, `ComponentData`, enum gerbang tahap)
- * dan dua bentuk kecil di atas.
+ * Berkas ini kini hanya menyisakan bentuk penyusun studi kasus yang memang
+ * dipakai bersama lintas layar: `UserProfile`, `ComponentData`, `Section`, dan
+ * ketiga enum gerbang tahap.
  */
