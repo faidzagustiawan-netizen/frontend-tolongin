@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { authService } from '../../../services/auth.service';
@@ -120,7 +120,7 @@ function RegisterContent() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     trigger,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
@@ -131,7 +131,13 @@ function RegisterContent() {
     },
   });
 
-  const isJoinTeam = watch('isJoinTeam');
+  // `useWatch`, bukan `watch()`. Keduanya membaca nilai yang sama, tetapi
+  // `watch()` berlangganan lewat ref mutable di luar model React, dan React
+  // Compiler menolak menganalisis komponen yang memakainya — seluruh berkas
+  // ini dilewati optimasi, dilaporkan sebagai `react-hooks/
+  // incompatible-library`. `useWatch` hook biasa dengan langganan yang bisa
+  // dilacak.
+  const isJoinTeam = useWatch({ control, name: 'isJoinTeam' });
 
   useEffect(() => {
     setValue('role', selectedRole);
