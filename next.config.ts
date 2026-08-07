@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // Tujuan proxy harus mengikuti lingkungan. Nilai localhost yang dipatok
     // membuat rewrite ini menunjuk ke tempat yang salah saat di-deploy.
-    const apiOrigin = process.env.BACKEND_ORIGIN || 'http://localhost:3001';
+    const apiOrigin = process.env.BACKEND_ORIGIN || 'https://podorukunspk.fun';
     return [
       {
         source: "/api/:path*",

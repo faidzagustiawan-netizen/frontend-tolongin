@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useUserStore } from '@/store/userStore';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { CoreValuesSection } from '@/components/landing/CoreValuesSection';
-import { PricingSection } from '@/components/landing/PricingSection';
 import { CtaSection } from '@/components/landing/CtaSection';
 import { TestimonialMarquee } from '@/components/common/TestimonialMarquee';
 import { CompanyWorkspaceDashboard } from '@/components/workspace/CompanyWorkspaceDashboard';
@@ -72,7 +71,6 @@ export default function Home() {
       <HeroSection />
       <CoreValuesSection />
       <TestimonialMarquee />
-      <PricingSection />
       <CtaSection />
     </div>
   );

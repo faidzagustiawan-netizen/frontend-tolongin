@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 import { StaggerContainer, StaggerItem } from '../animations';
@@ -11,6 +12,15 @@ export function HeroSection() {
   const [isHoveringHero, setIsHoveringHero] = useState(false);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+
+  const mascotX = useSpring(
+    useTransform(mouseX, [0, 1400], [35, -35]),
+    { stiffness: 50, damping: 15 }
+  );
+  const mascotY = useSpring(
+    useTransform(mouseY, [0, 800], [35, -35]),
+    { stiffness: 50, damping: 15 }
+  );
 
   const handleMouseMove = (e: React.MouseEvent) => {
     mouseX.set(e.clientX);
@@ -53,7 +63,7 @@ export function HeroSection() {
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHoveringHero(true)}
       onMouseLeave={() => setIsHoveringHero(false)}
-      className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32 text-center overflow-hidden hero-no-cursor"
+      className="relative w-full max-w-none px-4 sm:px-8 lg:px-16 xl:px-24 pt-24 pb-32 overflow-hidden hero-no-cursor"
     >
       {isHoveringHero && (
         <motion.div
@@ -76,84 +86,104 @@ export function HeroSection() {
       )}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-emerald-500/20 via-teal-500/15 to-cyan-500/20 rounded-full blur-[140px] pointer-events-none -z-10" />
 
-      <StaggerContainer className="w-full">
-        <StaggerItem className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-title tracking-tight max-w-5xl mx-auto leading-tight">
-        Setiap talenta layak mendapat <br className="hidden sm:block" />
-        <div className="relative inline-block min-h-[1.2em] h-auto pb-2 overflow-visible w-full mt-2">
-          <AnimatePresence mode="popLayout">
-            <motion.span
-              key={currentWordIndex}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -40 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className="absolute left-0 right-0 text-transparent bg-clip-text bg-gradient-to-r from-[#1e7f4d] to-[#2aa565]"
-            >
-              {heroWords[currentWordIndex]}
-            </motion.span>
-          </AnimatePresence>
-        </div>
+      {/* Maskot Melayang Interaktif di Sisi Kanan Mentok */}
+      <motion.div
+        style={{ x: mascotX, y: mascotY }}
+        animate={{
+          y: [0, -22, 0],
+          rotate: [0, 3, -3, 0],
+        }}
+        transition={{
+          y: { repeat: Infinity, duration: 3.8, ease: 'easeInOut' },
+          rotate: { repeat: Infinity, duration: 5.5, ease: 'easeInOut' },
+        }}
+        className="hidden lg:block absolute right-4 lg:right-12 xl:right-20 top-[85%] -translate-y-1/2 w-80 h-80 lg:w-[380px] lg:h-[380px] xl:w-[460px] xl:h-[460px] pointer-events-none z-10"
+      >
+        <Image
+          src="/mascot-fly.svg"
+          alt="Maskot Fly"
+          fill
+          className="object-contain drop-shadow-[0_25px_35px_rgba(30,127,77,0.3)]"
+          priority
+        />
+      </motion.div>
+
+      <StaggerContainer className="w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto text-center relative z-20">
+        <StaggerItem className="font-display text-4xl sm:text-6xl md:text-7xl font-medium text-title tracking-tight max-w-full mx-auto leading-tight">
+          Setiap talenta layak mendapat <br className="hidden sm:block" />
+          <div className="relative inline-block min-h-[1.2em] h-auto pb-2 overflow-visible w-full mt-2">
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={currentWordIndex}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -40 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                className="absolute left-0 right-0 text-transparent bg-clip-text bg-gradient-to-r from-[#1e7f4d] to-[#2aa565]"
+              >
+                {heroWords[currentWordIndex]}
+              </motion.span>
+            </AnimatePresence>
+          </div>
         </StaggerItem>
 
         <StaggerItem className="mt-10 flex flex-wrap items-center justify-center gap-4">
-        <Link href="/login">
-          <Button
-            size="lg"
-            onMouseEnter={handleMouseEnter1}
-            onMouseLeave={handleMouseLeave1}
-            aria-label="Mulai Eksplorasi Sekarang"
-            className="text-base font-bold px-8 py-4 shadow-2xl relative overflow-hidden bg-[var(--btn-primary-bg-default)] text-white border-transparent hover:border-transparent transition-none"
-          >
-            <span className="relative z-10 flex items-center justify-center pointer-events-none">
-              Mulai Eksplorasi Sekarang
-              <ArrowRight className="ml-2 h-5 w-5 pointer-events-none" />
-            </span>
-            <span
-              style={{
-                position: 'absolute',
-                left: ripple1.x,
-                top: ripple1.y,
-                transform: `translate(-50%, -50%) scale(${ripple1.active ? 150 : 0})`,
-                transition: `transform ${ripple1.active ? '0.5s' : '0.2s'} ease-out`,
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--btn-primary-bg-hover)',
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            />
-          </Button>
-        </Link>
-        <Link href="/register?role=COMPANY">
-          <Button
-            variant="outline"
-            size="lg"
-            onMouseEnter={handleMouseEnter2}
-            onMouseLeave={handleMouseLeave2}
-            aria-label="Bergabung Sebagai Mitra Perusahaan"
-            className="text-base font-bold px-8 py-4 relative overflow-hidden bg-[var(--btn-secondary-bg-default)] border border-[var(--btn-secondary-border-default)] hover:border-[var(--btn-secondary-border-hover)] transition-none"
-          >
-            <span className="relative z-10 flex items-center justify-center pointer-events-none transition-none" style={{ color: ripple2.active ? 'var(--btn-secondary-text-hover)' : 'var(--btn-secondary-text-default)' }}>
-              Bergabung Sebagai Mitra Perusahaan
-            </span>
-            <span
-              style={{
-                position: 'absolute',
-                left: ripple2.x,
-                top: ripple2.y,
-                transform: `translate(-50%, -50%) scale(${ripple2.active ? 150 : 0})`,
-                transition: `transform ${ripple2.active ? '0.5s' : '0.2s'} ease-out`,
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--btn-secondary-bg-hover)',
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            />
-          </Button>
-        </Link>
+          <Link href="/login">
+            <Button
+              size="lg"
+              onMouseEnter={handleMouseEnter1}
+              onMouseLeave={handleMouseLeave1}
+              aria-label="Mulai Eksplorasi Sekarang"
+              className="text-base font-bold px-8 py-4 shadow-2xl relative overflow-hidden bg-[var(--btn-primary-bg-default)] text-white border-transparent hover:border-transparent transition-none"
+            >
+              <span className="relative z-10 flex items-center justify-center pointer-events-none">
+                Mulai Eksplorasi Sekarang
+              </span>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: ripple1.x,
+                  top: ripple1.y,
+                  transform: `translate(-50%, -50%) scale(${ripple1.active ? 150 : 0})`,
+                  transition: `transform ${ripple1.active ? '0.5s' : '0.2s'} ease-out`,
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--btn-primary-bg-hover)',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
+            </Button>
+          </Link>
+          <Link href="/register?role=COMPANY">
+            <Button
+              size="lg"
+              onMouseEnter={handleMouseEnter2}
+              onMouseLeave={handleMouseLeave2}
+              aria-label="Bergabung Sebagai Mitra Perusahaan"
+              className="text-base font-bold px-8 py-4 shadow-2xl relative overflow-hidden bg-[#F1732E] text-white border-transparent hover:border-transparent transition-none"
+            >
+              <span className="relative z-10 flex items-center justify-center pointer-events-none transition-none text-white">
+                Bergabung Sebagai Mitra Perusahaan
+              </span>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: ripple2.x,
+                  top: ripple2.y,
+                  transform: `translate(-50%, -50%) scale(${ripple2.active ? 150 : 0})`,
+                  transition: `transform ${ripple2.active ? '0.5s' : '0.2s'} ease-out`,
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f38545',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
+            </Button>
+          </Link>
         </StaggerItem>
       </StaggerContainer>
     </section>

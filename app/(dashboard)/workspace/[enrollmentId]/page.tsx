@@ -12,7 +12,7 @@ import { FileUploader } from '@/components/workspace/FileUploader';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Briefcase, CheckCircle2, AlertCircle, GitBranch, Layout, Globe, Send, Award, Timer, Lock, FileText,
-  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ExternalLink, Play, Eye, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Loader2, ChevronDown, ChevronUp
+  ShieldCheck, Camera, AlertTriangle, ArrowLeft, ArrowRight, ScanFace, ExternalLink, Play, Eye, Sparkles, Clock, Grid, UserCheck, BadgeCheck, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -101,6 +101,7 @@ export default function EnrollmentWorkspacePage() {
   const [faceVerified, setFaceVerified] = useState<boolean | null>(null);
   const [isVerifyingFace, setIsVerifyingFace] = useState<boolean>(false);
   const [webcamOpen, setWebcamOpen] = useState<boolean>(false);
+  const [showKycAlertModal, setShowKycAlertModal] = useState<boolean>(false);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -119,7 +120,17 @@ export default function EnrollmentWorkspacePage() {
     queryFn: () => verificationService.getStatus(),
     enabled: !!user,
   });
-  const kycStatus = verificationStatusData?.data?.status || 'UNVERIFIED';
+
+  const kycStatus = 
+    verificationStatusData?.status || 
+    verificationStatusData?.data?.status || 
+    (user as any)?.profile?.faceVerificationStatus || 
+    'UNVERIFIED';
+
+  const isKycVerified = 
+    kycStatus === 'VERIFIED' || 
+    kycStatus === 'APPROVED' || 
+    (user as any)?.profile?.faceVerificationStatus === 'VERIFIED';
 
   // Keadaan tahap datang dari server, termasuk keputusan terbuka atau tidak dan
   // sisa waktunya. Halaman ini tidak menghitung apa pun sendiri: hitungan di
@@ -382,6 +393,10 @@ export default function EnrollmentWorkspacePage() {
 
   // Start Webcam Stream
   const handleStartWebcam = () => {
+    if (!isKycVerified) {
+      setShowKycAlertModal(true);
+      return;
+    }
     setWebcamOpen(true);
     setIsVerifyingFace(false);
   };
@@ -578,7 +593,72 @@ export default function EnrollmentWorkspacePage() {
   const latestSubmission = submissions[submissions.length - 1];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
+      {/* STUNNING KYC REQUIREMENT MODAL */}
+      <AnimatePresence>
+        {showKycAlertModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="max-w-md w-full bg-card/95 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-[0_0_50px_rgba(16,185,129,0.15)] relative overflow-hidden"
+            >
+              {/* Decorative background glow */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Icon */}
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto shadow-inner relative">
+                <ScanFace className="w-10 h-10 text-emerald-400" />
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full border-2 border-card flex items-center justify-center">
+                  <AlertTriangle className="w-3 h-3 text-black" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">
+                  Verifikasi KTP Diperlukan
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Profil Anda belum terverifikasi KTP/Selfie. Harap lakukan verifikasi KTP di halaman Pengaturan terlebih dahulu agar pencocokan biometrik dan pengerjaan soal dapat dibuka.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowKycAlertModal(false)}
+                  className="flex-1 rounded-xl h-12 text-xs font-bold"
+                >
+                  Nanti Saja
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setShowKycAlertModal(false);
+                    router.push('/settings/kyc');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold h-12 text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 group"
+                >
+                  <span>Verifikasi Sekarang</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Waktu tahap habis memicu pengumpulan otomatis: pekerjaan yang sudah
           tersimpan dikirim alih-alih hilang bersama waktunya. Server tetap yang
           memutuskan menerima atau menolak. */}
@@ -592,27 +672,28 @@ export default function EnrollmentWorkspacePage() {
       </Link>
 
       {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
-      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full">
+      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full relative">
         {/* Banner Image */}
-        <div className="h-48 w-full relative overflow-hidden bg-background">
+        <div className="h-48 sm:h-56 w-full relative overflow-hidden bg-background">
           <Image
-            // Versi .jpg, bukan .png: isinya foto, dan PNG-nya 5 MB untuk
-            // gambar yang dirender setinggi 192 px. Keduanya sempat ada di
-            // public/, hanya PNG yang pernah dirujuk.
-            src={selectedEnrollment.challenge.bannerUrl || '/images/challenge-banner.jpg'}
-            alt={selectedEnrollment.challenge.title || 'Banner Studi Kasus'}
+            src={
+              selectedEnrollment.challenge?.bannerUrl ||
+              (selectedEnrollment.challenge?.challengeType === 'PUBLIC'
+                ? '/bgchallenge-talent.svg'
+                : '/bgchallenge-company.svg')
+            }
+            alt={selectedEnrollment.challenge?.title || 'Banner Studi Kasus'}
             fill
             sizes="100vw"
             priority
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-black/20 pointer-events-none"></div>
         </div>
 
-        {/* Content Area */}
-        <div className="px-8 pb-8">
+        {/* Content Area (Rounded at Top-Left & Top-Right) */}
+        <div className="bg-card rounded-t-3xl relative z-10 -mt-6 pt-2 px-8 pb-8">
           {/* Logo overlay & Issuer */}
-          <div className="flex items-end gap-5 -mt-10 mb-6 relative z-10">
+          <div className="flex items-end gap-5 -mt-12 mb-6 relative z-20">
             <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center border-4 border-card shadow-sm overflow-hidden shrink-0">
               {selectedEnrollment.challenge?.challengeType === 'PUBLIC' ? (
                 selectedEnrollment.challenge?.creator?.avatarUrl ? (
@@ -733,8 +814,9 @@ export default function EnrollmentWorkspacePage() {
           {/* Sesi Pengerjaan */}
           <div className="bg-card border border-border rounded-3xl p-8 shadow-xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
-              <div>
-                <h3 className="font-display text-2xl font-bold text-foreground mt-1">Sesi Pengerjaan</h3>
+              <div className="flex items-center gap-3">
+                <img src="/spesifikasi-proyek.svg" alt="Sesi Pengerjaan Icon" className="h-10 w-15 object-contain shrink-0" />
+                <h3 className="font-display text-2xl font-bold text-foreground">Sesi Pengerjaan</h3>
               </div>
 
               <div className="flex items-center gap-3">
@@ -772,6 +854,10 @@ export default function EnrollmentWorkspacePage() {
                 <Button 
                   onClick={() => {
                     if (isProctored) {
+                      if (!isKycVerified) {
+                        setShowKycAlertModal(true);
+                        return;
+                      }
                       setCurrentStep('FACE_CHECK');
                     } else {
                       handleEnterFullscreen();
@@ -779,7 +865,7 @@ export default function EnrollmentWorkspacePage() {
                     }
                   }} 
                   size="lg" 
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 px-8 mt-4"
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold h-14 px-8 mt-4 shadow-lg hover:scale-105 transition-all"
                 >
                   Mulai Pengerjaan Sekarang
                 </Button>
@@ -796,10 +882,19 @@ export default function EnrollmentWorkspacePage() {
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Pengerjaan di IDE eksternal atau aplikasi desain diizinkan secara penuh. Sistem mencatat penutupan atau perpindahan tab sebanyak <strong className="text-amber-400">{tabSwitchCount} kali</strong> sebagai log transparansi bagi tim rekruter.
                         </p>
-                        {kycStatus !== 'VERIFIED' && (
-                          <div className="bg-amber-500/20 border border-amber-500/50 p-3 rounded-xl text-amber-300 text-xs flex items-center gap-2 mt-2 shadow-inner">
-                            <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400" />
-                            <span>Status Profil Anda belum Terverifikasi KTP. Harap lakukan verifikasi KTP/Selfie di halaman Profil agar pencocokan biometrik berjalan optimal.</span>
+                        {!isKycVerified && (
+                          <div 
+                            onClick={() => setShowKycAlertModal(true)}
+                            className="bg-amber-500/20 border border-amber-500/50 p-3.5 rounded-xl text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-2 shadow-inner cursor-pointer hover:bg-amber-500/30 transition-all group"
+                          >
+                            <div className="flex items-start sm:items-center gap-2.5">
+                              <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400 mt-0.5 sm:mt-0" />
+                              <span>Status Profil Anda belum Terverifikasi KTP. Harap lakukan verifikasi KTP/Selfie terlebih dahulu agar pencocokan biometrik berjalan optimal.</span>
+                            </div>
+                            <Button size="sm" variant="outline" className="border-amber-400/40 text-amber-300 hover:bg-amber-400/20 text-[11px] shrink-0 font-bold gap-1.5 self-end sm:self-auto">
+                              <span>Verifikasi KTP</span>
+                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -836,22 +931,30 @@ export default function EnrollmentWorkspacePage() {
                       </Button>
                     </div>
 
-                    {/* Webcam Preview Modal / Stream */}
+                    {/* WEBCAM FACE SCANNER MODAL POPUP */}
                     <AnimatePresence>
                       {webcamOpen && (
                         <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="pt-4 overflow-hidden"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-left"
                         >
-                          <FaceScanner 
-                            onCaptureComplete={handleFaceVerification}
-                            onCancel={() => setWebcamOpen(false)}
-                            isVerifying={isVerifyingFace}
-                            title="Verifikasi Wajah Peserta"
-                            description="Sistem akan membandingkan wajah Anda dengan profil yang terdaftar secara instan (Lokal)."
-                          />
+                          <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="max-w-lg w-full relative"
+                          >
+                            <FaceScanner 
+                              onCaptureComplete={handleFaceVerification}
+                              onCancel={() => setWebcamOpen(false)}
+                              isVerifying={isVerifyingFace}
+                              title="Verifikasi Wajah Peserta"
+                              description="Sistem akan membandingkan wajah Anda dengan profil yang terdaftar secara instan."
+                            />
+                          </motion.div>
                         </motion.div>
                       )}
                     </AnimatePresence>

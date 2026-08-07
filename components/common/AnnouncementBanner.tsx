@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { AlertTriangle, CheckCircle, Info, X, Wrench } from 'lucide-react';
 import { announcementsApi, type AnnouncementType } from '@/services/adminApi';
 
@@ -77,8 +78,9 @@ export function AnnouncementBanner() {
     }
   };
 
+  const pathname = usePathname();
   const visible = items.filter((item) => !dismissed.includes(item.id));
-  if (visible.length === 0) return null;
+  if (pathname?.startsWith('/workspace') || visible.length === 0) return null;
 
   return (
     <div className="w-full px-4 pt-4 space-y-2">

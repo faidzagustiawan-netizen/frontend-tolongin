@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { Building2, Calendar, Award, ShieldCheck, ArrowRight } from 'lucide-react';
+import { BadgeCheck, Grid, Clock, UserCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface ChallengeDetailHeaderProps {
@@ -16,95 +16,142 @@ export const ChallengeDetailHeader = ({
   isAuthenticated,
   userRole,
   onEnrollClick,
-  onLoginClick
+  onLoginClick,
 }: ChallengeDetailHeaderProps) => {
-  const getDifficultyColor = (diff: string) => {
-    switch (diff) {
-      case 'BEGINNER': return 'bg-blue-500/10 border-blue-500/30 text-blue-400';
-      case 'INTERMEDIATE': return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
-      case 'ADVANCED': return 'bg-purple-500/10 border-purple-500/30 text-purple-400';
-      default: return 'bg-gray-500/10 border-gray-500/30 text-muted-foreground';
-    }
-  };
+  const isProctored = challenge?.gradingRubric?.requireProctoring ?? true;
 
   return (
-    <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-emerald-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full relative">
+      {/* Banner Image */}
+      <div className="h-48 sm:h-56 w-full relative overflow-hidden bg-background">
+        <Image
+          src={
+            challenge?.bannerUrl ||
+            (challenge?.challengeType === 'PUBLIC'
+              ? '/bgchallenge-talent.svg'
+              : '/bgchallenge-company.svg')
+          }
+          alt={challenge?.title || 'Banner Studi Kasus'}
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+        />
+      </div>
 
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 relative z-10">
-        <div className="space-y-6 max-w-3xl">
-          <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 rounded-2xl bg-foreground/5 border border-foreground/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
-              {challenge.company?.logoUrl ? (
-                <Image src={challenge.company.logoUrl} alt={challenge.company.companyName} fill sizes="64px" className="object-cover" />
+      {/* Content Area (Rounded at Top-Left & Top-Right) */}
+      <div className="bg-card rounded-t-3xl relative z-10 -mt-6 pt-2 px-8 pb-8">
+        {/* Logo overlay & Issuer */}
+        <div className="flex items-end gap-5 -mt-12 mb-6 relative z-20">
+          <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center border-4 border-card shadow-sm overflow-hidden shrink-0">
+            {challenge?.challengeType === 'PUBLIC' ? (
+              challenge?.creator?.avatarUrl ? (
+                <img src={challenge.creator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <Building2 className="relative z-10 h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
-            <div>
-              <h4 className="text-base font-bold text-gray-200">{challenge.company?.companyName || 'Perusahaan Mitra'}</h4>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <span className="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-foreground/5 border border-foreground/10 text-muted-foreground">
-                  {challenge.category?.trim() || 'Lintas bidang'}
+                <span className="text-white font-bold text-3xl font-display">
+                  {(challenge?.creator?.fullName || 'T')[0].toUpperCase()}
                 </span>
-                <span className={`text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
-                  {challenge.difficulty}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-            {challenge.title}
-          </h1>
-
-          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-            {challenge.summary}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-border/80 text-sm text-muted-foreground">
-            {challenge.rewardDescription && (
-              <div className="flex items-center gap-2 text-amber-400 font-semibold">
-                <Award className="h-5 w-5 flex-shrink-0" />
-                <span>{challenge.rewardDescription}</span>
-              </div>
+              )
+            ) : challenge?.company?.logoUrl ? (
+              <img src={challenge.company.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white font-bold text-5xl font-display">T</span>
             )}
-            {challenge.deadlineAt && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-5 w-5 flex-shrink-0 text-emerald-400" />
-                <span>Batas Waktu: {new Date(challenge.deadlineAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-              </div>
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl font-bold text-foreground tracking-tight">
+              {challenge?.challengeType === 'PUBLIC'
+                ? (challenge?.creator?.fullName || 'Talenta')
+                : (challenge?.company?.companyName || 'Platform')}
+            </span>
+            {(challenge?.company || challenge?.challengeType === 'PUBLIC') && (
+              <BadgeCheck className="w-5 h-5 text-emerald-500" />
             )}
           </div>
         </div>
 
-        <div className="bg-background border border-border rounded-2xl p-6 shadow-xl flex flex-col justify-between w-full md:w-80 flex-shrink-0 space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-              <ShieldCheck className="h-4 w-4" /> Dilindungi Digital NDA
+        {/* Title */}
+        <h1 className="font-display text-3xl font-extrabold text-foreground tracking-tight mb-8">
+          {challenge?.title}
+        </h1>
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 md:gap-x-20 mb-8 max-w-4xl">
+          <div className="flex items-center">
+            <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+              <Grid className="w-4 h-4" />
+              <span className="text-sm font-semibold">Kategori</span>
             </div>
-            <h3 className="text-lg font-bold text-foreground">Mulai Mengerjakan</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Dengan mendaftar, Anda akan mendapatkan akses penuh ke dataset, mock API, dan panduan merek perusahaan.
-            </p>
+            <div className="text-sm font-bold text-foreground">
+              <span className="text-[10px] uppercase border border-border px-3 py-1 rounded-full tracking-wider">
+                {challenge?.category?.trim() || 'Lintas bidang'}
+              </span>
+            </div>
           </div>
 
-          {isAuthenticated ? (
-            userRole === 'TALENT' ? (
-              <Button onClick={onEnrollClick} size="lg" className="w-full shadow-xl">
-                <span>Ambil Tantangan Ini</span>
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <div className="flex items-center md:pl-16">
+            <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm font-semibold">Batas waktu</span>
+            </div>
+            <div className="text-sm font-bold text-foreground">
+              {challenge?.gradingRubric?.durationHours || 72} Jam
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+              <UserCheck className="w-4 h-4" />
+              <span className="text-sm font-semibold">Mode proctoring</span>
+            </div>
+            <div className="text-sm font-bold text-foreground">
+              {isProctored ? 'Aktif (Biometrik Wajib)' : 'Non-Aktif'}
+            </div>
+          </div>
+
+          <div className="flex items-center md:pl-16">
+            <div className="flex items-center gap-2 text-muted-foreground w-40 shrink-0">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-sm font-semibold">Evaluasi AI</span>
+            </div>
+            <div className="text-sm font-bold text-foreground">
+              Instant Feedback
+            </div>
+          </div>
+        </div>
+
+        {/* Description & Action CTA (At Bottom-Right of Card) */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mt-4 pt-4 border-t border-border/40">
+          <div className="text-base text-foreground font-medium flex-1">
+            {challenge?.shortDescription || challenge?.summary || 'Memahami dan memprediksi churn dengan model pembelajaran mesin.'}
+          </div>
+
+          <div className="shrink-0 self-end sm:self-auto">
+            {isAuthenticated ? (
+              userRole === 'TALENT' ? (
+                <Button 
+                  onClick={onEnrollClick} 
+                  size="lg" 
+                  className="!bg-[#1E7F4D] hover:!bg-[#16643c] !bg-none text-white font-bold shadow-xl border-none"
+                >
+                  <span>Ambil Tantangan Ini</span>
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              ) : (
+                <div className="bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Hanya akun Talenta yang dapat mengambil tantangan.</p>
+                </div>
+              )
             ) : (
-              <div className="bg-foreground/5 border border-foreground/10 rounded-xl p-4 text-center">
-                <p className="text-xs text-muted-foreground">Hanya akun Talenta yang dapat mengambil tantangan studi kasus.</p>
-              </div>
-            )
-          ) : (
-            <Button onClick={onLoginClick} size="lg" className="w-full">
-              Masuk untuk Mendaftar
-            </Button>
-          )}
+              <Button 
+                onClick={onLoginClick} 
+                size="lg"
+                className="!bg-[#1E7F4D] hover:!bg-[#16643c] !bg-none text-white font-bold border-none"
+              >
+                Masuk untuk Mendaftar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

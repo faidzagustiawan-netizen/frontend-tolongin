@@ -2,64 +2,51 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Briefcase, ArrowRight, Coins, Code2, Plus, Building2, User, BadgeCheck } from 'lucide-react';
+import { Briefcase, ArrowRight, Coins, Building2, User, BadgeCheck } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      {/* Header Section - Clean 2 Column Layout (like /challenges) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start font-jakarta mb-2">
-        {/* Left Column: Title & Subtitle */}
-        <div className="lg:col-span-7 space-y-3">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      {/* Header Section - Clean 2 Column Layout with Mascot */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center font-jakarta mb-10">
+        {/* Left Column: Title, Subtitle & Action Button */}
+        <div className="lg:col-span-7 space-y-4">
           <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
             Workspace Talenta<span className="text-[#1E7F4D]">.</span>
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-xl">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
             Semua tantangan dan studi kasus yang sedang Anda kerjakan atau telah selesai dievaluasi akan muncul di sini. Pilih salah satu untuk melanjutkan pengerjaan.
           </p>
-        </div>
-
-        {/* Right Column: Token Balance & Action Buttons */}
-        <div className="lg:col-span-5 space-y-4 lg:pt-2 max-w-md ml-auto flex flex-col sm:items-end">
-          {/* Token Balance Card */}
-          <div className="bg-card border border-border px-5 py-3 rounded-2xl flex items-center justify-between sm:justify-end gap-5 shadow-sm w-full sm:w-auto">
-            <div className="text-left sm:text-right">
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
-                Saldo Token
-              </p>
-              <div className="flex items-center gap-2">
-                <Coins className="h-5 w-5 text-amber-400" />
-                <span className="font-display text-2xl font-extrabold text-foreground font-mono">
-                  {tokenData?.tokenBalance || 0}
-                </span>
-              </div>
-            </div>
-            <Link href="/talent/tokens">
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md flex items-center gap-1.5 text-white text-xs font-bold"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Top-Up
-              </Button>
-            </Link>
-          </div>
-
-          {/* Action Button */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="pt-2">
             <Link href="/challenges/create">
               <Button
-                size="sm"
-                variant="outline"
-                className="border-border text-foreground hover:bg-[#1E7F4D]/10 hover:text-[#1E7F4D] hover:border-[#1E7F4D]/50 font-bold shadow-sm flex items-center gap-2 text-xs"
+                variant="ghost"
+                size="md"
+                className="!bg-transparent hover:!bg-[#1E7F4D]/10 !bg-none !text-[#1E7F4D] dark:!text-[#00BC7D] font-bold !rounded-full border-2 border-[#1E7F4D] px-6 py-3 text-sm sm:text-base flex items-center gap-2 transition-all hover:scale-105 shadow-sm"
               >
-                <Code2 className="h-4 w-4 text-[#1E7F4D]" />
-                Buat Public Challenge (-50)
+                <span className="!text-[#1E7F4D] dark:!text-[#00BC7D]">Buat Public Challenge</span>
+                <span className="flex items-center gap-1 bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-semibold border border-[#1E7F4D]/30 !text-[#1E7F4D] dark:!text-[#00BC7D]">
+                  <Coins className="h-4 w-4 text-amber-500 fill-amber-400 shrink-0" />
+                  -50
+                </span>
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Right Column: Mascot Image */}
+        <div className="lg:col-span-5 flex justify-center lg:justify-end">
+          <Image
+            src="/mascot-chear.svg"
+            alt="Mascot Chear"
+            width={240}
+            height={240}
+            priority
+            className="h-48 sm:h-56 lg:h-64 w-auto object-contain"
+          />
         </div>
       </div>
 
@@ -96,16 +83,16 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
             const type = enrollment.challenge?.challengeType || 'COMPANY';
 
             const theme = type === 'COMPANY' ? {
-              bgClass: 'bg-[#3B3669]',
-              rewardClass: 'text-[#3B3669] dark:text-[#615FFF] font-extrabold',
-              btnClass: 'bg-white border border-[#3B3669] text-[#3B3669] hover:bg-[#3B3669] hover:text-white dark:bg-card dark:border-indigo-400 dark:text-indigo-400 dark:hover:bg-indigo-500 dark:hover:text-white shadow-sm',
-              bookmarkBtnClass: 'bg-[#3B3669] border-transparent text-white hover:bg-[#3B3669]/80 dark:bg-indigo-500 dark:hover:bg-indigo-400 shadow-sm',
-              cardBorderHoverClass: 'group-hover:border-[#3B3669]/30 dark:group-hover:border-indigo-500/30',
-              cardBgClass: 'bg-[#3B3669]/10 dark:bg-[#3B3669]/20',
+              bgClass: 'bg-[#F1732E]',
+              rewardClass: 'text-[#F1732E] dark:text-[#F1732E] font-extrabold',
+              btnClass: 'bg-[#F1732E] border border-transparent text-white hover:bg-[#F58748] dark:bg-[#F1732E] dark:hover:bg-[#F58748] shadow-sm',
+              bookmarkBtnClass: 'bg-[#F1732E] border-transparent text-white hover:bg-[#F1732E]/80 dark:bg-[#F1732E] dark:hover:bg-[#F1732E]/80 shadow-sm',
+              cardBorderHoverClass: 'group-hover:border-[#F1732E]/30 dark:group-hover:border-[#F1732E]/30',
+              cardBgClass: 'bg-[#F1732E]/10 dark:bg-[#F1732E]/20',
             } : {
               bgClass: 'bg-[#1E7F4D]',
               rewardClass: 'text-[#1E7F4D] dark:text-[#00BC7D] font-extrabold',
-              btnClass: 'bg-white border border-[#1E7F4D] text-[#1E7F4D] hover:bg-[#1E7F4D] hover:text-white dark:bg-card dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white shadow-sm',
+              btnClass: 'bg-[#1E7F4D] border border-transparent text-white hover:bg-[#28A567] dark:bg-[#1E7F4D] dark:hover:bg-[#28A567] shadow-sm',
               bookmarkBtnClass: 'bg-[#1E7F4D] border-transparent text-white hover:bg-[#1E7F4D]/80 dark:bg-emerald-500 dark:hover:bg-emerald-400 shadow-sm',
               cardBorderHoverClass: 'group-hover:border-[#1E7F4D]/30 dark:group-hover:border-emerald-500/30',
               cardBgClass: 'bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20',
@@ -149,8 +136,17 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
                   {/* Background Radial Gradient */}
                   <div 
                     className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-20 dark:opacity-30 z-0" 
-                    style={{ background: `radial-gradient(circle at top right, ${type === 'COMPANY' ? '#3B3669' : '#1E7F4D'}, transparent 70%)` }} 
+                    style={{ background: `radial-gradient(circle at top right, ${type === 'COMPANY' ? '#F1732E' : '#1E7F4D'}, transparent 70%)` }} 
                   />
+
+                  {/* Thumbnail Image (Flush to top, left, and right edges) */}
+                  <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 h-40 sm:h-44 mb-4 overflow-hidden z-10 flex-shrink-0 bg-muted border-b border-border/50">
+                    <img
+                      src={type === 'COMPANY' ? '/bgchallenge-company.svg' : '/bgchallenge-talent.svg'}
+                      alt={title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
 
                   {/* 1. Judul (Fixed height for 2 lines max) */}
                   <div className="relative h-14 sm:h-16 mb-2 z-10">
@@ -160,32 +156,18 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
                   </div>
 
                   {/* 2. Diambil pada */}
-                  <div className="h-5 mb-2.5 flex items-center">
+                  <div className="h-5 mb-4 flex items-center">
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
                       Diambil pada: {new Date(enrollment.startedAt).toLocaleDateString('id-ID')}
                     </span>
                   </div>
 
-                  {/* 3. Deskripsi (Fixed height 1 line, truncate with ...) */}
-                  <div className="h-5 mb-4 flex items-center">
-                    {summary ? (
-                      <p className="text-base text-foreground font-semibold truncate">
-                        {summary}
-                      </p>
-                    ) : (
-                      <p className="text-base text-muted-foreground italic truncate">Tidak ada deskripsi</p>
-                    )}
-                  </div>
-
                   {/* 4. Status Tag (Fixed height 1 line) */}
-                  <div className="h-7 mb-5 flex items-center gap-2 overflow-hidden">
+                  <div className="h-7 mb-4 flex items-center gap-2 overflow-hidden">
                     <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${statusColor}`}>
                       {enrollment.status.replace('_', ' ')}
                     </span>
                   </div>
-
-                  {/* 5. Divider */}
-                  <div className="border-t border-border w-full mb-4" />
 
                   {/* 6. Profil Uploader */}
                   <div className="h-12 mb-5 flex items-center gap-3">

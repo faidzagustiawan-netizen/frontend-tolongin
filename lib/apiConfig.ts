@@ -12,7 +12,7 @@
  * mesin pengembang yang lupa mengisi env sebaiknya gagal tersambung, bukan
  * diam-diam menulis ke produksi.
  */
-const DEFAULT_ORIGIN = 'http://localhost:3001';
+const DEFAULT_ORIGIN = 'https://podorukunspk.fun';
 
 /** Termasuk awalan `/api/v1`. Dipakai sebagai `baseURL` axios. */
 export const API_BASE_URL =

@@ -7,13 +7,14 @@ import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  CheckCircle2, AlertCircle, Send, Timer, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Eye
+  CheckCircle2, AlertCircle, Send, Timer, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Eye, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
 import { QuestionTypeRegistry, RESPONSE_FIELD } from '@/components/question-types';
+import DraftStatusBar from '@/app/(dashboard)/challenges/create/components/DraftStatusBar';
 
 
 export default function ExamSessionPage() {
@@ -576,211 +577,150 @@ export default function ExamSessionPage() {
   const currentComp = componentsList[examQuestionIdx];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-[var(--font-plus-jakarta)]">
-      {/* Waktu tahap habis: jawaban yang sudah tersimpan dikumpulkan alih-alih
-          hilang bersama waktunya. Server tetap yang memutuskan menerima atau
-          menolak — hitungan di layar hanya tampilan. */}
-      <StageExpiryWatcher
-        expiredSectionId={stageGate.expiredSectionId}
-        onExpire={() => void handleSubmitSolution()}
+    <div className="w-full min-h-screen bg-background font-[var(--font-plus-jakarta)]">
+      {/* NAVBAR PENGERJAAN SOAL (EDGES FULL WIDTH) */}
+      <DraftStatusBar
+        isExamMode={true}
+        title={selectedEnrollment.challenge?.title}
+        exitHref={`/workspace/${selectedEnrollmentId}`}
+        isSavingDraft={isSavingDraft}
+        hasUnsavedDraft={hasUnsavedDraft}
+        lastDraftSavedAt={lastDraftSavedAt}
+        stageTimeLeft={stageTimeLeft || timeLeftString}
+        isStageWarning={(stageGate.remainingSeconds ?? 0) < 60}
+        isReadOnly={isSubmitted}
+        proctored={isProctored}
       />
 
-      {/* CONTINUOUS PROCTORING COMPONENT — PAUSED IN INTER-STAGE BREAK */}
-      {continuousTracking && !isExpired && !isSubmitted && !isBetweenStages && (
-        <ContinuousProctoring
-          onViolation={(msg) => {
-            const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            setProctoringEvents((list) => [...list, `[${timestamp}] ${msg}`]);
-          }}
+      <div className="w-full px-4 sm:px-8 py-6 space-y-6">
+        {/* Waktu tahap habis: jawaban yang sudah tersimpan dikumpulkan alih-alih
+            hilang bersama waktunya. Server tetap yang memutuskan menerima atau
+            menolak — hitungan di layar hanya tampilan. */}
+        <StageExpiryWatcher
+          expiredSectionId={stageGate.expiredSectionId}
+          onExpire={() => void handleSubmitSolution()}
         />
-      )}
 
-      {/* WARNING MODALS */}
-      <AnimatePresence>
-        {showTabWarning && !isLockedOut && !isSubmitted && !isBetweenStages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6"
-          >
-            <div className="max-w-md w-full bg-card border border-red-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
-              <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-10 h-10 text-red-500" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">Pelanggaran Terdeteksi!</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Sistem mendeteksi Anda telah meninggalkan halaman ujian (pindah aplikasi/tab). Tindakan ini telah dicatat dalam laporan pengawasan rekruter.
-                </p>
-                {maxTabSwitches > 0 && (
-                  <p className="text-xs font-bold text-red-400 mt-4">
-                    (Peringatan Ke-{tabSwitchCount} dari Maksimal {maxTabSwitches})
-                  </p>
-                )}
-              </div>
-              <Button 
-                onClick={() => {
-                  setShowTabWarning(false);
-                  if (enforceFullscreen) handleEnterFullscreen();
-                }}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold h-12"
-              >
-                Saya Mengerti, Kembali ke Soal
-              </Button>
-            </div>
-          </motion.div>
+        {/* CONTINUOUS PROCTORING COMPONENT — PAUSED IN INTER-STAGE BREAK */}
+        {continuousTracking && !isExpired && !isSubmitted && !isBetweenStages && (
+          <ContinuousProctoring
+            onViolation={(msg) => {
+              const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              setProctoringEvents((list) => [...list, `[${timestamp}] ${msg}`]);
+            }}
+          />
         )}
 
-        {isLockedOut && !isSubmitted && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-6"
-          >
-            <div className="max-w-md w-full bg-card border-2 border-red-500 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
-              <Lock className="w-16 h-16 text-red-500 mx-auto" />
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-2">Akses Ujian Dikunci!</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Anda telah melanggar batas maksimal perpindahan tab/aplikasi ({maxTabSwitches} kali). Ujian ini dikunci secara otomatis.
-                </p>
-              </div>
-              <Button 
-                onClick={() => router.push(`/workspace/${selectedEnrollmentId}`)}
-                className="w-full bg-foreground text-background font-bold h-12"
-              >
-                Kembali ke Overview Workspace
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* STAGE COMPLETION CONFIRMATION MODAL */}
-        {showStageConfirmModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-6"
-          >
-            <div className="max-w-md w-full bg-card border border-border rounded-3xl p-8 text-center space-y-6 shadow-2xl">
-              <div className="w-16 h-16 bg-[#1E7F4D]/20 rounded-full flex items-center justify-center mx-auto text-[#1E7F4D] dark:text-emerald-400">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-foreground">Selesaikan {sections[activeSectionIndex]?.title || `Tahap ${activeSectionIndex + 1}`}?</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Apakah Anda yakin telah selesai menjawab seluruh soal pada tahap ini dan ingin mengunci jawaban untuk melanjutkan ke tahap berikutnya?
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowStageConfirmModal(false)}
-                  className="flex-1"
-                >
-                  Periksa Kembali
-                </Button>
-                <Button
-                  onClick={handleConfirmCompleteStage}
-                  className="flex-1 bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold"
-                >
-                  Ya, Selesaikan Tahap
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* TOP HEADER BAR */}
-      <div className="bg-card border border-border rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href={`/workspace/${selectedEnrollmentId}`}>
-            <Button variant="outline" size="sm" className="rounded-xl gap-2">
-              <ArrowLeft className="h-4 w-4" /> Keluar dari Sesi
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight line-clamp-1">
-              {selectedEnrollment.challenge?.title}
-            </h1>
-            <p className="text-xs text-muted-foreground font-medium">Sesi Pengerjaan Soal Pilihan & Studi Kasus</p>
-          </div>
-        </div>
-
-        {/* TIMER & AUTO-SAVE BADGES */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          {isSubmitted ? (
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1E7F4D]/10 border border-[#1E7F4D]/30 text-[#1E7F4D] dark:text-emerald-400 font-bold text-xs shadow-sm">
-              <Eye className="w-4 h-4" /> Mode Lihat Jawaban (Read-Only)
-            </div>
-          ) : (
-            <>
-              {/* Draft Auto-Save Status */}
-              <div className="flex items-center gap-2 text-xs font-mono px-3 py-2 bg-background border border-border rounded-xl">
-                {isSavingDraft ? (
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <Timer className="w-3.5 h-3.5 animate-spin-slow" /> Menyimpan...
-                  </span>
-                ) : hasUnsavedDraft ? (
-                  <span className="text-amber-400 flex items-center gap-1.5">
-                    <Timer className="w-3.5 h-3.5" /> Ada Draf Belum Tersimpan
-                  </span>
-                ) : lastDraftSavedAt ? (
-                  <span className="text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Draf Tersimpan{' '}
-                    {lastDraftSavedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Draf Tersinkron
-                  </span>
-                )}
-              </div>
-
-              {/* Batas waktu tahap. Angkanya berasal dari sisa waktu yang
-                  dilaporkan server, bukan dari `timeLimit` dikali di peramban:
-                  jam peramban bisa digeser, dan menutup tab tidak boleh
-                  menghentikan hitungan. */}
-              {stageTimeLeft && (
-                <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm font-mono text-xs font-bold ${
-                    (stageGate.remainingSeconds ?? 0) < 60
-                      ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse'
-                      : 'bg-background border-border text-cyan-400'
-                  }`}
-                  title="Sisa waktu tahap ini"
-                >
-                  <Timer className="h-4 w-4" />
-                  <span>{stageTimeLeft}</span>
+        {/* WARNING MODALS */}
+        <AnimatePresence>
+          {showTabWarning && !isLockedOut && !isSubmitted && !isBetweenStages && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6"
+            >
+              <div className="max-w-md w-full bg-card border border-red-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-10 h-10 text-red-500" />
                 </div>
-              )}
-
-              {/* Countdown Timer — batas keseluruhan challenge */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border shadow-sm font-mono text-xs font-bold ${
-                isExpired ? 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse' : 'bg-background border-border text-emerald-400'
-              }`}>
-                <Timer className="h-4 w-4" />
-                <span>{timeLeftString}</span>
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Pelanggaran Terdeteksi!</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Sistem mendeteksi Anda telah meninggalkan halaman ujian (pindah aplikasi/tab). Tindakan ini telah dicatat dalam laporan pengawasan rekruter.
+                  </p>
+                  {maxTabSwitches > 0 && (
+                    <p className="text-xs font-bold text-red-400 mt-4">
+                      (Peringatan Ke-{tabSwitchCount} dari Maksimal {maxTabSwitches})
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  onClick={() => {
+                    setShowTabWarning(false);
+                    if (enforceFullscreen) handleEnterFullscreen();
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold h-12"
+                >
+                  Saya Mengerti, Kembali ke Soal
+                </Button>
               </div>
-            </>
+            </motion.div>
           )}
-        </div>
-      </div>
+
+          {isLockedOut && !isSubmitted && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-6"
+            >
+              <div className="max-w-md w-full bg-card border-2 border-red-500 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+                <Lock className="w-16 h-16 text-red-500 mx-auto" />
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Akses Ujian Dikunci!</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Anda telah melanggar batas maksimal perpindahan tab/aplikasi ({maxTabSwitches} kali). Ujian ini dikunci secara otomatis.
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => router.push(`/workspace/${selectedEnrollmentId}`)}
+                  className="w-full bg-foreground text-background font-bold h-12"
+                >
+                  Kembali ke Overview Workspace
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STAGE COMPLETION CONFIRMATION MODAL */}
+          {showStageConfirmModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-6"
+            >
+              <div className="max-w-md w-full bg-card border border-border rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+                <div className="w-16 h-16 bg-[#1E7F4D]/20 rounded-full flex items-center justify-center mx-auto text-[#1E7F4D] dark:text-emerald-400">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">Selesaikan Tahap Ini?</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Apakah Anda yakin telah selesai menjawab seluruh soal dan ingin mengunci jawaban untuk melanjutkan?
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowStageConfirmModal(false)}
+                    className="flex-1"
+                  >
+                    Periksa Kembali
+                  </Button>
+                  <Button
+                    onClick={handleConfirmCompleteStage}
+                    className="flex-1 bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold"
+                  >
+                    Ya, Selesaikan
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       {/* MAIN EXAM BODY: SPLIT LAYOUT */}
       <form 
         onSubmit={handleSubmitSolution} 
-        className="flex flex-col lg:flex-row items-start gap-8 w-full"
+        className="flex flex-col lg:flex-row items-start justify-start gap-8 lg:gap-10 xl:gap-12 w-full"
         onCopy={blockCopyPaste && !isSubmitted && !isBetweenStages ? (e) => e.preventDefault() : undefined}
         onPaste={blockCopyPaste && !isSubmitted && !isBetweenStages ? (e) => e.preventDefault() : undefined}
         onCut={blockCopyPaste && !isSubmitted && !isBetweenStages ? (e) => e.preventDefault() : undefined}
         onContextMenu={blockRightClick && !isSubmitted && !isBetweenStages ? (e) => e.preventDefault() : undefined}
       >
         {/* LEFT COLUMN: STICKY QUESTION NAVIGATION SIDEBAR */}
-        <div className="w-full lg:w-1/4 xl:w-1/5 shrink-0 space-y-6 lg:sticky lg:top-24 self-start">
+        <div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6 lg:sticky lg:top-24 self-start">
           <div className="bg-card border border-border rounded-3xl p-6 shadow-xl space-y-6">
             <div>
               <h3 className="font-bold text-foreground text-base mb-1">Navigasi Soal Ujian</h3>
@@ -817,7 +757,7 @@ export default function ExamSessionPage() {
                         }`}
                       >
                         <span className="truncate">
-                          {idx + 1}. {sec.title}
+                          {sec.title}
                         </span>
                         {isDone ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -831,9 +771,9 @@ export default function ExamSessionPage() {
               </div>
             )}
 
-            {/* QUESTION NUMBER GRID */}
+            {/* QUESTION PROGRESS GRID */}
             <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Daftar Nomor Soal</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Progres Soal</label>
               <div className="grid grid-cols-5 gap-2 content-start">
                 {componentsList.map((comp: any, idx: number) => {
                   const isAnswered = !!componentResponses[comp.id]?.textValue || !!componentResponses[comp.id]?.fileUrl;
@@ -843,6 +783,7 @@ export default function ExamSessionPage() {
                       key={idx}
                       type="button"
                       onClick={() => setExamQuestionIdx(idx)}
+                      title={`Soal ${idx + 1}`}
                       className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs transition-all ${
                         isActive 
                           ? 'bg-[#1E7F4D] text-white border-2 border-emerald-400 shadow-md ring-2 ring-emerald-500/30' 
@@ -883,7 +824,7 @@ export default function ExamSessionPage() {
         </div>
 
         {/* RIGHT COLUMN: MAIN QUESTION DISPLAY & INPUT AREA */}
-        <div className="w-full lg:w-3/4 xl:w-4/5 flex-1 min-w-0 space-y-6">
+        <div className="w-full flex-1 min-w-0 space-y-6">
           {submitSuccess && (
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-start gap-4 text-emerald-400 shadow-lg">
               <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
@@ -970,19 +911,13 @@ export default function ExamSessionPage() {
           ) : (
             /* ACTIVE QUESTION PANEL */
             <div className="bg-card border border-border rounded-3xl shadow-xl overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-border flex items-center justify-between bg-foreground/[0.02]">
-                <div>
-                  <span className="text-xs font-bold text-[#1E7F4D] uppercase tracking-wider block mb-0.5">
-                    {currentSection?.title || 'Seksi Ujian'}
-                  </span>
-                  <h2 className="font-bold text-xl text-foreground">Soal Nomor {examQuestionIdx + 1}</h2>
-                </div>
-                {currentComp?.points && (
+              {currentComp?.points ? (
+                <div className="p-4 sm:p-6 border-b border-border flex items-center justify-end bg-foreground/[0.02]">
                   <span className="text-xs bg-[#1E7F4D]/10 border border-[#1E7F4D]/30 px-3.5 py-1.5 rounded-full text-[#1E7F4D] font-bold shadow-sm">
                     {currentComp.points} Poin
                   </span>
-                )}
-              </div>
+                </div>
+              ) : null}
 
               <div className="p-6 sm:p-8 space-y-6">
                 {currentComp ? (
@@ -1063,7 +998,7 @@ export default function ExamSessionPage() {
                     onClick={() => setExamQuestionIdx(Math.max(0, examQuestionIdx - 1))}
                     className="px-5 py-2.5 rounded-xl font-bold text-xs bg-background border border-border text-foreground hover:bg-foreground/5 flex items-center gap-2 shadow-sm transition-all"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Soal Sebelumnya
+                    <ArrowLeft className="w-4 h-4" /> Sebelumnya
                   </button>
                 ) : <div />}
                 
@@ -1073,7 +1008,7 @@ export default function ExamSessionPage() {
                     onClick={() => setExamQuestionIdx(Math.min(componentsList.length - 1, examQuestionIdx + 1))}
                     className="px-5 py-2.5 rounded-xl font-bold text-xs bg-[#1E7F4D] hover:bg-[#196B40] text-white flex items-center gap-2 shadow-sm transition-all"
                   >
-                    Soal Selanjutnya <ArrowLeft className="w-4 h-4 rotate-180" />
+                    Selanjutnya <ArrowLeft className="w-4 h-4 rotate-180" />
                   </button>
                 ) : activeSectionIndex < sections.length - 1 && !isSubmitted ? (
                   <button
@@ -1082,7 +1017,7 @@ export default function ExamSessionPage() {
                     className="px-6 py-2.5 rounded-xl font-bold text-xs bg-[#1E7F4D] hover:bg-[#196B40] text-white flex items-center gap-2 shadow-md transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    Selesaikan {sections[activeSectionIndex]?.title || `Tahap ${activeSectionIndex + 1}`} & Lanjut
+                    Selesaikan & Lanjut
                   </button>
                 ) : null}
               </div>
@@ -1139,7 +1074,51 @@ export default function ExamSessionPage() {
             </div>
           )}
         </div>
+
+        {/* RIGHT WHITESPACE COLUMN: CONTINUOUS FACE TRACKING WIDGET */}
+        {(continuousTracking || proctoringSettings.continuousTracking) && !isExpired && !isSubmitted && !isBetweenStages && (
+          <div className="hidden xl:block w-64 shrink-0 lg:sticky lg:top-24 self-start space-y-4">
+            <div className="bg-card border border-emerald-500/30 rounded-3xl p-5 shadow-xl space-y-3 bg-gradient-to-b from-emerald-500/10 via-emerald-500/5 to-transparent">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center shrink-0">
+                  <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-emerald-400 opacity-75" />
+                  <div className="relative w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/40 shadow-inner">
+                    <Camera className="w-5 h-5 animate-pulse text-emerald-400" />
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-foreground">Pelacakan Wajah</h4>
+                  <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Berkelanjutan Aktif
+                  </span>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border/50">
+                Kamera aktif mengawasi kehadiran & posisi wajah secara realtime selama sesi ujian.
+              </p>
+            </div>
+          </div>
+        )}
       </form>
+
+      {/* FLOATING BADGE FOR MOBILE/TABLET */}
+      {(continuousTracking || proctoringSettings.continuousTracking) && !isExpired && !isSubmitted && !isBetweenStages && (
+        <div className="xl:hidden fixed bottom-6 right-6 z-40 bg-card/95 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-3.5 shadow-2xl flex items-center gap-3">
+          <div className="relative flex items-center justify-center shrink-0">
+            <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-emerald-400 opacity-75" />
+            <div className="relative w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/50">
+              <Camera className="w-4 h-4 text-emerald-400 animate-pulse" />
+            </div>
+          </div>
+          <div className="text-left">
+            <h4 className="text-xs font-bold text-foreground">Pelacakan Wajah</h4>
+            <p className="text-[10px] text-emerald-400 font-semibold tracking-wide">
+              Berkelanjutan Aktif
+            </p>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 }

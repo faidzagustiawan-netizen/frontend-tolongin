@@ -153,7 +153,7 @@ export function CompanyWorkspaceDashboard({
     quotaUsed >= plan.activeChallengeQuota;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       {/* Header Section - Clean 2 Column Layout (like /challenges) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start font-jakarta mb-2">
         {/* Left Column: Title & Subtitle */}
@@ -161,7 +161,7 @@ export function CompanyWorkspaceDashboard({
           <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
             Dashboard Studi Kasus<span className="text-[#1E7F4D]">.</span>
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-xl">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
             Tinjau dan nilai pekerjaan kandidat. Perhatikan peringatan batas SLA agar kandidat tidak menunggu hasil terlalu lama.
           </p>
         </div>

@@ -220,11 +220,12 @@ export const Navbar = () => {
         ? companyNavLinks
         : talentNavLinks;
 
-  // Tautan beranda harus dicocokkan persis. Dengan `startsWith` biasa, href "/"
-  // cocok dengan setiap path, sehingga "Dashboard" tampak aktif di seluruh
-  // halaman sekaligus dan penanda halaman aktif kehilangan artinya.
   const isLinkActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
+
+  if (pathname?.startsWith('/workspace')) {
+    return null;
+  }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/80 backdrop-blur-md">

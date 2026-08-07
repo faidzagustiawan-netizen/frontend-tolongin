@@ -87,7 +87,7 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-[var(--font-plus-jakarta)]">
       {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
       <ChallengeDetailHeader
         challenge={challenge}
@@ -126,9 +126,12 @@ export default function ChallengeClient({ slug, initialChallenge }: Props) {
           <ChallengeStages sections={challenge.sections} />
 
           <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl">
-            <h3 className="font-display text-2xl font-bold text-foreground border-b border-border pb-4">
-              Spesifikasi & Kebutuhan Proyek
-            </h3>
+            <div className="flex items-center gap-3 border-b border-border pb-4 mb-6">
+              <img src="/spesifikasi-proyek.svg" alt="Spesifikasi & Kebutuhan Proyek" className="h-10 w-10 object-contain shrink-0" />
+              <h3 className="font-display text-2xl font-bold text-foreground">
+                Spesifikasi &amp; Kebutuhan Proyek
+              </h3>
+            </div>
             <div className="prose prose-invert max-w-none text-muted-foreground space-y-6 leading-relaxed">
               {challenge.description.split('\n\n').map((paragraph: string, i: number) => {
               if (paragraph.startsWith('### ')) {

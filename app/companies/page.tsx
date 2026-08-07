@@ -22,7 +22,7 @@ export default function CompaniesDirectoryPage() {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4 font-jakarta">
         <h1 className="font-jakarta text-3xl sm:text-6xl font-bold text-foreground tracking-tight leading-tight">
           Perusahaan Mitra

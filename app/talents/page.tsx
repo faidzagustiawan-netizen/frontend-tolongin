@@ -49,12 +49,12 @@ export default function TalentDirectoryPage() {
   const hasFilter = Boolean(search || skill);
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <header className="space-y-3">
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+        <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
           Direktori Talenta
         </h1>
-        <p className="text-muted-foreground max-w-2xl leading-relaxed">
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
           Telusuri talenta yang sudah membuktikan kemampuannya lewat studi
           kasus. Buka profil untuk melihat portofolio terverifikasi, lencana,
           dan riwayat pengerjaannya.

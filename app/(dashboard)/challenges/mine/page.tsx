@@ -89,19 +89,13 @@ export default function MyChallengesPage() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" /> Kembali
-      </button>
 
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
             Challenge Saya
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
             Seluruh studi kasus yang Anda buat, termasuk yang masih berstatus draf.
             Draf hanya terlihat oleh Anda sampai diterbitkan.
           </p>

@@ -209,12 +209,14 @@ export default function TeamWorkspacePage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Manajemen Tim</h1>
-          <p className="text-muted-foreground mt-1">
+        <div className="space-y-3">
+          <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
+            Manajemen Tim
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
             Undang anggota tim dan pantau setiap aktivitas di workspace perusahaan Anda.
           </p>
         </div>

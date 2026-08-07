@@ -19,7 +19,7 @@ export default function CompanyLayout({
 }) {
   return (
     <CompanyAccessGate>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
         {children}
       </div>
     </CompanyAccessGate>

@@ -108,15 +108,10 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
   return (
     <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl space-y-8">
       <div className="flex items-center gap-3 border-b border-border pb-4">
-        <div className="p-2 bg-emerald-500/10 rounded-lg">
-          <Layers className="h-6 w-6 text-emerald-400" />
-        </div>
+        <img src="/tahapan-ujian.svg" alt="Tahapan Ujian Icon" className="h-12 w-12 object-contain shrink-0" />
         <h3 className="font-display text-2xl font-bold text-foreground">
           Tahapan &amp; Struktur Ujian
         </h3>
-        <span className="ml-auto text-xs font-semibold text-muted-foreground whitespace-nowrap">
-          Total ~{formatMinutes(totalDuration)}
-        </span>
       </div>
 
       {/* Active Stage Content */}
@@ -127,11 +122,6 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
           <div>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h4 className="text-lg font-bold text-foreground">{currentSection.title}</h4>
-              <span className="text-xs font-semibold text-muted-foreground">
-                {currentSection.timeLimit
-                  ? formatMinutes(Number(currentSection.timeLimit))
-                  : 'Tanpa batas waktu'}
-              </span>
             </div>
             {currentSection.description && (
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-3xl">
@@ -150,25 +140,23 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {currentSection.components?.map((comp: any, cIdx: number) => {
-              const duration = estimateDuration(comp.type);
-              
               return (
                 <div 
                   key={cIdx} 
-                  className="bg-[#1E7F4D] text-white border border-[#1E7F4D]/40 rounded-xl p-4 flex items-start gap-4 hover:bg-[#196B40] transition-colors shadow-md"
+                  className="bg-white dark:bg-card border-2 border-[#1E7F4D] text-foreground rounded-2xl p-4 flex items-start gap-4 hover:border-[#1E7F4D]/80 transition-colors shadow-sm"
                 >
-                  <div className="mt-0.5 flex-shrink-0 p-2.5 bg-white rounded-lg shadow-sm">
+                  <div className="mt-1 flex-shrink-0 p-2.5 bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20 rounded-full border border-[#1E7F4D]/30 flex items-center justify-center">
                     {getComponentIcon(comp.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-sm font-bold text-white truncate">Soal {cIdx + 1}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30 shrink-0">
-                        {comp.points} Poin
-                      </span>
-                    </div>
-                    <p className="text-xs text-white/90 font-medium">
-                      {getComponentLabel(comp.type)} • ~{duration} Menit
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#1E7F4D]/10 text-[#1E7F4D] dark:bg-[#1E7F4D]/20 border border-[#1E7F4D]/30 inline-block mb-1">
+                      {comp.points} Poin
+                    </span>
+                    <h5 className="text-sm sm:text-base font-extrabold text-foreground leading-snug">
+                      Soal {cIdx + 1}
+                    </h5>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                      {getComponentLabel(comp.type)}
                     </p>
                   </div>
                 </div>

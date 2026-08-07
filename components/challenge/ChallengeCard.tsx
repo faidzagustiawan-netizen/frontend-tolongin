@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Building2, Lock, CheckCircle2, BadgeCheck, Coins, Zap, User } from 'lucide-react';
+import { Building2, Lock, CheckCircle2, BadgeCheck, Coins, Zap, User, Clock } from 'lucide-react';
 
 export interface ChallengeCardProps {
   id: string;
@@ -69,7 +69,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   const daysLeft = deadlineAt ? Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
   const daysUntilStart = startsAt ? Math.max(0, Math.ceil((new Date(startsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
 
-  let deadlineText = daysLeft !== null ? (daysLeft > 0 ? `${daysLeft} hari tersisa` : 'Ditutup') : 'Tenggat waktu tidak ditentukan';
+  let deadlineText = daysLeft !== null ? (daysLeft > 0 ? `${daysLeft} hari tersisa` : 'Ditutup') : '-';
   if (isCompleted) {
     deadlineText = 'Selesai / Ditutup';
   } else if (isUpcoming && daysUntilStart !== null) {
@@ -101,16 +101,16 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   };
 
   const theme = type === 'COMPANY' ? {
-    bgClass: 'bg-[#3B3669]',
-    rewardClass: 'text-[#3B3669] dark:text-[#615FFF] font-extrabold',
-    btnClass: 'bg-white border border-[#3B3669] text-[#3B3669] hover:bg-[#3B3669] hover:text-white dark:bg-card dark:border-indigo-400 dark:text-indigo-400 dark:hover:bg-indigo-500 dark:hover:text-white shadow-sm',
-    bookmarkBtnClass: 'bg-[#3B3669] border-transparent text-white hover:bg-[#3B3669]/80 dark:bg-indigo-500 dark:hover:bg-indigo-400 shadow-sm',
-    cardBorderHoverClass: 'group-hover:border-[#3B3669]/30 dark:group-hover:border-indigo-500/30',
-    cardBgClass: 'bg-[#3B3669]/10 dark:bg-[#3B3669]/20',
+    bgClass: 'bg-[#F1732E]',
+    rewardClass: 'text-[#F1732E] dark:text-[#F1732E] font-extrabold',
+    btnClass: 'bg-[#F1732E] border border-transparent text-white hover:bg-[#F58748] dark:bg-[#F1732E] dark:hover:bg-[#F58748] shadow-sm',
+    bookmarkBtnClass: 'bg-[#F1732E] border-transparent text-white hover:bg-[#F1732E]/80 dark:bg-[#F1732E] dark:hover:bg-[#F1732E]/80 shadow-sm',
+    cardBorderHoverClass: 'group-hover:border-[#F1732E]/30 dark:group-hover:border-[#F1732E]/30',
+    cardBgClass: 'bg-[#F1732E]/10 dark:bg-[#F1732E]/20',
   } : {
     bgClass: 'bg-[#1E7F4D]',
     rewardClass: 'text-[#1E7F4D] dark:text-[#00BC7D] font-extrabold',
-    btnClass: 'bg-white border border-[#1E7F4D] text-[#1E7F4D] hover:bg-[#1E7F4D] hover:text-white dark:bg-card dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white shadow-sm',
+    btnClass: 'bg-[#1E7F4D] border border-transparent text-white hover:bg-[#28A567] dark:bg-[#1E7F4D] dark:hover:bg-[#28A567] shadow-sm',
     bookmarkBtnClass: 'bg-[#1E7F4D] border-transparent text-white hover:bg-[#1E7F4D]/80 dark:bg-emerald-500 dark:hover:bg-emerald-400 shadow-sm',
     cardBorderHoverClass: 'group-hover:border-[#1E7F4D]/30 dark:group-hover:border-emerald-500/30',
     cardBgClass: 'bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20',
@@ -153,8 +153,17 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
         {/* Background Radial Gradient */}
         <div 
           className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-20 dark:opacity-30 z-0" 
-          style={{ background: `radial-gradient(circle at top right, ${type === 'COMPANY' ? '#3B3669' : '#1E7F4D'}, transparent 70%)` }} 
+          style={{ background: `radial-gradient(circle at top right, ${type === 'COMPANY' ? '#F1732E' : '#1E7F4D'}, transparent 70%)` }} 
         />
+
+        {/* Thumbnail Image (Flush to top, left, and right edges) */}
+        <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 h-40 sm:h-44 mb-4 overflow-hidden z-10 flex-shrink-0 bg-muted border-b border-border/50">
+          <img
+            src={type === 'COMPANY' ? '/bgchallenge-company.svg' : '/bgchallenge-talent.svg'}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
 
         {/* 1 & 2. Judul (Fixed height for 2 lines max) */}
         <div className="relative h-14 sm:h-16 mb-2 z-10">
@@ -163,37 +172,8 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
           </h3>
         </div>
 
-        {/* 3. Reward (Fixed height 1 line) */}
-        <div className="h-7 mb-1.5 flex items-center">
-          {cleanReward ? (
-            <div className={`flex items-center text-base sm:text-lg font-extrabold ${theme.rewardClass}`}>
-              {renderReward(cleanReward)}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">-</div>
-          )}
-        </div>
-
-        {/* 4. Deadline (Fixed height 1 line) */}
-        <div className="h-5 mb-2.5 flex items-center">
-          <span className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
-            {deadlineText}
-          </span>
-        </div>
-
-        {/* 5. Deskripsi (Fixed height 1 line, truncate with ...) */}
-        <div className="h-5 mb-4 flex items-center">
-          {summary ? (
-            <p className="text-base text-foreground font-semibold truncate">
-              {summary}
-            </p>
-          ) : (
-            <p className="text-base text-muted-foreground italic truncate">Tidak ada deskripsi</p>
-          )}
-        </div>
-
         {/* 6. Role dan Level Tags (Fixed height 1 line) */}
-        <div className="h-7 mb-5 flex items-center gap-2 overflow-hidden">
+        <div className="h-7 mb-4 flex items-center gap-2 overflow-hidden">
           <span
             title={role?.trim() ? `Posisi: ${role.trim()}` : undefined}
             className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border truncate max-w-[60%] ${categoryTagClass}`}
@@ -210,43 +190,47 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
           )}
         </div>
 
-        {/* 7. Divider */}
-        <div className="border-t border-border w-full mb-4" />
-
-        {/* 8. Profil Uploader */}
-        <div className="h-12 mb-5 flex items-center gap-3">
-          <div className="relative h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-orange-500 border border-border flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
+        {/* 8. Profil Uploader (Smaller Avatar) */}
+        <div className="h-10 mb-4 flex items-center gap-2.5">
+          <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-orange-500 border border-border flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
             {logoUrl ? (
               <img src={logoUrl} alt={companyName} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white font-bold text-sm tracking-widest">
+              <span className="text-white font-bold text-xs tracking-widest">
                 {companyName.substring(0, 2).toUpperCase()}
               </span>
             )}
           </div>
-          <div className="text-sm sm:text-base font-bold text-foreground line-clamp-1 flex items-center gap-1.5">
+          <div className="text-sm font-bold text-foreground line-clamp-1 flex items-center gap-1.5">
             <span>{companyName}</span>
             {type === 'COMPANY' && (
               <span title="Perusahaan Resmi" className="inline-flex flex-shrink-0">
-                <BadgeCheck className="h-4 w-4 text-blue-500" />
+                <BadgeCheck className="h-3.5 w-3.5 text-blue-500" />
               </span>
             )}
           </div>
         </div>
 
-        {/* 9. Footer Buttons */}
-        <div className="h-12 sm:h-10 flex items-center mt-auto">
-          <div className="w-full h-12 sm:h-10">
+        {/* 9. Footer (Deadline on Left + Larger Button on Right) */}
+        <div className="h-10 flex items-center justify-between gap-3 mt-auto pt-1">
+          {/* Deadline with Clock Icon */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold flex-shrink-0 min-w-0">
+            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{deadlineText}</span>
+          </div>
+
+          {/* Action Button (Larger / flex-grow) */}
+          <div className="flex-grow max-w-[62%] h-10">
             {isUpcoming ? (
-              <div className="w-full h-full rounded-full text-sm font-bold bg-muted text-muted-foreground cursor-not-allowed flex items-center justify-center">
-                Mulai (Terkunci) <Lock className="h-4 w-4 ml-2" />
+              <div className="w-full h-full rounded-full text-xs sm:text-sm font-bold bg-muted text-muted-foreground cursor-not-allowed flex items-center justify-center">
+                Mulai (Terkunci) <Lock className="h-3.5 w-3.5 ml-1.5" />
               </div>
             ) : isCompleted ? (
-              <Link href={`/challenges/${slug}`} className="w-full h-full rounded-full text-sm font-bold bg-[#00C853] hover:bg-[#00C853]/90 text-white flex items-center justify-center transition-colors">
-                Lihat Detail <CheckCircle2 className="h-4 w-4 ml-2" />
+              <Link href={`/challenges/${slug}`} className="w-full h-full rounded-full text-xs sm:text-sm font-bold bg-[#00C853] hover:bg-[#00C853]/90 text-white flex items-center justify-center transition-colors">
+                Lihat Detail <CheckCircle2 className="h-3.5 w-3.5 ml-1.5" />
               </Link>
             ) : (
-              <Link href={`/challenges/${slug}`} className={`w-full h-full rounded-full text-sm font-bold flex items-center justify-center transition-all hover:scale-[1.02] ${theme.btnClass}`}>
+              <Link href={`/challenges/${slug}`} className={`w-full h-full rounded-full text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:scale-[1.02] px-3 ${theme.btnClass}`}>
                 Lihat selengkapnya
               </Link>
             )}

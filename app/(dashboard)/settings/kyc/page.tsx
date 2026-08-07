@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/store/userStore';
 
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
+import { motion, AnimatePresence } from 'framer-motion';
 
 type KycStep = 'KTP' | 'LIVENESS' | 'SUCCESS';
 
@@ -26,6 +27,7 @@ export default function KycVerificationPage() {
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
   const [isReverifying, setIsReverifying] = useState(false);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(true);
 
   // Polling KYC verification status every 3 seconds if PENDING or on Step 3
   const { data: kycStatusData } = useQuery({
@@ -98,6 +100,7 @@ export default function KycVerificationPage() {
   // State for KTP
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
   const [ktpFileError, setKtpFileError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -169,6 +172,7 @@ export default function KycVerificationPage() {
       setKtpPreview(croppedImage);
       setKtpFileError(null);
       setStep('LIVENESS');
+      setIsCameraModalOpen(true);
     } catch (_e) {
       toast.error('Gagal memotong gambar');
     } finally {
@@ -322,14 +326,55 @@ export default function KycVerificationPage() {
 
               {!ktpPreview ? (
                 <label 
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleKtpDrop}
-                  className="border-2 border-dashed border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden"
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(true);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                    handleKtpDrop(e);
+                  }}
+                  className={`border-2 border-dashed transition-all duration-300 rounded-3xl p-10 md:p-14 flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden text-center ${
+                    isDragging 
+                      ? 'border-emerald-500 bg-emerald-500/15 scale-[1.02] shadow-[0_0_40px_rgba(16,185,129,0.25)] ring-4 ring-emerald-500/20' 
+                      : 'border-border hover:border-emerald-500/60 hover:bg-emerald-500/5 hover:shadow-xl'
+                  }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20 pointer-events-none" />
-                  <UploadCloud className="h-12 w-12 text-muted-foreground group-hover:text-emerald-500 mb-4 transition-colors" />
-                  <p className="text-sm font-medium text-foreground text-center">Klik atau tarik file untuk mengunggah foto KTP</p>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">Maksimal 5MB (JPG, PNG)</p>
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                    isDragging 
+                      ? 'bg-emerald-500/30 text-emerald-400 scale-110 animate-bounce' 
+                      : 'bg-emerald-500/10 text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500/20'
+                  }`}>
+                    <UploadCloud className={`h-10 w-10 transition-transform duration-300 ${isDragging ? 'scale-110' : 'group-hover:scale-110'}`} />
+                  </div>
+
+                  <p className="text-base font-bold text-foreground transition-colors group-hover:text-emerald-400">
+                    {isDragging ? 'Lepaskan Foto KTP di Sini...' : 'Klik atau tarik file untuk mengunggah foto KTP'}
+                  </p>
+                  
+                  <p className="text-xs text-muted-foreground mt-2 font-medium flex items-center gap-1.5">
+                    <span>Maksimal 5MB (JPG, PNG)</span>
+                  </p>
+
+                  <div className="mt-4 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Pilih Dari Perangkat
+                  </div>
+
                   <input type="file" accept="image/*" className="hidden" onChange={handleKtpUpload} />
                 </label>
               ) : (
@@ -406,20 +451,55 @@ export default function KycVerificationPage() {
 
           {/* STEP 2: LIVENESS */}
           {step === 'LIVENESS' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="flex justify-center">
-                 <div className="w-full max-w-md">
-                   <FaceScanner 
-                     title="Pemindaian Wajah Anti-Spoofing" 
-                     description={livenessInstruction} 
-                     onCaptureComplete={(descriptor, imageDataUrl) => {
-                       if (imageDataUrl) {
-                         captureSelfieAndVerify(imageDataUrl);
-                       }
-                     }} 
-                   />
-                 </div>
-               </div>
+            <div className="space-y-6 text-center py-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-card border border-border rounded-3xl p-8 max-w-md mx-auto space-y-4 shadow-xl">
+                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
+                  <ScanFace className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold font-display text-foreground">Pemindaian Wajah Biometrik</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    KTP Anda telah terpotong. Posisikan wajah Anda tepat di dalam bingkai oval pada pop-up pemindaian wajah.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setIsCameraModalOpen(true)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 rounded-xl shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-4 h-4" /> Buka Pop-Up Pemindaian Wajah
+                </Button>
+              </div>
+
+              <AnimatePresence>
+                {isCameraModalOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-left"
+                  >
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                      className="max-w-lg w-full relative"
+                    >
+                      <FaceScanner 
+                        title="Pemindaian Wajah Anti-Spoofing" 
+                        description={livenessInstruction}
+                        onCancel={() => setIsCameraModalOpen(false)}
+                        onCaptureComplete={(descriptor, imageDataUrl) => {
+                          if (imageDataUrl) {
+                            setIsCameraModalOpen(false);
+                            captureSelfieAndVerify(imageDataUrl);
+                          }
+                        }} 
+                      />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 

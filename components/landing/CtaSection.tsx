@@ -39,29 +39,7 @@ export function CtaSection() {
             </div>
           </div>
         </FadeIn>
-
-        <StaggerContainer className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-          <StaggerItem className="bg-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-title mb-1">50.000+</h3>
-            <p className="text-xs font-semibold text-muted">Talenta Terverifikasi Biometrik</p>
-          </StaggerItem>
-          <StaggerItem className="bg-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500 mb-1">500+</h3>
-            <p className="text-xs font-semibold text-muted">Perusahaan & Startup Mitra</p>
-          </StaggerItem>
-          <StaggerItem className="bg-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-teal-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-title mb-1">99.4%</h3>
-            <p className="text-xs font-semibold text-muted">Akurasi AI Evaluator</p>
-          </StaggerItem>
-          <StaggerItem className="bg-card/60 border border-border rounded-3xl p-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <h3 className="font-display text-3xl sm:text-4xl font-extrabold text-amber-500 mb-1">Rp 35M+</h3>
-            <p className="text-xs font-semibold text-muted">Total Penawaran Kerja Terjalin</p>
-          </StaggerItem>
-        </StaggerContainer>
+        
       </section>
     </div>
   );

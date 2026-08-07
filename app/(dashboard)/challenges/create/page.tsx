@@ -460,7 +460,7 @@ export default function CreateChallengePage() {
 
   return (
     <CompanyAccessGate>
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <button 
         onClick={() => router.back()} 
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -468,48 +468,15 @@ export default function CreateChallengePage() {
         <ArrowLeft className="h-4 w-4" /> Kembali
       </button>
 
-      <div className="relative overflow-hidden rounded-3xl bg-primary p-8 sm:p-12 shadow-2xl">
-
-  {/* Glow lama tetap dipertahankan */}
-  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-emerald-400/20 to-cyan-400/20 rounded-full blur-[120px] pointer-events-none" />
-
-        {/* Background Shape */}
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="
-              M38 0
-              C55 5 72 18 100 32
-              L100 100
-              L0 100
-              L0 0
-              Z
-            "
-            className="fill-primary"
-          />
-        </svg>
-
-        {/* Overlay transparan agar lebih lembut */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-transparent to-transparent pointer-events-none" />
-
-        {/* Content */}
-        <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white/90 tracking-tight leading-tight">
-            Buat Challenge,
-            <br />
-            Temukan Talenta Berkualitas
-          </h1>
-
-          <p className="max-w-2xl text-sm text-white/90 leading-relaxed">
-            Mulai dengan menyebutkan posisi yang Anda cari. Dari situ kami
-            tunjukkan template yang cocok, atau biarkan AI menyusunkan
-            kerangkanya — Anda tetap yang memutuskan.
-          </p>
-        </div>
-
+      <div className="space-y-3">
+        <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
+          Buat Challenge, Temukan Talenta Berkualitas
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium max-w-3xl">
+          Mulai dengan menyebutkan posisi yang Anda cari. Dari situ kami
+          tunjukkan template yang cocok, atau biarkan AI menyusunkan
+          kerangkanya — Anda tetap yang memutuskan.
+        </p>
       </div>
 
       {/* Penanda langkah menggantikan bar tab.
