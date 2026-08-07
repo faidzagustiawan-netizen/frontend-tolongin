@@ -16,7 +16,7 @@ const storageHost =
 
 const nextConfig: NextConfig = {
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@vladmandic/face-api'],
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
   images: {
     // Tetap dibutuhkan karena logo dan ikon landing memakai berkas .svg lokal
