@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   AlertCircle,
   ArrowLeft,
@@ -81,7 +80,7 @@ export default function DraftStatusBar({
   draft,
   isExamMode = false,
   title,
-  subtitle,
+  subtitle: _subtitle,
   exitHref,
   onExit,
   isSavingDraft = false,

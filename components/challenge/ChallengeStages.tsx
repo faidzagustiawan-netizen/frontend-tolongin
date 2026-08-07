@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, FileText, CheckCircle2, Video, Code, Link, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, CheckCircle2, Video, Code, Link, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ChallengeStagesProps {
   sections: any[];
@@ -29,30 +29,7 @@ const getComponentLabel = (type: string) => {
   }
 };
 
-/**
- * Taksiran durasi per jenis soal, hanya dipakai bila tahapnya tidak berbatas
- * waktu. Ketika `timeLimit` diisi, angka itulah yang berlaku — taksiran di sini
- * pernah menjadi satu-satunya yang ditampilkan, sehingga tahap "30 menit" bisa
- * terbaca sebagai "90 menit" di halaman yang sama.
- */
-const estimateDuration = (type: string) => {
-  switch (type) {
-    case 'MULTIPLE_CHOICE': return 3;
-    case 'ESSAY': return 10;
-    case 'LIVE_CODING': return 30;
-    case 'FILE_UPLOAD': return 45;
-    case 'VIDEO_UPLOAD': return 15;
-    case 'URL_SUBMISSION': return 5;
-    default: return 5;
-  }
-};
 
-const formatMinutes = (minutes: number) => {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h > 0) return m > 0 ? `${h} jam ${m} menit` : `${h} jam`;
-  return `${m} menit`;
-};
 
 /** Syarat masuk tahap, dalam kalimat yang bisa dibaca calon peserta. */
 const describeGate = (section: any, sections: any[], idx: number): string | null => {
@@ -88,22 +65,6 @@ export const ChallengeStages = ({ sections }: ChallengeStagesProps) => {
 
   const totalStages = sections.length;
   const currentSection = sections[currentStageIndex] || sections[0];
-
-  // Total waktu seluruh tahap. `timeLimit` dipakai bila diisi, dan taksiran per
-  // jenis soal hanya menjadi cadangan untuk tahap tanpa batas waktu.
-  //
-  // Dulu perhitungan ini memakai `useMemo` yang diletakkan sesudah `return null`
-  // di atas — melanggar urutan hook — dan hasilnya tidak dipakai sama sekali.
-  const totalDuration = sections.reduce((acc, section) => {
-    if (section.timeLimit) return acc + Number(section.timeLimit);
-    return (
-      acc +
-      (section.components || []).reduce(
-        (sAcc: number, comp: any) => sAcc + estimateDuration(comp.type),
-        0,
-      )
-    );
-  }, 0);
 
   return (
     <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 shadow-xl space-y-8">

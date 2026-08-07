@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Briefcase, ArrowRight, Coins, Building2, User, BadgeCheck } from 'lucide-react';
 import { Button } from '../common/Button';
 
-export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollments: any[], tokenData: any }) {
+export function TalentWorkspaceDashboard({ enrollments, tokenData: _tokenData }: { enrollments: any[], tokenData?: any }) {
   return (
     <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Header Section - Clean 2 Column Layout with Mascot */}
@@ -78,7 +78,6 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData }: { enrollmen
 
             const companyName = enrollment.challenge?.challengeType === 'PUBLIC' ? (enrollment.challenge?.creator?.fullName || 'Talenta') : (enrollment.challenge?.company?.companyName || 'Perusahaan Mitra');
             const logoUrl = enrollment.challenge?.challengeType === 'PUBLIC' ? enrollment.challenge?.creator?.avatarUrl : enrollment.challenge?.company?.logoUrl;
-            const summary = enrollment.challenge?.summary || '';
             const title = enrollment.challenge?.title || '';
             const type = enrollment.challenge?.challengeType || 'COMPANY';
 

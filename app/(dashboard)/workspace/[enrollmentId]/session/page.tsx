@@ -7,10 +7,9 @@ import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  CheckCircle2, AlertCircle, Send, Timer, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Eye, Camera
+  CheckCircle2, AlertCircle, Send, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
 import { QuestionTypeRegistry, RESPONSE_FIELD } from '@/components/question-types';

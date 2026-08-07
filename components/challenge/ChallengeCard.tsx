@@ -1,13 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Building2, Lock, CheckCircle2, BadgeCheck, Coins, Zap, User, Clock } from 'lucide-react';
+import { Building2, Lock, CheckCircle2, BadgeCheck, User, Clock } from 'lucide-react';
 
 export interface ChallengeCardProps {
   id: string;
   slug: string;
   title: string;
-  summary: string;
+  summary?: string;
   /** Nama bidang dari direktori keahlian; kosong berarti lintas bidang. */
   category?: string | null;
   /**
@@ -32,13 +32,13 @@ export interface ChallengeCardProps {
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   slug,
   title,
-  summary,
+  summary: _summary,
   category,
   role,
   difficulty,
   companyName,
   logoUrl,
-  rewardDescription,
+  rewardDescription: _rewardDescription,
   deadlineAt,
   type = 'COMPANY',
   trustScore,
@@ -75,30 +75,6 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   } else if (isUpcoming && daysUntilStart !== null) {
     deadlineText = `Mulai dalam ${daysUntilStart} hari`;
   }
-
-  // Remove generic prefixes from reward if they exist
-  let cleanReward = rewardDescription ? rewardDescription.replace(/^(sistem reward|bounty|reward)[:\s-]*/i, '').trim() : '';
-  cleanReward = cleanReward.replace(/^(hingga)[:\s-]*/i, '').trim();
-
-  // Render reward string dynamically replacing Token and XP with icons
-  const renderReward = (text: string) => {
-    if (!text) return null;
-    const parts = text.split(/(Token|XP)/i);
-    return (
-      <span className="flex items-center flex-wrap">
-        {parts.map((part, index) => {
-          const lowerPart = part.toLowerCase();
-          if (lowerPart === 'token') {
-            return <Coins key={index} className="h-5 w-5 inline-block mx-1.5" />;
-          }
-          if (lowerPart === 'xp') {
-            return <Zap key={index} className="h-5 w-5 inline-block mx-1.5" />;
-          }
-          return <span key={index}>{part}</span>;
-        })}
-      </span>
-    );
-  };
 
   const theme = type === 'COMPANY' ? {
     bgClass: 'bg-[#F1732E]',

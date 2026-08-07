@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 import { StaggerContainer, StaggerItem } from '../animations';
 

@@ -12,7 +12,6 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import {
   AlertCircle,
   Archive,
-  ArrowLeft,
   FileEdit,
   Loader2,
   Lock,

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
-import { StaggerContainer, StaggerItem, FadeIn } from '../animations';
+import { FadeIn } from '../animations';
 
 export function CtaSection() {
   return (
