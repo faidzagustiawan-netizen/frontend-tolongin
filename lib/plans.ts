@@ -36,15 +36,15 @@ export interface Plan {
 }
 
 /**
- * Disalin apa adanya dari halaman tagihan lama.
+ * Satu-satunya jalan keluar "Hubungi Sales" di seluruh aplikasi.
  *
- * CATATAN: wa.me menuntut nomor berformat internasional tanpa nol di depan,
- * jadi `0895...` besar kemungkinan tidak pernah membuka percakapan apa pun.
- * Nomornya tidak diubah di sini karena hanya pemiliknya yang tahu digit yang
- * benar — mohon dikoreksi menjadi bentuk `62895...` yang sesuai.
+ * Nomornya ditulis berformat internasional tanpa nol di depan karena itu yang
+ * dituntut wa.me: bentuk `0895...` yang dipakai sebelumnya membuka halaman
+ * "nomor tidak valid", sehingga setiap tautan sales — kartu paket Custom,
+ * permintaan faktur, penurunan paket — berujung buntu.
  */
 export const WHATSAPP_SALES_URL =
-  'https://wa.me/0895397133738?text=Halo%20Tolongin,%20saya%20tertarik%20dengan%20paket%20Custom%20untuk%20perusahaan%20saya.';
+  'https://wa.me/62895397133738?text=Halo%20Tolongin,%20saya%20tertarik%20dengan%20paket%20Custom%20untuk%20perusahaan%20saya.';
 
 export const PLANS: Plan[] = [
   {
@@ -97,6 +97,63 @@ export const PLANS: Plan[] = [
 
 export const getPlan = (tier?: string | null): Plan =>
   PLANS.find((p) => p.tier === tier) ?? PLANS[0];
+
+export interface TokenPack {
+  /** Angka yang dikirim ke `POST /payments/topup` sebagai `tokenAmount`. */
+  tokens: number;
+  /** Harga sekali bayar dalam rupiah. */
+  price: number;
+  priceLabel: string;
+  /** Label pojok kartu. Yang dihitung sendiri hanya bagian penghematannya. */
+  badge: string;
+  /** Klaim pemakaian yang ditampilkan di kartu. */
+  usageHint: string;
+  /** Kartu yang ditonjolkan. Hanya satu, dan hanya soal tampilan. */
+  highlighted: boolean;
+}
+
+/**
+ * Paket token energi untuk talenta.
+ *
+ * Sebelumnya harganya hanya hidup sebagai teks di dalam JSX halaman
+ * `talent/tokens`, jadi tidak ada satu tempat pun yang bisa diadu dengan tarif
+ * yang benar-benar ditagih. Angka di bawah mengikuti `createTokenTopup` di
+ * `backend/src/payments/payments.service.ts`: 100 token ditagih Rp 30.000 dan
+ * 500 token Rp 100.000 (di luar kedua jumlah itu backend jatuh ke Rp 300 per
+ * token, dan tidak ada kartu untuknya di sini).
+ */
+export const TOKEN_PACKS: TokenPack[] = [
+  {
+    tokens: 100,
+    price: 30000,
+    priceLabel: 'Rp 30.000',
+    badge: 'Starter',
+    usageHint: 'Cukup untuk 10 kali upload solusi',
+    highlighted: false,
+  },
+  {
+    tokens: 500,
+    price: 100000,
+    priceLabel: 'Rp 100.000',
+    badge: 'Terpopuler',
+    usageHint: 'Cukup untuk 50 kali upload solusi',
+    highlighted: true,
+  },
+];
+
+/**
+ * Penghematan paket dibanding harga satuan paket terkecil, dibulatkan.
+ *
+ * Dihitung, tidak ditulis tangan: kartu lama mengklaim "Hemat 17%" padahal
+ * Rp 200/token melawan Rp 300/token adalah 33% — angka yang meleset karena
+ * harganya dan klaimnya tidak pernah berasal dari sumber yang sama.
+ */
+export const tokenPackSavingsPercent = (pack: TokenPack): number => {
+  const base = TOKEN_PACKS[0];
+  const basePerToken = base.price / base.tokens;
+  const packPerToken = pack.price / pack.tokens;
+  return Math.round((1 - packPerToken / basePerToken) * 100);
+};
 
 /**
  * Apakah batas paket sedang ditegakkan.

@@ -40,7 +40,7 @@ export const Footer = () => {
           <ul className="space-y-2 text-sm">
             <li>
               <Link href="/challenges" className="text-slate-300 dark:text-muted-foreground hover:text-emerald-400 transition-colors">
-                Challenge Directory
+                Direktori Studi Kasus
               </Link>
             </li>
             <li>

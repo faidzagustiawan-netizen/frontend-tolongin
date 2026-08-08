@@ -102,6 +102,7 @@ export default function EnrollmentWorkspacePage() {
   const [faceVerified, setFaceVerified] = useState<boolean | null>(null);
   const [isVerifyingFace, setIsVerifyingFace] = useState<boolean>(false);
   const [webcamOpen, setWebcamOpen] = useState<boolean>(false);
+  const [faceError, setFaceError] = useState<string | null>(null);
   const [showKycAlertModal, setShowKycAlertModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -402,13 +403,17 @@ export default function EnrollmentWorkspacePage() {
     setIsVerifyingFace(false);
   };
 
+  // Kegagalan pencocokan wajah dulu dilaporkan lewat `alert()` bawaan peramban:
+  // memblokir, di luar gaya aplikasi, dan hilang tanpa jejak begitu ditutup.
+  // Seluruh layar lain memakai toast, dan alasan penolakan perlu tetap terbaca
+  // selagi kandidat mencoba lagi.
   const handleFaceVerification = async (scannedDescriptor: number[], imageDataUrl?: string) => {
     setIsVerifyingFace(true);
 
     try {
       if (!imageDataUrl) {
         setFaceVerified(false);
-        alert('Gagal mengambil gambar wajah dari kamera.');
+        setFaceError('Gagal mengambil gambar wajah dari kamera. Periksa izin kamera lalu coba lagi.');
         setIsVerifyingFace(false);
         return;
       }
@@ -417,14 +422,19 @@ export default function EnrollmentWorkspacePage() {
 
       if (result.verified) {
         setFaceVerified(true);
+        setFaceError(null);
         setWebcamOpen(false);
       } else {
         setFaceVerified(false);
-        alert(`${result.message}`);
+        setFaceError(result.message || 'Wajah tidak cocok dengan foto identitas terdaftar.');
       }
     } catch (err: any) {
       setFaceVerified(false);
-      alert(err.response?.data?.message || err.message || 'Terjadi kesalahan saat memverifikasi wajah.');
+      setFaceError(
+        err.response?.data?.message ||
+          err.message ||
+          'Terjadi kesalahan saat memverifikasi wajah. Coba lagi sebentar.',
+      );
     } finally {
       setIsVerifyingFace(false);
     }
@@ -668,8 +678,36 @@ export default function EnrollmentWorkspacePage() {
         onExpire={() => void handleSubmitSolution()}
       />
 
+      {/* Galat pengumpulan dan galat pencocokan wajah dirender di sini, di luar
+          seluruh cabang `currentStep`.
+          Sebelumnya blok galat pengumpulan berada di dalam cabang
+          `currentStep === 'QUESTIONS'`, padahal `setCurrentStep` hanya pernah
+          diisi 'SUBMITTED' dan 'FACE_CHECK' — cabang itu tidak pernah aktif,
+          sehingga pengumpulan otomatis yang gagal saat waktu tahap habis
+          membuat tahap hangus tanpa satu pun pesan. */}
+      {(submitError || faceError) && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3 text-red-400 shadow-lg">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-xs font-medium leading-relaxed">{submitError || faceError}</p>
+            {faceError && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFaceError(null);
+                  handleStartWebcam();
+                }}
+                className="text-[11px] font-bold underline underline-offset-2 hover:opacity-80"
+              >
+                Coba pindai wajah lagi
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-emerald-400 transition-colors text-sm font-semibold">
-        <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar Workspace
+        <ArrowLeft className="h-4 w-4" /> Kembali ke Ruang Kerja
       </Link>
 
       {/* 1. HERO SECTION (Paling Atas di Mobile & Desktop) */}
@@ -1210,22 +1248,35 @@ export default function EnrollmentWorkspacePage() {
                       </div>
                     )}
 
+                    {/* Tahap yang hangus dulu dirender di blok hijau bercentang
+                        yang sama dengan tahap yang lulus — hanya judulnya yang
+                        berbeda. Kegagalan yang tampil seperti keberhasilan lebih
+                        buruk daripada tidak ada kabar sama sekali. */}
                     {isActiveStageDone && activeStage && (
-                      <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-bold text-emerald-400 mb-1">
-                            {activeStage.status === 'EXPIRED'
-                              ? 'Waktu Tahap Habis'
-                              : 'Tahap Sudah Dikumpulkan'}
-                          </p>
-                          <p className="text-sm text-foreground">
-                            {activeStage.score !== null
-                              ? `Nilai tahap ini: ${activeStage.score.toFixed(1)}/100.`
-                              : 'Nilainya sedang dihitung. Tahap berikutnya terbuka setelah nilainya keluar.'}
-                          </p>
+                      activeStage.status === 'EXPIRED' ? (
+                        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                          <div>
+                            <p className="text-sm font-bold text-amber-400 mb-1">Waktu Tahap Habis</p>
+                            <p className="text-sm text-foreground">
+                              Tahap ini tertutup sebelum Anda mengumpulkannya. Jawaban yang sempat
+                              tersimpan tetap tercatat, tetapi tahap ini tidak bisa dikerjakan lagi.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                          <div>
+                            <p className="text-sm font-bold text-emerald-400 mb-1">Tahap Sudah Dikumpulkan</p>
+                            <p className="text-sm text-foreground">
+                              {activeStage.score !== null
+                                ? `Nilai tahap ini: ${activeStage.score.toFixed(1)}/100.`
+                                : 'Nilainya sedang dihitung. Tahap berikutnya terbuka setelah nilainya keluar.'}
+                            </p>
+                          </div>
+                        </div>
+                      )
                     )}
 
                     {/* Hitung mundur tahap. Angkanya berasal dari sisa waktu

@@ -19,6 +19,9 @@ export const ChallengeDetailHeader = ({
   onLoginClick,
 }: ChallengeDetailHeaderProps) => {
   const isProctored = challenge?.gradingRubric?.requireProctoring ?? true;
+  const isDeadlinePassed = challenge?.deadlineAt
+    ? new Date(challenge.deadlineAt).getTime() < Date.now()
+    : false;
 
   return (
     <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm w-full relative">
@@ -122,21 +125,38 @@ export const ChallengeDetailHeader = ({
 
         {/* Description & Action CTA (At Bottom-Right of Card) */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mt-4 pt-4 border-t border-border/40">
-          <div className="text-base text-foreground font-medium flex-1">
-            {challenge?.shortDescription || challenge?.summary || 'Memahami dan memprediksi churn dengan model pembelajaran mesin.'}
-          </div>
+          {/* Cadangannya dulu kalimat contoh tentang churn, disajikan seolah
+              itu deskripsi resmi studi kasus ini — data milik contoh lain
+              tampil sebagai data nyata. */}
+          {(challenge?.shortDescription || challenge?.summary) && (
+            <div className="text-base text-foreground font-medium flex-1">
+              {challenge.shortDescription || challenge.summary}
+            </div>
+          )}
 
           <div className="shrink-0 self-end sm:self-auto">
             {isAuthenticated ? (
               userRole === 'TALENT' ? (
-                <Button 
-                  onClick={onEnrollClick} 
-                  size="lg" 
-                  className="!bg-[#1E7F4D] hover:!bg-[#16643c] !bg-none text-white font-bold shadow-xl border-none"
-                >
-                  <span>Ambil Tantangan Ini</span>
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                /* Tenggat yang lewat dulu tidak menonaktifkan apa pun: alasan
+                   penolakan baru muncul sesudah server menolak, padahal kartu di
+                   direktori sudah menandainya "Ditutup". */
+                isDeadlinePassed ? (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2.5 text-center">
+                    <p className="text-xs font-bold text-amber-400">Pendaftaran Sudah Ditutup</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Tenggat studi kasus ini telah lewat.
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={onEnrollClick}
+                    size="lg"
+                    className="!bg-[#1E7F4D] hover:!bg-[#16643c] !bg-none text-white font-bold shadow-xl border-none"
+                  >
+                    <span>Ambil Studi Kasus Ini</span>
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                )
               ) : (
                 <div className="bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-2 text-center">
                   <p className="text-xs text-muted-foreground">Hanya akun Talenta yang dapat mengambil tantangan.</p>

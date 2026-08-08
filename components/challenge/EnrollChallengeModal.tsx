@@ -51,7 +51,9 @@ export const EnrollChallengeModal = ({
             onChange={(e) => setNdaAccepted(e.target.checked)}
             className="mt-0.5 rounded bg-background border-border text-emerald-500 focus:ring-emerald-500"
           />
-          <span className="text-xs text-gray-200 font-medium leading-relaxed">
+          {/* `text-gray-200` dipatok terang: di mode terang, perjanjian hukum
+              yang harus dicentang praktis tidak terbaca. */}
+          <span className="text-xs text-foreground font-medium leading-relaxed">
             Saya telah membaca, memahami, dan menyetujui seluruh ketentuan Digital NDA di atas.
           </span>
         </label>

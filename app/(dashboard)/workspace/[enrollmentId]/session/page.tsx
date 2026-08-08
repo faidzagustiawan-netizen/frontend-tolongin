@@ -3,17 +3,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { submissionsService } from '@/services/submissions.service';
+import { verificationService } from '@/services/verification.service';
 import { useUserStore } from '@/store/userStore';
 import { Button } from '@/components/common/Button';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  CheckCircle2, AlertCircle, Send, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Camera
+  CheckCircle2, AlertCircle, Send, Lock, ShieldCheck, AlertTriangle, ArrowLeft, Play, Camera,
+  ScanFace, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
 import { QuestionTypeRegistry, RESPONSE_FIELD } from '@/components/question-types';
 import DraftStatusBar from '@/app/(dashboard)/challenges/create/components/DraftStatusBar';
+import type { VerificationStatus } from '@/types';
 
 
 export default function ExamSessionPage() {
@@ -43,6 +46,7 @@ export default function ExamSessionPage() {
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
   const [hasUnsavedDraft, setHasUnsavedDraft] = useState<boolean>(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Stage & Question Navigation States
@@ -56,6 +60,7 @@ export default function ExamSessionPage() {
   const [proctoringEvents, setProctoringEvents] = useState<string[]>([]);
   const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
   const [showTabWarning, setShowTabWarning] = useState<boolean>(false);
+  const [showFullscreenWarning, setShowFullscreenWarning] = useState<boolean>(false);
   const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
 
   useEffect(() => {
@@ -72,6 +77,24 @@ export default function ExamSessionPage() {
     queryFn: () => submissionsService.getMyEnrollments(),
     enabled: !!user,
   });
+
+  // Gerbang verifikasi identitas.
+  //
+  // Halaman ringkasan sudah menahan kandidat yang belum terverifikasi, tetapi
+  // gerbang di satu halaman bukan gerbang: alamat ini bisa dibuka langsung dari
+  // bilah alamat, riwayat peramban, atau tautan lama, dan dulu soal beserta
+  // tombol kirimnya langsung tampil.
+  const { data: verificationStatusData, isLoading: isVerificationLoading } = useQuery({
+    queryKey: ['verification-status'],
+    queryFn: () => verificationService.getStatus(),
+    enabled: !!user,
+  });
+
+  const kycStatus: VerificationStatus =
+    verificationStatusData?.status ??
+    user?.profile?.faceVerificationStatus ??
+    'UNVERIFIED';
+  const isKycVerified = kycStatus === 'VERIFIED';
 
   const enrollments = talentData?.data || [];
   const selectedEnrollment = enrollments.find((e: any) => e.id === selectedEnrollmentId);
@@ -267,37 +290,63 @@ export default function ExamSessionPage() {
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [isSubmitted, isHydrated, selectedEnrollmentId]);
 
+  /**
+   * Menyimpan draf sekarang juga.
+   *
+   * Dipakai autosave dan tombol "Coba simpan lagi" pada bilah status, supaya
+   * kandidat yang koneksinya sempat putus punya cara mencoba ulang tanpa harus
+   * mengetik sesuatu lebih dulu demi memicu debounce.
+   */
+  const saveDraftNow = useCallback(async () => {
+    try {
+      setIsSavingDraft(true);
+      await submissionsService.saveDraft(selectedEnrollmentId, {
+        componentResponses,
+        customInputs,
+        notes,
+        tabSwitchCount,
+        proctoringEvents,
+        isLockedOut,
+        completedSectionIndices,
+      });
+      setLastDraftSavedAt(new Date());
+      setHasUnsavedDraft(false);
+      setDraftError(null);
+    } catch (err: any) {
+      // Dulu kegagalan ini hanya masuk console, sementara penandanya tetap
+      // berbunyi "Draf Belum Tersimpan" — kalimat yang sama persis dengan saat
+      // kandidat baru mengetik. Yang paling terancam justru keadaan gagalnya:
+      // di situlah pekerjaan benar-benar bisa hilang.
+      setDraftError(
+        err?.message ||
+          'Draf gagal tersimpan ke server. Jangan tutup tab ini sebelum tersimpan.',
+      );
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [
+    componentResponses,
+    customInputs,
+    notes,
+    tabSwitchCount,
+    proctoringEvents,
+    isLockedOut,
+    completedSectionIndices,
+    selectedEnrollmentId,
+  ]);
+
   // Debounced Auto-Save (Server-Side)
   useEffect(() => {
     if (isSubmitted || !isHydrated || isExpired) return;
 
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     setHasUnsavedDraft(true);
-    draftTimerRef.current = setTimeout(async () => {
-      try {
-        setIsSavingDraft(true);
-        await submissionsService.saveDraft(selectedEnrollmentId, {
-          componentResponses,
-          customInputs,
-          notes,
-          tabSwitchCount,
-          proctoringEvents,
-          isLockedOut,
-          completedSectionIndices,
-        });
-        setLastDraftSavedAt(new Date());
-        setHasUnsavedDraft(false);
-      } catch (err) {
-        console.error('Gagal auto-save:', err);
-      } finally {
-        setIsSavingDraft(false);
-      }
-    }, 3000);
+    draftTimerRef.current = setTimeout(() => void saveDraftNow(), 3000);
 
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [componentResponses, customInputs, notes, tabSwitchCount, proctoringEvents, isLockedOut, completedSectionIndices, isHydrated, isExpired, selectedEnrollmentId, isSubmitted]);
+  }, [saveDraftNow, isHydrated, isExpired, isSubmitted]);
 
   // Save draft on unmount
   useEffect(() => {
@@ -366,6 +415,38 @@ export default function ExamSessionPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [selectedEnrollment, trackTabSwitches, isExpired, maxTabSwitches, isSubmitted, isBetweenStages]);
+
+  /**
+   * Keluar dari layar penuh saat pengawasan menuntutnya.
+   *
+   * Pengaturan `enforceFullscreen` menjanjikan penegakan, tetapi halaman ini —
+   * satu-satunya halaman tempat soal benar-benar dikerjakan — tidak pernah
+   * memasang pendengar `fullscreenchange`. Menekan Esc keluar begitu saja: tidak
+   * diperingatkan, tidak dicatat, dan rekruter tidak pernah tahu.
+   */
+  useEffect(() => {
+    if (!selectedEnrollment || !enforceFullscreen || isExpired || isSubmitted || isBetweenStages) {
+      return;
+    }
+
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement) return;
+
+      const timestamp = new Date().toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      setProctoringEvents((list) => [
+        ...list,
+        `[${timestamp}] Keluar dari mode layar penuh saat ujian berlangsung.`,
+      ]);
+      setShowFullscreenWarning(true);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [selectedEnrollment, enforceFullscreen, isExpired, isSubmitted, isBetweenStages]);
 
   const handleEnterFullscreen = async () => {
     try {
@@ -512,7 +593,17 @@ export default function ExamSessionPage() {
 
   const handleSubmitSolution = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!selectedEnrollment || isExpired) return;
+    if (!selectedEnrollment) return;
+
+    // Tenggat lewat: dulu fungsi ini diam-diam `return`, sementara tombolnya
+    // tetap tampak bisa ditekan. Kandidat menekan berulang kali tanpa satu pun
+    // petunjuk kenapa tidak terjadi apa-apa.
+    if (isExpired) {
+      setSubmitError(
+        'Waktu pengerjaan telah berakhir, jadi jawaban tidak bisa dikumpulkan lagi. Hubungi tim dukungan bila Anda merasa ini keliru.',
+      );
+      return;
+    }
     // Pada studi kasus bertahap, `isSubmitted` menjadi benar begitu tahap
     // pertama masuk — memakainya sebagai penjaga akan menghalangi pengumpulan
     // tahap-tahap sesudahnya.
@@ -562,11 +653,54 @@ export default function ExamSessionPage() {
     }
   };
 
-  if (isTalentLoading || !selectedEnrollment) {
+  if (isTalentLoading || isVerificationLoading || !selectedEnrollment) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 animate-pulse">
         <div className="h-12 bg-foreground/5 rounded-xl w-1/3" />
         <div className="h-96 bg-foreground/5 rounded-xl w-full" />
+      </div>
+    );
+  }
+
+  // Soal tidak boleh dirender sama sekali sebelum identitas terverifikasi pada
+  // studi kasus berpengawasan — menyembunyikan tombol kirim saja tetap
+  // membiarkan isi ujian terbaca.
+  if (isProctored && !isKycVerified) {
+    return (
+      <div className="w-full max-w-lg mx-auto px-4 py-20">
+        <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-5 shadow-xl">
+          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
+            <ScanFace className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold font-display text-foreground">
+              Verifikasi KTP Diperlukan
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Studi kasus ini diawasi secara biometrik, jadi wajah Anda harus bisa dibandingkan
+              dengan foto identitas yang terdaftar. Selesaikan verifikasi KTP dan selfie terlebih
+              dahulu untuk membuka lembar pengerjaan.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/workspace/${selectedEnrollmentId}`)}
+              className="flex-1 rounded-xl h-12 text-xs font-bold"
+            >
+              Kembali ke Ringkasan
+            </Button>
+            <Button
+              type="button"
+              onClick={() => router.push('/settings/kyc')}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 text-xs rounded-xl flex items-center justify-center gap-2"
+            >
+              <span>Verifikasi Sekarang</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -585,6 +719,8 @@ export default function ExamSessionPage() {
         isSavingDraft={isSavingDraft}
         hasUnsavedDraft={hasUnsavedDraft}
         lastDraftSavedAt={lastDraftSavedAt}
+        draftError={draftError}
+        onRetrySave={() => void saveDraftNow()}
         stageTimeLeft={stageTimeLeft || timeLeftString}
         isStageWarning={(stageGate.remainingSeconds ?? 0) < 60}
         isReadOnly={isSubmitted}
@@ -609,6 +745,49 @@ export default function ExamSessionPage() {
             }}
           />
         )}
+
+        {/* Keluar layar penuh: dicatat, lalu dikabarkan. Kandidat berhak tahu
+            bahwa kejadian itu masuk laporan rekruter, dan berhak punya cara
+            kembali tanpa menebak-nebak. */}
+        <AnimatePresence>
+          {showFullscreenWarning && !isLockedOut && !isSubmitted && !isBetweenStages && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6"
+            >
+              <div className="max-w-md w-full bg-card border border-amber-500/30 rounded-3xl p-8 text-center space-y-5 shadow-2xl">
+                <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-8 h-8 text-amber-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">Anda Keluar dari Layar Penuh</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Studi kasus ini mensyaratkan mode layar penuh. Kejadian ini sudah dicatat
+                    dalam log pengawasan yang dibaca tim rekruter. Kembali ke layar penuh untuk
+                    melanjutkan pengerjaan.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await document.documentElement.requestFullscreen();
+                    } catch {
+                      // Peramban menolak bila tidak dipicu gestur; tutup saja
+                      // supaya kandidat tidak terjebak di balik lapisan ini.
+                    }
+                    setShowFullscreenWarning(false);
+                  }}
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 text-xs rounded-xl"
+                >
+                  Kembali ke Layar Penuh
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* WARNING MODALS */}
         <AnimatePresence>
@@ -1059,11 +1238,24 @@ export default function ExamSessionPage() {
                 <div className="bg-[#1E7F4D]/10 border border-[#1E7F4D]/30 rounded-2xl p-6 text-center text-[#1E7F4D] dark:text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 shadow-inner">
                   <CheckCircle2 className="w-5 h-5" /> Solusi Telah Resmi Dikirim pada {new Date(latestSubmission?.createdAt || Date.now()).toLocaleDateString('id-ID')}
                 </div>
+              ) : isExpired ? (
+                /* Tombol yang terlihat aktif tetapi tidak melakukan apa pun lebih
+                   buruk daripada tombol yang hilang: kandidat menyangka aplikasi
+                   yang rusak, bukan waktunya yang habis. */
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 text-center space-y-1.5 shadow-inner">
+                  <p className="text-sm font-bold text-amber-400 flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Waktu Pengerjaan Telah Berakhir
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Batas waktu dihitung dari waktu server saat Anda mendaftar. Pengumpulan
+                    solusi sudah dikunci dan jawaban di layar ini tidak lagi terkirim.
+                  </p>
+                </div>
               ) : (
-                <Button 
-                  type="submit" 
-                  isLoading={isSubmitting} 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  isLoading={isSubmitting}
+                  size="lg"
                   className="w-full bg-[#1E7F4D] hover:bg-[#196B40] text-white font-bold h-14 text-sm rounded-2xl shadow-lg"
                 >
                   <Send className="h-4 w-4 mr-2" />

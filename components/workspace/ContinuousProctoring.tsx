@@ -27,6 +27,7 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
   const detectionInterval = useRef<NodeJS.Timeout | null>(null);
   const missingFaceCounter = useRef<number>(0);
   const [isReady, setIsReady] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   const stopVideo = React.useCallback(() => {
     if (detectionInterval.current) clearInterval(detectionInterval.current);
@@ -46,10 +47,22 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
         }
       })
       .catch((_err) => {
-        setWarningMessage("Akses kamera ditolak. Sistem tidak dapat memverifikasi kehadiran Anda.");
-        onViolation("Kamera dimatikan atau akses ditolak selama pengerjaan.");
+        // Izin yang belum diberikan bukan kecurangan. Dulu penolakan langsung
+        // dicatat sebagai pelanggaran ke laporan rekruter, dan spanduknya tidak
+        // menawarkan satu pun jalan keluar. Pelanggaran baru dicatat bila
+        // kandidat sudah diberi kesempatan mencoba lagi dan tetap tidak bisa.
+        setPermissionDenied(true);
+        setWarningMessage(
+          'Kamera belum bisa diakses. Izinkan kamera di peramban Anda, lalu tekan Coba Lagi — pengawasan wajib aktif selama pengerjaan.',
+        );
       });
-  }, [onViolation]);
+  }, []);
+
+  const retryCamera = React.useCallback(() => {
+    setPermissionDenied(false);
+    setWarningMessage(null);
+    startVideo();
+  }, [startVideo]);
 
   useEffect(() => {
     startVideo();
@@ -100,7 +113,13 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
                 setWarningMessage(null);
             }
           } catch (e) {
+            // Pengawasan yang berhenti bekerja diam-diam sementara lencananya
+            // tetap hijau memberi rasa aman palsu kepada kedua pihak: kandidat
+            // mengira dirinya terpantau, rekruter mengira laporannya lengkap.
             console.error("Error during continuous face detection", e);
+            setWarningMessage(
+              'Pemeriksaan wajah berkala sedang gagal terhubung ke server. Pengawasan tidak berjalan penuh saat ini.',
+            );
           }
         }
       }, intervalMs);
@@ -138,6 +157,15 @@ export function ContinuousProctoring({ onViolation, intervalMs = 30000 }: Contin
             <div>
               <h4 className="font-bold text-lg leading-tight mb-0.5">Peringatan Keamanan</h4>
               <p className="text-sm font-medium text-red-50">{warningMessage}</p>
+              {permissionDenied && (
+                <button
+                  type="button"
+                  onClick={retryCamera}
+                  className="mt-2 text-xs font-bold underline underline-offset-2 hover:opacity-80"
+                >
+                  Coba Lagi Akses Kamera
+                </button>
+              )}
             </div>
           </motion.div>
         )}

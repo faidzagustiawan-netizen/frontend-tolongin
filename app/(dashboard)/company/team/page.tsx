@@ -8,7 +8,7 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { Input } from '@/components/common/Input';
-import { Users, Activity, Copy, Check, Key, ChevronRight, Clock, Box, ShieldCheck, Mail } from 'lucide-react';
+import { Users, Activity, Copy, Check, Key, ChevronRight, Clock, Box, ShieldCheck, Mail, AlertTriangle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -44,13 +44,23 @@ export default function TeamWorkspacePage() {
   const isCompanyOwner = user?.isCompanyOwner === true;
   const canLoadWorkspace = !!user && user.role === 'COMPANY' && isCompanyOwner;
 
-  const { data: teamMembers, isLoading: isLoadingMembers } = useQuery({
+  const {
+    data: teamMembers,
+    isLoading: isLoadingMembers,
+    isError: isMembersError,
+    refetch: refetchMembers,
+  } = useQuery({
     queryKey: ['teamMembers'],
     queryFn: () => companiesService.getTeamMembers(),
     enabled: canLoadWorkspace,
   });
 
-  const { data: activityLogs, isLoading: isLoadingLogs } = useQuery({
+  const {
+    data: activityLogs,
+    isLoading: isLoadingLogs,
+    isError: isLogsError,
+    refetch: refetchLogs,
+  } = useQuery({
     queryKey: ['activityLogs'],
     queryFn: () => companiesService.getActivityLogs(),
     enabled: canLoadWorkspace,

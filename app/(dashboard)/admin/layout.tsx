@@ -9,11 +9,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const { isAdmin, isHydrated } = useAdminGuard();
 
-  // Bukan admin: `useAdminGuard` sudah menjadwalkan pengalihan, jadi yang
-  // tersisa hanya menahan isi halaman selama satu render. Sebelumnya tidak ada
-  // pengalihan sama sekali dan `null` di sini adalah layar kosong permanen.
-  if (!isHydrated || !isAdmin) {
+  // Sesi belum terbaca: jangan putuskan apa pun dulu, termasuk jangan
+  // menuduh pengguna bukan admin.
+  if (!isHydrated) {
     return null;
+  }
+
+  // Bukan admin. `useAdminGuard` sudah menjadwalkan pengalihan, tetapi
+  // mengembalikan `null` sambil menunggu berarti pengguna melihat area kosong
+  // lalu mendarat di beranda tanpa satu kata pun — tidak bisa dibedakan dari
+  // tautan rusak. Toast di dalam guard sering tertelan karena pengalihannya
+  // terjadi dalam hitungan milidetik, jadi alasannya ditulis di sini.
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-20 max-w-md">
+        <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-3 shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <h1 className="text-lg font-bold text-foreground">Halaman Khusus Admin</h1>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Akun Anda tidak punya akses ke panel admin. Anda sedang dialihkan kembali ke beranda.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const tabs = [

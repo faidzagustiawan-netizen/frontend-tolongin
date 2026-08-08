@@ -24,6 +24,8 @@ export default function KycVerificationPage() {
   const [step, setStep] = useState<KycStep>('KTP');
   const [isProcessing, setIsProcessing] = useState(false);
   const [livenessInstruction, setLivenessInstruction] = useState('Posisikan wajah Anda tepat di dalam bingkai oval');
+  /** Alasan penolakan terakhir, menetap di tahap 2 setelah modal tertutup. */
+  const [livenessError, setLivenessError] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
   const [isReverifying, setIsReverifying] = useState(false);
@@ -231,6 +233,7 @@ export default function KycVerificationPage() {
 
   const captureSelfieAndVerify = useCallback(async (imageSrc: string) => {
     setIsProcessing(true);
+    setLivenessError(null);
     setLivenessInstruction('Memverifikasi kecocokan wajah...');
 
     try {
@@ -250,11 +253,19 @@ export default function KycVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ['profile'] });
         setStep('SUCCESS');
       } else {
-        toast.error(result.reason || 'Verifikasi gagal. Silakan coba lagi.');
+        // Alasan penolakan dulu hanya masuk toast yang hilang beberapa detik,
+        // dan ke `livenessInstruction` — deskripsi modal yang saat itu sudah
+        // tertutup. Kandidat ditolak tanpa pernah membaca sebabnya.
+        const alasan = result.reason || 'Wajah tidak cocok dengan foto pada KTP.';
+        toast.error(alasan);
+        setLivenessError(alasan);
         setLivenessInstruction('Silakan coba posisikan wajah Anda kembali');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Terjadi kesalahan sistem');
+      const alasan =
+        err.message || 'Terjadi kesalahan jaringan saat mengirim foto. Coba lagi sebentar.';
+      toast.error(alasan);
+      setLivenessError(alasan);
       setLivenessInstruction('Terjadi kesalahan jaringan, silakan coba lagi');
     } finally {
       setIsProcessing(false);
@@ -325,7 +336,13 @@ export default function KycVerificationPage() {
               </div>
 
               {!ktpPreview ? (
-                <label 
+                /* `htmlFor` + input yang tetap ada di pohon fokus.
+                   Sebelumnya inputnya `className="hidden"` — `display:none`
+                   mengeluarkannya dari urutan tab, dan labelnya sendiri tidak
+                   fokusabel. Verifikasi KTP wajib sebelum ujian, jadi pengguna
+                   papan tik terkunci dari seluruh platform. */
+                <label
+                  htmlFor="unggah-ktp"
                   onDragEnter={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -375,7 +392,14 @@ export default function KycVerificationPage() {
                     Pilih Dari Perangkat
                   </div>
 
-                  <input type="file" accept="image/*" className="hidden" onChange={handleKtpUpload} />
+                  <input
+                    id="unggah-ktp"
+                    type="file"
+                    accept="image/*"
+                    aria-label="Unggah foto KTP, maksimal 5MB, format JPG atau PNG"
+                    onChange={handleKtpUpload}
+                    className="sr-only"
+                  />
                 </label>
               ) : (
                 <div className="space-y-6">
@@ -462,11 +486,37 @@ export default function KycVerificationPage() {
                     KTP Anda telah terpotong. Posisikan wajah Anda tepat di dalam bingkai oval pada pop-up pemindaian wajah.
                   </p>
                 </div>
+
+                {/* Setelah foto diambil, modal ditutup dan pencocokan berjalan
+                    beberapa detik. Dulu layar ini diam tanpa satu pun tanda,
+                    seolah tombolnya tidak berfungsi. */}
+                {isProcessing && (
+                  <div className="flex items-center justify-center gap-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-blue-400">
+                    <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    <span>Mencocokkan wajah dengan foto KTP...</span>
+                  </div>
+                )}
+
+                {livenessError && !isProcessing && (
+                  <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-left text-xs text-red-400">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="space-y-1">
+                      <p className="font-bold">Pemindaian belum berhasil</p>
+                      <p className="leading-relaxed">{livenessError}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Coba lagi dengan pencahayaan merata di wajah, tanpa kacamata gelap atau penutup kepala.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   onClick={() => setIsCameraModalOpen(true)}
+                  disabled={isProcessing}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 rounded-xl shadow-lg flex items-center justify-center gap-2"
                 >
-                  <Camera className="w-4 h-4" /> Buka Pop-Up Pemindaian Wajah
+                  <Camera className="w-4 h-4" />
+                  {livenessError ? 'Ulangi Pemindaian Wajah' : 'Buka Pop-Up Pemindaian Wajah'}
                 </Button>
               </div>
 

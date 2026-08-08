@@ -33,6 +33,8 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId:
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Alasan pengiriman terakhir gagal. */
+  const [postError, setPostError] = useState<string | null>(null);
 
   const rootDiscussions = discussions.filter((d) => !d.parentId);
   const repliesByParent = discussions.reduce((acc, d) => {
@@ -49,6 +51,7 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId:
     if (!msg.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    setPostError(null);
     try {
       await onNewComment(msg, parentId);
       if (parentId) {
@@ -57,8 +60,15 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId:
       } else {
         setNewComment('');
       }
-    } catch (err) {
-      console.error('Failed to post comment', err);
+    } catch (err: any) {
+      // Tanpa pesan, teks yang tetap tertinggal di kotak terbaca sebagai "belum
+      // terkirim" oleh sebagian orang dan "sudah terkirim" oleh sebagian lain —
+      // yang kedua lalu mengirim ulang komentar yang sama.
+      setPostError(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Komentar gagal terkirim. Teks Anda masih tersimpan di kotak — coba kirim lagi.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -130,11 +140,17 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId:
                 className="mt-4 pt-4 border-t border-border space-y-3"
               >
                 <Textarea
+                  aria-label="Tulis balasan"
                   placeholder="Tulis balasan Anda..."
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   rows={2}
                 />
+                {postError && (
+                  <p role="alert" className="text-xs text-red-500 font-medium mb-2">
+                    {postError}
+                  </p>
+                )}
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost" size="sm" type="button" onClick={() => setReplyingTo(null)}>
                     Batal
@@ -165,11 +181,17 @@ export const DiscussionThread: React.FC<DiscussionThreadProps> = ({ challengeId:
         <form onSubmit={(e) => handleSubmit(e)} className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
           <h4 className="text-sm font-semibold text-foreground mb-2">Tanya Seputar Studi Kasus</h4>
           <Textarea
+            aria-label="Tanya seputar studi kasus"
             placeholder="Tulis pertanyaan atau ulasan Anda di sini..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={3}
           />
+          {postError && (
+            <p role="alert" className="text-xs text-red-500 font-medium">
+              {postError}
+            </p>
+          )}
           <div className="flex justify-end">
             <Button type="submit" isLoading={isSubmitting} disabled={!newComment.trim()}>
               <Send className="h-4 w-4 mr-2" />

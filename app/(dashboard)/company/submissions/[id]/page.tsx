@@ -61,7 +61,7 @@ export default function SubmissionDetailPage() {
   // Diambil satu per satu. Sebelumnya seluruh daftar submisi perusahaan
   // ditarik lalu dicari id-nya di sisi klien — cara yang berhenti bekerja
   // begitu daftarnya berpaginasi, dan boros sejak awal.
-  const { data: response, isLoading, refetch } = useQuery({
+  const { data: response, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['company-submission', submissionId],
     queryFn: () => submissionsService.getCompanySubmission(submissionId),
     enabled: isAuthenticated && !!user && !!submissionId,
@@ -86,6 +86,31 @@ export default function SubmissionDetailPage() {
     );
   }
 
+  // Kegagalan memuat bukan "tidak ditemukan". Sebelumnya 403 karena submisi
+  // milik perusahaan lain, koneksi terputus, dan server mati semuanya berakhir
+  // di layar yang sama — tanpa satu pun petunjuk bahwa mencoba lagi ada
+  // gunanya.
+  if (isError) {
+    const loadError = error as any;
+    const reason =
+      loadError?.statusCode === 403
+        ? 'Submisi ini bukan milik perusahaan Anda, jadi rinciannya tidak dapat dibuka.'
+        : loadError?.message || 'Server tidak dapat dihubungi saat ini.';
+
+    return (
+      <div className="py-20 text-center max-w-md mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-foreground">Submisi gagal dimuat</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">{reason}</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Button onClick={() => void refetch()}>Coba muat ulang</Button>
+          <Button onClick={() => router.push('/')} variant="secondary">
+            Kembali ke Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!submission) {
     return (
       <div className="py-20 text-center">
@@ -98,6 +123,18 @@ export default function SubmissionDetailPage() {
   const currentStage = getHiringStage(submission.hiringStatus);
   const talentSlug = submission.talent?.slug;
   const talentEmail = submission.talent?.email;
+
+  // Submisi berstatus PENDING_AI selalu ber-`aiScore` null karena penilaiannya
+  // masih mengantre. Tanpa dibedakan, pelanggan Pro yang sudah membayar justru
+  // disuguhi tawaran naik ke paket Pro.
+  const hasAiScore = submission.aiScore !== null && submission.aiScore !== undefined;
+  const isAiPending = !hasAiScore && submission.status === 'PENDING_AI';
+
+  // Nilai plagiarisme yang belum ada bukan nol. `|| 0` menuliskannya sebagai
+  // "0%" berwarna hijau — data yang belum dihitung terbaca sebagai bersih.
+  const plagiarismScore = submission.aiPlagiarismScore;
+  const hasPlagiarismScore =
+    plagiarismScore !== null && plagiarismScore !== undefined;
 
   const scoreValue = Number(formData.finalScore);
   const isScoreValid =
@@ -411,7 +448,7 @@ export default function SubmissionDetailPage() {
           )}
 
           {/* AI Assessment (If Premium / Available) */}
-          {submission.aiScore !== null ? (
+          {hasAiScore ? (
             <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
               <div className="flex items-center gap-2 mb-4">
                 <Brain className="w-5 h-5 text-info" aria-hidden="true" />
@@ -430,9 +467,22 @@ export default function SubmissionDetailPage() {
                 </div>
                 <div className="bg-foreground/5 rounded-xl p-4 border border-border">
                   <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><ShieldAlert className="w-3 h-3" aria-hidden="true" /> Plagiarisme</p>
-                  <p className={`text-3xl font-bold ${submission.aiPlagiarismScore > 30 ? 'text-danger' : 'text-success'}`}>
-                    {submission.aiPlagiarismScore || 0}%
+                  <p
+                    className={`text-3xl font-bold ${
+                      !hasPlagiarismScore
+                        ? 'text-muted-foreground'
+                        : plagiarismScore > 30
+                          ? 'text-danger'
+                          : 'text-success'
+                    }`}
+                  >
+                    {hasPlagiarismScore ? `${plagiarismScore}%` : '—'}
                   </p>
+                  {!hasPlagiarismScore && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Belum dihitung
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -452,6 +502,28 @@ export default function SubmissionDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
+          ) : isAiPending ? (
+            /* Antrean penilaian, bukan ketiadaan hak. Menawarkan paket Pro di
+               sini berarti menjual sesuatu yang sudah dimiliki pelanggan dan
+               sedang berjalan. */
+            <div className="bg-card border border-border border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center print:hidden">
+              <Loader2
+                className="w-12 h-12 text-info mb-3 animate-spin"
+                aria-hidden="true"
+              />
+              <h2 className="text-foreground font-medium mb-1">
+                Penilaian AI sedang berjalan
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                Submisi ini masih mengantre di penilai otomatis. Skor hard skill,
+                analisis soft skill, dan deteksi plagiarisme muncul di sini
+                begitu selesai. Penilaian manual di samping tetap bisa Anda
+                kerjakan sekarang.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                Periksa lagi
+              </Button>
             </div>
           ) : (
             <div className="bg-card border border-border border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center print:hidden">

@@ -6,7 +6,9 @@ import { portfoliosService } from '../../services/portfolios.service';
 import { skillsService } from '../../services/skills.service';
 import { useUserStore } from '../../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw } from 'lucide-react';
 
+import { Button } from '../../components/common/Button';
 import { Podium } from '../../components/leaderboard/Podium';
 import { LeaderboardTable } from '../../components/leaderboard/LeaderboardTable';
 
@@ -45,7 +47,7 @@ export default function LeaderboardPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     // Kategori ikut kunci: penyaringan dikerjakan server, jadi ganti bidang
     // berarti permintaan baru — bukan menyaring ulang 50 baris yang sama.
     queryKey: ['leaderboard', selectedCategory],
@@ -113,8 +115,13 @@ export default function LeaderboardPage() {
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center py-20 bg-card border border-border rounded-2xl max-w-4xl mx-auto space-y-3">
+        /* Tanpa tombol ini, satu-satunya cara mencoba lagi adalah memuat ulang
+           seluruh halaman — beserta daftar bidang dan wilayahnya. */
+        <div className="text-center py-20 bg-card border border-border rounded-2xl max-w-4xl mx-auto space-y-4">
           <p className="text-base text-red-400 font-medium">Gagal memuat papan peringkat.</p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Coba Lagi
+          </Button>
         </div>
       ) : (
         <div className="relative max-w-5xl mx-auto space-y-0">

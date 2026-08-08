@@ -147,6 +147,8 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
   
   const [showSchoolError, setShowSchoolError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  /** Alasan simpanan terakhir gagal, ditampilkan di dalam modal. */
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -173,6 +175,7 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
       }
       setShowSchoolError(false);
       setIsSaving(false);
+      setSaveError(null);
     }
   }, [isOpen, education]);
 
@@ -203,14 +206,26 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
     }
     
     setIsSaving(true);
+    setSaveError(null);
     const finalData = {
       ...formData,
       startDate: buildDate(startYear, startMonth),
       endDate: buildDate(endYear, endMonth),
     };
 
-    await onSave(finalData);
-    setIsSaving(false);
+    // Tanpa penanganan galat, `onSave` yang melempar meninggalkan tombol
+    // berputar selamanya: modal buntu dan pengguna tidak tahu apa penyebabnya.
+    try {
+      await onSave(finalData);
+    } catch (err: any) {
+      setSaveError(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Pendidikan gagal disimpan. Coba lagi sebentar lagi.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChange = (e: any) => {
@@ -318,7 +333,14 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
           </div>
         </div>
 
-        <div className="p-6 border-t border-border flex justify-between items-center">
+        <div className="p-6 border-t border-border space-y-3">
+          {saveError && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-500">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{saveError}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center">
           <div>
             {onRemoveSection && (
               <Button variant="outline" onClick={onRemoveSection} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50">
@@ -335,6 +357,7 @@ export const EducationModal = ({ isOpen, onClose, education, onSave, onDelete, o
             <Button onClick={handleSave} isLoading={isSaving} className="rounded-full px-6">
               Simpan
             </Button>
+          </div>
           </div>
         </div>
       </div>

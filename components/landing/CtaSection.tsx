@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 import { FadeIn } from '../animations';
+import { WHATSAPP_SALES_URL } from '@/lib/plans';
 
 export function CtaSection() {
   return (
@@ -31,11 +32,13 @@ export function CtaSection() {
                   Mulai Perekrutan Cerdas <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/contact">
+              {/* Dulu menuju `/contact`, rute yang tidak pernah ada di `app/`.
+                  Ajakan bertindak paling menonjol di halaman depan berujung 404. */}
+              <a href={WHATSAPP_SALES_URL} target="_blank" rel="noreferrer">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto font-bold px-8 py-4 border-white/20 text-white hover:border-white/40 hover:bg-white/10">
                   Jadwalkan Demo AI
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </FadeIn>

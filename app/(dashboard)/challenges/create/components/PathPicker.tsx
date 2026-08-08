@@ -35,7 +35,7 @@ export default function PathPicker({
 }: PathPickerProps) {
   // Hanya jumlah dan penandanya yang dibaca di sini; daftar soalnya sendiri
   // dimuat di dalam builder saat panel bank dibuka.
-  const { data: preview, isLoading } = useQuery({
+  const { data: preview, isLoading, isError: isPreviewError } = useQuery({
     queryKey: ['question-bank-preview', context.category, context.difficulty],
     queryFn: () =>
       questionBankService.getAll({
@@ -147,6 +147,13 @@ export default function PathPicker({
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Menghitung soal yang cocok...
+              </p>
+            ) : isPreviewError ? (
+              /* Angka nol dari kegagalan terbaca sama persis dengan bank yang
+                 memang kosong, dan keduanya menuntun ke keputusan berbeda. */
+              <p className="text-sm text-amber-400 mt-1">
+                Jumlah soal di bank gagal dimuat, jadi angkanya tidak bisa ditampilkan.
+                Bank soal tetap bisa dibuka di dalam penyusun.
               </p>
             ) : (
               <p className="text-sm text-muted-foreground mt-1">

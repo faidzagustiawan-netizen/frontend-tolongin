@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { companiesService } from '../../services/companies.service';
 import { useUserStore } from '../../store/userStore';
 import { Button } from '../../components/common/Button';
-import { Building2, ShieldCheck } from 'lucide-react';
+import { Building2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -16,7 +16,7 @@ export default function CompaniesDirectoryPage() {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
 
-  const { data: companies, isLoading, isError } = useQuery({
+  const { data: companies, isLoading, isError, refetch } = useQuery({
     queryKey: ['companies'],
     queryFn: () => companiesService.getAll(),
   });
@@ -39,8 +39,13 @@ export default function CompaniesDirectoryPage() {
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center py-20 bg-card border border-border rounded-3xl">
+        /* Layar gagal tanpa jalan keluar memaksa pengunjung memuat ulang
+           seluruh halaman; tombol ini hanya mengulang permintaannya. */
+        <div className="text-center py-20 bg-card border border-border rounded-3xl space-y-4">
           <p className="text-red-400 font-medium">Gagal memuat daftar perusahaan.</p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Coba Lagi
+          </Button>
         </div>
       ) : companies?.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

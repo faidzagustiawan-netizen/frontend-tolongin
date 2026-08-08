@@ -33,8 +33,18 @@ export type ServerDraft = {
 export function useServerDraft(
   manualData: CreateChallengePayload,
   setManualData: React.Dispatch<React.SetStateAction<CreateChallengePayload>>,
-  options: { enabled: boolean },
+  options: { enabled: boolean; allowCreate?: boolean },
 ): ServerDraft {
+  /**
+   * Bolehkah autosave membuat studi kasus baru bila `manualData.id` kosong?
+   *
+   * Halaman pembuatan memang butuh itu. Halaman penyuntingan tidak: di sana id
+   * yang hilang berarti pemuatan gagal, dan `create()` yang tetap berjalan
+   * menerbitkan duplikat diam-diam yang memakan kuota paket — persis yang sudah
+   * dicegah di jalur simpan manual. Karena itu bawaannya `true` demi halaman
+   * pembuatan, dan halaman penyuntingan mematikannya secara tegas.
+   */
+  const allowCreate = options.allowCreate ?? true;
   const [state, setState] = useState<ServerDraftState>('IDLE');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +57,7 @@ export function useServerDraft(
 
   const isReady =
     options.enabled &&
+    (allowCreate || !!manualData.id) &&
     !!manualData.title?.trim() &&
     !!manualData.summary?.trim() &&
     !!manualData.description?.trim() &&

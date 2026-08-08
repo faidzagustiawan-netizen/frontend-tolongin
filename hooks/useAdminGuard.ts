@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 
 /**
@@ -32,6 +33,9 @@ export function useAdminGuard() {
     }
 
     if (!isAdmin) {
+      // Pemulangan tanpa sepatah kata pun terbaca sebagai tautan rusak, bukan
+      // sebagai pintu terkunci.
+      toast.error('Halaman ini khusus admin.', { id: 'admin-only' });
       router.replace('/');
     }
   }, [isHydrated, isAuthenticated, isAdmin, router]);

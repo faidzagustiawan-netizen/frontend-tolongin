@@ -158,6 +158,7 @@ export const ChallengeFilterBar = ({
       <div className="w-full relative pt-10">
         <Input
           type="text"
+          aria-label="Cari studi kasus berdasarkan kata kunci atau nama perusahaan"
           placeholder="Cari kata kunci: 'riset', 'ui/ux', atau nama perusahaan..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -311,9 +312,10 @@ export const ChallengeFilterBar = ({
                   className="absolute top-full mt-2 left-0 md:left-auto md:right-auto w-[290px] bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 flex flex-col p-1.5"
                 >
                   <div className="p-2 mb-1">
-                    <input 
-                      type="text" 
-                      placeholder="Cari kategori..." 
+                    <input
+                      type="text"
+                      aria-label="Cari kategori"
+                      placeholder="Cari kategori..."
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
                       className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#00BC7D] transition-colors"

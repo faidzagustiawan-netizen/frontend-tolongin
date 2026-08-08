@@ -12,15 +12,20 @@ export default function AdminBillingPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Halaman finansial: nol pemasukan dan gagal-muat tidak boleh terbaca sama.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
 
     const fetchBilling = async () => {
+      setLoadError(null);
       try {
         setTransactions(await adminApi.getBilling());
       } catch (err) {
-        toast.error(apiErrorMessage(err, 'Gagal memuat riwayat transaksi.'));
+        const pesan = apiErrorMessage(err, 'Gagal memuat riwayat transaksi.');
+        setLoadError(pesan);
+        toast.error(pesan);
       } finally {
         setLoading(false);
       }
@@ -79,6 +84,16 @@ export default function AdminBillingPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} className="py-8 text-center text-zinc-500">Memuat...</td></tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center space-y-1">
+                    <p className="text-red-400 text-sm">{loadError}</p>
+                    <p className="text-zinc-500 text-xs">
+                      Riwayat transaksi tidak terbaca — angka di layar ini tidak bisa dipakai
+                      sebagai laporan.
+                    </p>
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={6} className="py-8 text-center text-zinc-500">Tidak ada transaksi ditemukan.</td></tr>
               ) : (

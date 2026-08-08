@@ -58,6 +58,13 @@ export default function EditChallengePage() {
             isPrivate: found.isPrivate ?? undefined,
             status: found.status,
           });
+        } else {
+          // Permintaan berhasil tetapi tidak membawa apa pun. Dulu tidak terjadi
+          // apa-apa: formulir kosong tetap tampil di bawah judul "Edit
+          // Challenge", dan penolakan baru muncul saat pengguna menekan Simpan.
+          setErrorMsg(
+            'Studi kasus ini tidak ditemukan atau tidak bisa dimuat. Muat ulang halaman atau kembali ke daftar studi kasus Anda.',
+          );
         }
       }).catch(err => {
         console.error("Gagal mengambil data draf", err);
@@ -173,11 +180,12 @@ export default function EditChallengePage() {
               <p>Memuat studi kasus...</p>
             </div>
           ) : (
-            <ManualBuilder 
-              manualData={manualData} 
+            <ManualBuilder
+              manualData={manualData}
               setManualData={setManualData}
               handleManualSubmit={handleManualSubmit}
               isSubmitting={isSubmitting}
+              allowCreate={false}
             />
           )}
         </motion.div>

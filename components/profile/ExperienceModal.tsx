@@ -165,6 +165,8 @@ export const ExperienceModal = ({ isOpen, onClose, experience, onSave, onDelete,
   const [showTitleError, setShowTitleError] = useState(false);
   const [showCompanyError, setShowCompanyError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  /** Alasan simpanan terakhir gagal, ditampilkan di dalam modal. */
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -192,6 +194,7 @@ export const ExperienceModal = ({ isOpen, onClose, experience, onSave, onDelete,
       setShowTitleError(false);
       setShowCompanyError(false);
       setIsSaving(false);
+      setSaveError(null);
     }
   }, [isOpen, experience]);
 
@@ -228,14 +231,26 @@ export const ExperienceModal = ({ isOpen, onClose, experience, onSave, onDelete,
     if (hasErr) return;
     
     setIsSaving(true);
+    setSaveError(null);
     const finalData = {
       ...formData,
       startDate: buildDate(startYear, startMonth),
       endDate: formData.isCurrent ? null : buildDate(endYear, endMonth),
     };
 
-    await onSave(finalData);
-    setIsSaving(false);
+    // Tanpa penanganan galat, `onSave` yang melempar meninggalkan tombol
+    // berputar selamanya: modal buntu dan pengguna tidak tahu apa penyebabnya.
+    try {
+      await onSave(finalData);
+    } catch (err: any) {
+      setSaveError(
+        err?.response?.data?.message ||
+          err?.message ||
+          'Pengalaman gagal disimpan. Coba lagi sebentar lagi.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChange = (e: any) => {
@@ -402,23 +417,31 @@ export const ExperienceModal = ({ isOpen, onClose, experience, onSave, onDelete,
           </div>
         </div>
 
-        <div className="p-6 border-t border-border flex justify-between items-center bg-card">
-          <div>
-            {onRemoveSection && (
-              <Button variant="outline" onClick={onRemoveSection} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50">
-                Hapus Bagian Ini
+        <div className="p-6 border-t border-border bg-card space-y-3">
+          {saveError && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-500">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{saveError}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center">
+            <div>
+              {onRemoveSection && (
+                <Button variant="outline" onClick={onRemoveSection} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-500/50">
+                  Hapus Bagian Ini
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              {experience && onDelete && (
+                <Button variant="outline" onClick={onDelete} isLoading={isSaving} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-transparent">
+                  Hapus Item
+                </Button>
+              )}
+              <Button onClick={handleSave} isLoading={isSaving} className="rounded-full px-6 bg-[#0a66c2] hover:bg-[#004182] text-white font-semibold">
+                Simpan
               </Button>
-            )}
-          </div>
-          <div className="flex gap-3">
-            {experience && onDelete && (
-              <Button variant="outline" onClick={onDelete} isLoading={isSaving} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-transparent">
-                Hapus Item
-              </Button>
-            )}
-            <Button onClick={handleSave} isLoading={isSaving} className="rounded-full px-6 bg-[#0a66c2] hover:bg-[#004182] text-white font-semibold">
-              Simpan
-            </Button>
+            </div>
           </div>
         </div>
       </div>

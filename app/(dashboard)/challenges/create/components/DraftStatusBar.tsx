@@ -1,6 +1,9 @@
-import React from 'react';
-import Link from 'next/link';
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   AlertCircle,
   ArrowLeft,
   Check,
@@ -93,6 +96,9 @@ export default function DraftStatusBar({
   isReadOnly = false,
   proctored = false,
 }: DraftStatusBarProps) {
+  const router = useRouter();
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   // --- MODE NAVBAR PENGERJAAN SOAL ---
   if (isExamMode) {
     return (
@@ -101,11 +107,17 @@ export default function DraftStatusBar({
           {/* Sisi Kiri: Tombol Keluar + Judul Soal */}
           <div className="flex items-center gap-3 min-w-0">
             {exitHref ? (
-              <Link href={exitHref}>
-                <Button variant="outline" size="sm" className="rounded-xl gap-1.5 text-xs h-9 px-3 shrink-0">
-                  <ArrowLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Keluar Sesi</span>
-                </Button>
-              </Link>
+              /* Dulu ini `Link` biasa: satu klik di tengah tahap yang jamnya
+                 berjalan meninggalkan ujian tanpa satu pun pertanyaan, sementara
+                 hitungan tahap terus berjalan di server. */
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExitConfirm(true)}
+                className="rounded-xl gap-1.5 text-xs h-9 px-3 shrink-0"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Keluar Sesi</span>
+              </Button>
             ) : onExit ? (
               <Button variant="outline" size="sm" onClick={onExit} className="rounded-xl gap-1.5 text-xs h-9 px-3 shrink-0">
                 <ArrowLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Keluar Sesi</span>
@@ -187,6 +199,53 @@ export default function DraftStatusBar({
             )}
           </div>
         </div>
+
+        {showExitConfirm && exitHref && (
+          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="judul-konfirmasi-keluar"
+              className="max-w-md w-full bg-card border border-border rounded-3xl p-7 space-y-5 shadow-2xl"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 id="judul-konfirmasi-keluar" className="text-base font-bold text-foreground">
+                    Keluar dari sesi pengerjaan?
+                  </h2>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isReadOnly
+                      ? 'Anda akan kembali ke halaman ringkasan.'
+                      : 'Hitungan waktu tahap ini tetap berjalan di server selagi Anda di luar. Draf yang sudah tersimpan aman, tetapi ketikan terakhir yang belum tersimpan bisa hilang.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 rounded-xl h-11 text-xs font-bold"
+                >
+                  Lanjut Mengerjakan
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setShowExitConfirm(false);
+                    router.push(exitHref);
+                  }}
+                  className="flex-1 rounded-xl h-11 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white"
+                >
+                  Ya, Keluar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
     );
   }

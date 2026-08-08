@@ -190,7 +190,7 @@ export default function ChallengesDirectoryPage() {
         {/* Left Column: Title */}
         <div className="lg:col-span-7 space-y-3">
           <h1 className="font-jakarta text-4xl sm:text-5xl lg:text-[3.75rem] font-bold text-foreground tracking-tight leading-[1.18]">
-            Pilih tantangan, buktikan kinerja nyata<span className="text-[#1E7F4D]">.</span>
+            Pilih studi kasus, buktikan kinerja nyata<span className="text-[#1E7F4D]">.</span>
           </h1>
         </div>
 

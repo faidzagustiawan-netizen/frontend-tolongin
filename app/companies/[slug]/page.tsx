@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { companiesService } from '../../../services/companies.service';
 import { ChallengeCard } from '../../../components/challenge/ChallengeCard';
-import { Building2, ShieldCheck, Globe, Users, Briefcase, CalendarClock, CheckCircle2, PlayCircle } from 'lucide-react';
+import { Button } from '../../../components/common/Button';
+import { Building2, ShieldCheck, Globe, Users, Briefcase, CalendarClock, CheckCircle2, PlayCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CompanyDetailPage() {
@@ -13,7 +15,7 @@ export default function CompanyDetailPage() {
   const id = params.slug as string;
   const [activeTab, setActiveTab] = useState<'ongoing' | 'upcoming' | 'completed'>('ongoing');
 
-  const { data: company, isLoading, isError } = useQuery({
+  const { data: company, isLoading, isError, refetch } = useQuery({
     queryKey: ['company', id],
     queryFn: () => companiesService.getById(id),
     enabled: !!id,
@@ -28,16 +30,41 @@ export default function CompanyDetailPage() {
     );
   }
 
-  if (isError || !company) {
+  /* Gagal memuat dan perusahaan yang tidak ada adalah dua hal berbeda: yang
+     pertama layak dicoba ulang, yang kedua hanya menyisakan direktori. */
+  if (isError) {
     return (
-      <div className="text-center py-20">
+      <div className="text-center py-20 space-y-4">
         <p className="text-red-400 font-medium">Gagal memuat profil perusahaan.</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Coba Lagi
+          </Button>
+          <Link href="/companies">
+            <Button size="sm">Ke Direktori Perusahaan</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const { challenges } = company;
-  
+  if (!company) {
+    return (
+      <div className="text-center py-20 space-y-4">
+        <Building2 className="h-12 w-12 text-muted-foreground mx-auto" aria-hidden="true" />
+        <p className="text-muted-foreground font-medium">Perusahaan ini tidak ditemukan.</p>
+        <Link href="/companies" className="inline-block">
+          <Button size="sm">Ke Direktori Perusahaan</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Respons tanpa ruas `challenges` sebelumnya membuat `challenges.ongoing`
+  // melempar TypeError dan seluruh halaman berhenti dirender — profil
+  // perusahaannya pun ikut hilang, bukan cuma daftar studi kasusnya.
+  const challenges = company.challenges ?? {};
+
   const getTabChallenges = () => {
     switch (activeTab) {
       case 'ongoing': return challenges.ongoing || [];

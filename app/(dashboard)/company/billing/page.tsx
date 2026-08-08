@@ -13,7 +13,9 @@ import {
   MIDTRANS_SNAP_URL,
   isMidtransConfigured,
 } from '@/lib/midtrans';
+import { Button } from '@/components/common/Button';
 import {
+  AlertCircle,
   CheckCircle2,
   Zap,
   Shield,
@@ -22,6 +24,7 @@ import {
   Loader2,
   MessageSquare,
   CalendarClock,
+  RefreshCw,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Script from 'next/script';
@@ -50,7 +53,13 @@ export default function BillingPage() {
   // Tanggal berakhir langganan hanya ada di server; localStorage menyimpan
   // potret saat login saja. Tanpa ini halaman berjudul "Langganan & Tagihan"
   // tidak menampilkan satu pun informasi langganan yang sedang berjalan.
-  const { data: statusData } = useQuery({
+  const {
+    data: statusData,
+    isLoading: isStatusLoading,
+    isError: isStatusError,
+    error: statusError,
+    refetch: refetchStatus,
+  } = useQuery({
     queryKey: ['subscription-status', user?.id],
     queryFn: () => subscriptionsService.getStatus(),
     // Endpoint statusnya kini khusus pemilik. Tanpa syarat ini anggota tim
@@ -64,6 +73,9 @@ export default function BillingPage() {
     'STARTUP';
   const expiresAt = statusData?.data?.subscriptionExpiresAt;
 
+  const statusErrorMessage =
+    (statusError as any)?.message || 'Server tidak dapat dihubungi.';
+
   const handleSelectPlan = async (plan: Plan) => {
     if (plan.tier === currentTier) return;
 
@@ -76,13 +88,14 @@ export default function BillingPage() {
     // dari sini. Turun paket karena itu tidak boleh lewat jalur checkout —
     // sebelumnya kartu Startup tampil sebagai tombol aktif berlabel "Paket Anda
     // Saat Ini" dan menekannya menagih Rp 2.500.000 untuk paket Pro.
+    //
+    // Penurunan paket memang diproses manual, tetapi menyuruh "hubungi tim
+    // kami" lewat toast tanpa tautan tidak memberi jalan ke mana pun. Tombolnya
+    // kini membuka percakapan sales yang sama dengan kartu Custom.
     const currentRank = PLANS.findIndex((p) => p.tier === currentTier);
     const targetRank = PLANS.findIndex((p) => p.tier === plan.tier);
     if (targetRank < currentRank) {
-      toast(
-        'Penurunan paket diproses manual. Hubungi tim kami untuk mengaturnya.',
-        { icon: 'ℹ️' },
-      );
+      window.open(WHATSAPP_SALES_URL, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -122,6 +135,12 @@ export default function BillingPage() {
           setPendingTier(null);
         },
         onClose: () => {
+          // Menutup jendela di tengah jalan adalah pembatalan, dan sebelumnya
+          // tidak meninggalkan jejak apa pun selain indikator yang berhenti
+          // sendiri — tidak terbedakan dari pembayaran yang gagal diam-diam.
+          toast('Pembayaran dibatalkan. Paket Anda belum berubah.', {
+            icon: 'ℹ️',
+          });
           setPendingTier(null);
         },
       });
@@ -219,44 +238,89 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Ringkasan langganan berjalan */}
-      <div className="bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
-              Paket berjalan
-            </p>
-            <p className="font-display text-xl font-bold text-foreground">
-              {activePlan.name}
-              <span className="text-sm font-medium text-muted-foreground ml-2">
-                {activePlan.priceLabel}
-                {activePlan.monthlyPrice ? ' / bln' : ''}
-              </span>
-            </p>
-          </div>
-        </div>
+      {/* Ringkasan langganan berjalan.
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CalendarClock className="h-4 w-4 flex-shrink-0" />
-          {expiresAt ? (
-            <span>
-              Berlaku hingga{' '}
-              <span className="font-semibold text-foreground">
-                {new Date(expiresAt).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
-            </span>
-          ) : (
-            <span>Tanpa tanggal berakhir</span>
-          )}
+          Saat status dari server gagal dimuat, yang tampil adalah kegagalannya
+          — bukan tier cadangan dari localStorage beserta "Tanpa tanggal
+          berakhir". Nilai bawaan itu memberi tahu pelanggan Pro bahwa
+          langganannya tidak punya masa berlaku, keterangan yang salah persis
+          pada saat halaman ini tidak tahu apa-apa. */}
+      {isStatusError ? (
+        <div
+          role="alert"
+          className="bg-danger/10 border border-danger/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle
+              className="h-5 w-5 text-danger flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="text-sm font-semibold text-danger">
+                Status langganan gagal dimuat
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+                {statusErrorMessage} Paket berjalan dan masa berlakunya tidak
+                bisa dipastikan sampai halaman ini berhasil menghubungi server.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refetchStatus()}
+            className="flex-shrink-0"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Muat ulang
+          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+              <CreditCard className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                Paket berjalan
+              </p>
+              <p className="font-display text-xl font-bold text-foreground">
+                {activePlan.name}
+                <span className="text-sm font-medium text-muted-foreground ml-2">
+                  {activePlan.priceLabel}
+                  {activePlan.monthlyPrice ? ' / bln' : ''}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CalendarClock className="h-4 w-4 flex-shrink-0" />
+            {isStatusLoading ? (
+              /* Selama permintaannya masih berjalan, tanggalnya belum diketahui
+                 — bukan berarti tidak ada. */
+              <span>Memuat masa berlaku...</span>
+            ) : expiresAt ? (
+              <span>
+                Berlaku hingga{' '}
+                <span className="font-semibold text-foreground">
+                  {new Date(expiresAt).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </span>
+              </span>
+            ) : activePlan.monthlyPrice ? (
+              /* Paket berbayar tanpa tanggal berakhir bukan "berlaku
+                 selamanya", melainkan catatan yang tidak lengkap. */
+              <span>Masa berlaku belum tercatat</span>
+            ) : (
+              <span>Tanpa tanggal berakhir</span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {PLANS.map((plan, idx) => {
@@ -267,12 +331,17 @@ export default function BillingPage() {
           const currentRank = PLANS.findIndex((p) => p.tier === currentTier);
           const isDowngrade = idx < currentRank;
 
+          // Penurunan paket berujung di percakapan sales, jadi labelnya
+          // mengatakan begitu. "Turunkan Paket" menjanjikan perubahan yang
+          // tidak terjadi sekali klik.
+          const opensWhatsApp = !plan.selfServe || isDowngrade;
+
           const label = isCurrent
             ? 'Paket Anda Saat Ini'
             : !plan.selfServe
               ? 'Hubungi via WhatsApp'
               : isDowngrade
-                ? 'Turunkan Paket'
+                ? 'Turunkan lewat WhatsApp'
                 : `Tingkatkan ke ${plan.name}`;
 
           return (
@@ -344,10 +413,10 @@ export default function BillingPage() {
                 ) : (
                   <>
                     {!isCurrent &&
-                      (plan.selfServe ? (
-                        <CreditCard className="h-4 w-4" />
-                      ) : (
+                      (opensWhatsApp ? (
                         <MessageSquare className="h-4 w-4" />
+                      ) : (
+                        <CreditCard className="h-4 w-4" />
                       ))}
                     {label}
                   </>

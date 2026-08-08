@@ -25,6 +25,21 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const expired = searchParams.get('expired');
+
+  /**
+   * Alamat yang dituju sebelum dipantulkan ke sini.
+   *
+   * `AuthGuard` dan tombol "Masuk untuk Mendaftar" di halaman studi kasus
+   * sama-sama mengirim `?redirect=`, tetapi halaman ini dulu mengabaikannya —
+   * pengguna selalu mendarat di beranda dan harus mencari ulang halaman yang
+   * tadi ia klik. Hanya lintasan internal yang diterima; alamat berawalan `//`
+   * atau `http` akan menjadikan halaman masuk pengalih terbuka ke situs lain.
+   */
+  const redirectParam = searchParams.get('redirect');
+  const redirectTo =
+    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+      ? redirectParam
+      : null;
   const { setUser } = useUserStore();
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -44,7 +59,9 @@ function LoginContent() {
       const data = await authService.login(values);
       if (data?.user) {
         setUser(data.user);
-        if (data.user.role === 'ADMIN') {
+        if (redirectTo) {
+          router.push(redirectTo);
+        } else if (data.user.role === 'ADMIN') {
           router.push('/admin');
         } else {
           router.push('/');

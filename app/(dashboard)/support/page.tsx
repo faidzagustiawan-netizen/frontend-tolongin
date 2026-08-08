@@ -3,22 +3,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Clock, LifeBuoy, MessageSquare, Plus } from 'lucide-react';
+import { Clock, LifeBuoy, MessageSquare, Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { apiErrorMessage, supportApi } from '@/services/adminApi';
 
-const STATUS_LABEL: Record<string, { text: string; className: string }> = {
-  OPEN: { text: 'Menunggu', className: 'bg-red-500/20 text-red-400' },
-  IN_PROGRESS: { text: 'Diproses', className: 'bg-yellow-500/20 text-yellow-400' },
-  RESOLVED: { text: 'Selesai', className: 'bg-emerald-500/20 text-emerald-400' },
-  CLOSED: { text: 'Ditutup', className: 'bg-zinc-700 text-zinc-300' },
+/**
+ * Terjemahan status tiket, dipakai bersama oleh daftar ini dan halaman detail
+ * `support/[id]`. Detailnya dulu menampilkan nilai mentah (`IN_PROGRESS`)
+ * karena petanya hanya ada di sini — satu sumber mencegah keduanya kembali
+ * berbeda.
+ */
+export const STATUS_LABEL: Record<string, { text: string; className: string }> = {
+  OPEN: { text: 'Menunggu', className: 'bg-red-500/20 text-red-500' },
+  IN_PROGRESS: { text: 'Diproses', className: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' },
+  RESOLVED: { text: 'Selesai', className: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' },
+  CLOSED: { text: 'Ditutup', className: 'bg-foreground/10 text-muted-foreground' },
 };
 
 export default function SupportPage() {
   const { isAuthenticated } = useUserStore();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [subject, setSubject] = useState('');
@@ -29,7 +36,12 @@ export default function SupportPage() {
     setLoading(true);
     try {
       setTickets(await supportApi.listMyTickets());
+      setLoadFailed(false);
     } catch (err) {
+      // Kegagalan dicatat di state, bukan cuma sebagai toast yang hilang dalam
+      // beberapa detik: tanpa penanda ini layarnya berbunyi "Belum ada tiket"
+      // dan pengguna mengira tiket yang baru dikirimnya raib.
+      setLoadFailed(true);
       toast.error(apiErrorMessage(err, 'Gagal memuat tiket Anda.'));
     } finally {
       setLoading(false);
@@ -64,11 +76,13 @@ export default function SupportPage() {
     <div className="container mx-auto max-w-4xl px-4 py-10">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-            <LifeBuoy className="w-6 h-6 text-sky-400" />
+          {/* Palet keras (`text-white`, `text-zinc-*`) diganti token tema.
+              Di mode terang judul putih ini tidak terbaca sama sekali. */}
+          <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+            <LifeBuoy className="w-6 h-6 text-sky-500" />
             Bantuan
           </h1>
-          <p className="text-zinc-400">
+          <p className="text-muted-foreground">
             Kirim pertanyaan atau keluhan. Balasan tim dukungan muncul di tiket yang sama.
           </p>
         </div>
@@ -84,10 +98,10 @@ export default function SupportPage() {
       {showForm && (
         <form
           onSubmit={handleCreate}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8 space-y-4"
+          className="bg-card border border-border rounded-xl p-6 mb-8 space-y-4"
         >
           <div>
-            <label htmlFor="ticket-subject" className="block text-sm font-medium text-zinc-400 mb-1">
+            <label htmlFor="ticket-subject" className="block text-sm font-medium text-muted-foreground mb-1">
               Judul
             </label>
             <input
@@ -99,11 +113,11 @@ export default function SupportPage() {
               maxLength={200}
               required
               placeholder="Ringkas masalahnya dalam satu baris"
-              className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-500"
+              className="w-full bg-background border border-border text-foreground rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-500"
             />
           </div>
           <div>
-            <label htmlFor="ticket-description" className="block text-sm font-medium text-zinc-400 mb-1">
+            <label htmlFor="ticket-description" className="block text-sm font-medium text-muted-foreground mb-1">
               Uraian
             </label>
             <textarea
@@ -115,9 +129,9 @@ export default function SupportPage() {
               required
               rows={5}
               placeholder="Apa yang terjadi, kapan, dan apa yang sudah Anda coba"
-              className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-500"
+              className="w-full bg-background border border-border text-foreground rounded-lg px-4 py-2.5 focus:outline-none focus:border-sky-500"
             />
-            <p className="text-xs text-zinc-500 mt-1">Minimal 20 karakter.</p>
+            <p className="text-xs text-muted-foreground mt-1">Minimal 20 karakter.</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -130,7 +144,7 @@ export default function SupportPage() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-5 py-2.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="px-5 py-2.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
             >
               Batal
             </button>
@@ -140,9 +154,20 @@ export default function SupportPage() {
 
       <div className="space-y-3">
         {loading ? (
-          <div className="text-zinc-500 text-center py-8">Memuat...</div>
+          <div className="text-muted-foreground text-center py-8">Memuat...</div>
+        ) : loadFailed ? (
+          <div className="bg-card border border-border rounded-xl p-12 text-center space-y-4">
+            <p className="text-red-400 font-medium">Gagal memuat daftar tiket Anda.</p>
+            <button
+              onClick={() => void fetchTickets()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-foreground/5 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
+              Coba Lagi
+            </button>
+          </div>
         ) : tickets.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-xl p-12 text-center text-zinc-500">
+          <div className="bg-card border border-border border-dashed rounded-xl p-12 text-center text-muted-foreground">
             Belum ada tiket. Buat satu bila Anda butuh bantuan.
           </div>
         ) : (
@@ -152,16 +177,16 @@ export default function SupportPage() {
               <Link
                 key={ticket.id}
                 href={`/support/${ticket.id}`}
-                className="block bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                className="block bg-card border border-border rounded-xl p-5 hover:border-foreground/20 transition-colors"
               >
                 <div className="flex justify-between items-start gap-3 mb-2">
-                  <h2 className="font-semibold text-white">{ticket.subject}</h2>
+                  <h2 className="font-semibold text-foreground">{ticket.subject}</h2>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${status.className}`}>
                     {status.text}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{ticket.description}</p>
-                <div className="flex items-center gap-4 text-xs text-zinc-600 font-mono">
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{ticket.description}</p>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {format(new Date(ticket.createdAt), 'dd MMM yyyy')}

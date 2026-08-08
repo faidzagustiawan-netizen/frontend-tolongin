@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   CalendarClock,
@@ -29,6 +29,12 @@ interface ManualBuilderProps {
   setManualData: React.Dispatch<React.SetStateAction<CreateChallengePayload>>;
   handleManualSubmit: (status: 'DRAFT' | 'PUBLISHED') => Promise<void>;
   isSubmitting: boolean;
+  /**
+   * Halaman penyuntingan mematikan ini. Di sana `id` yang kosong berarti
+   * pemuatan gagal, dan autosave yang tetap memanggil `create()` menerbitkan
+   * duplikat pemakan kuota tanpa sepengetahuan siapa pun.
+   */
+  allowCreate?: boolean;
 }
 
 type Tab = BuilderTab;
@@ -56,6 +62,7 @@ export default function ManualBuilder({
   setManualData,
   handleManualSubmit,
   isSubmitting,
+  allowCreate = true,
 }: ManualBuilderProps) {
   const [activeTab, setActiveTab] = useState<Tab>('BASICS');
   /** Alasan penolakan baru ditampilkan setelah pengguna mencoba melanjutkan. */
@@ -73,7 +80,28 @@ export default function ManualBuilder({
   // permintaan simpan/terbit yang sedang dikirim pengguna.
   const draft = useServerDraft(manualData, setManualData, {
     enabled: !isSubmitting && manualData.status !== 'PUBLISHED' && manualData.status !== 'CLOSED',
+    allowCreate,
   });
+
+  /**
+   * Peringatan sebelum tab ditutup selagi ada suntingan yang belum tersimpan.
+   *
+   * Autosave menunggu jeda 4 detik sesudah ketukan terakhir. Menutup tab di
+   * dalam jendela itu — atau saat penyimpanan terakhir gagal — membuang
+   * pekerjaan tanpa satu pun pertanyaan.
+   */
+  useEffect(() => {
+    const adaYangBelumTersimpan = draft.state === 'SAVING' || draft.state === 'ERROR';
+    if (!adaYangBelumTersimpan) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [draft.state]);
 
   const handleNext = () => {
     // Gerbang di sini, bukan hanya di layar terakhir. Sebelumnya enam langkah
@@ -346,12 +374,26 @@ export default function ManualBuilder({
                     </label>
                   )}
 
+                  {/* Tombol mati tanpa alasan menyisakan tebak-tebakan. Tombol
+                      Publikasikan sudah menyebut alasannya; Simpan ke Draf dulu
+                      diam saja. */}
+                  {missingBasics && (
+                    <p className="text-xs text-amber-400 text-right pt-2">
+                      Isi Judul, Ringkasan, dan Deskripsi dulu sebelum draf bisa disimpan.
+                    </p>
+                  )}
+
                   <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
                     <Button
                       type="button"
                       onClick={() => handleManualSubmit('DRAFT')}
                       isLoading={isSubmitting}
                       disabled={missingBasics}
+                      title={
+                        missingBasics
+                          ? 'Isi Judul, Ringkasan, dan Deskripsi dulu.'
+                          : undefined
+                      }
                       variant="secondary"
                       className="w-full sm:w-auto px-8 py-3 font-bold bg-background border border-border hover:border-foreground/20"
                     >

@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { talentsService, type PublicTalent } from '@/services/talents.service';
 import { Button } from '@/components/common/Button';
-import { Search, ShieldCheck, MapPin, Users, Loader2 } from 'lucide-react';
+import { Search, ShieldCheck, MapPin, Users, Loader2, RefreshCw } from 'lucide-react';
 
 const PAGE_SIZE = 24;
 
@@ -31,7 +31,7 @@ export default function TalentDirectoryPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['talent-directory', page, search, skill],
     queryFn: () =>
       talentsService.list({
@@ -106,13 +106,28 @@ export default function TalentDirectoryPage() {
       </div>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
-        {isLoading ? 'Memuat talenta...' : `${total} talenta ditemukan`}
+        {isLoading
+          ? 'Memuat talenta...'
+          : isError
+            ? 'Direktori gagal dimuat'
+            : `${total} talenta ditemukan`}
       </p>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20" aria-busy="true">
           <Loader2 className="h-8 w-8 animate-spin text-success mb-4" aria-hidden="true" />
           <p className="text-muted-foreground">Memuat direktori talenta...</p>
+        </div>
+      ) : isError ? (
+        /* Permintaan yang gagal dipisahkan dari direktori yang memang kosong.
+           Keduanya sebelumnya menampilkan "Belum ada talenta terdaftar",
+           sehingga perusahaan menyimpulkan platform ini tidak punya talenta
+           padahal yang terjadi hanyalah permintaannya tidak sampai. */
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-card border border-border rounded-2xl space-y-4">
+          <p className="text-base text-red-400 font-medium">Gagal memuat direktori talenta.</p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Coba Lagi
+          </Button>
         </div>
       ) : talents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-card border border-border rounded-2xl">

@@ -27,7 +27,7 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData: _tokenData }:
                 size="md"
                 className="!bg-transparent hover:!bg-[#1E7F4D]/10 !bg-none !text-[#1E7F4D] dark:!text-[#00BC7D] font-bold !rounded-full border-2 border-[#1E7F4D] px-6 py-3 text-sm sm:text-base flex items-center gap-2 transition-all hover:scale-105 shadow-sm"
               >
-                <span className="!text-[#1E7F4D] dark:!text-[#00BC7D]">Buat Public Challenge</span>
+                <span className="!text-[#1E7F4D] dark:!text-[#00BC7D]">Buat Studi Kasus Publik</span>
                 <span className="flex items-center gap-1 bg-[#1E7F4D]/10 dark:bg-[#1E7F4D]/20 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-semibold border border-[#1E7F4D]/30 !text-[#1E7F4D] dark:!text-[#00BC7D]">
                   <Coins className="h-4 w-4 text-amber-500 fill-amber-400 shrink-0" />
                   -50
@@ -56,7 +56,7 @@ export function TalentWorkspaceDashboard({ enrollments, tokenData: _tokenData }:
             <Briefcase className="h-8 w-8 text-emerald-400" />
           </div>
           <div className="max-w-md mx-auto space-y-2">
-            <h2 className="font-display text-xl font-bold text-foreground tracking-tight">Belum Ada Tantangan yang Diambil</h2>
+            <h2 className="font-display text-xl font-bold text-foreground tracking-tight">Belum Ada Studi Kasus yang Diambil</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Anda belum berpartisipasi dalam studi kasus mana pun. Eksplorasi tantangan perusahaan sekarang untuk membangun portofolio!
             </p>

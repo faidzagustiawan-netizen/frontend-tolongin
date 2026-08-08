@@ -30,10 +30,21 @@ export const RubricTable: React.FC<RubricTableProps> = ({ rubric }) => {
       {/* Criteria & Weight Table */}
       <div className="px-6 py-5 border-b border-border bg-foreground/5 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground">Kriteria & Bobot Penilaian AI</h4>
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-            Total Bobot: {totalWeight}%
-          </span>
+          {/* Tanpa satu pun kriteria, "Total Bobot: 0%" hanya angka kosong yang
+              menyisakan pertanyaan. Yang berguna adalah menyebut bahwa perusahaan
+              memang belum menyusunnya. */}
+          {weightEntries.length > 0 && (
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
+              Total Bobot: {totalWeight}%
+            </span>
+          )}
         </div>
+        {weightEntries.length === 0 && (
+          <div className="px-6 py-6 text-xs text-muted-foreground leading-relaxed">
+            Perusahaan belum merinci bobot penilaian untuk studi kasus ini. Penilaian tetap
+            dilakukan, tetapi pembagian nilainya tidak dipublikasikan.
+          </div>
+        )}
         <div className="divide-y divide-border">
           {weightEntries.map(([key, weight]) => (
             <div key={key} className="px-6 py-4 flex items-center justify-between hover:bg-foreground/5 transition-colors">

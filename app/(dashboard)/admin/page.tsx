@@ -11,10 +11,18 @@ export default function AdminDashboardPage() {
   const { user } = useUserStore();
   const [stats, setStats] = useState<any>(null);
   const [pendingCompanies, setPendingCompanies] = useState<any[]>([]);
+  // Antrean kosong dan antrean yang gagal dimuat menuntun ke keputusan yang
+  // berlawanan: yang satu berarti tidak ada pekerjaan, yang lain berarti
+  // pekerjaannya tidak terlihat. Dulu keduanya berbunyi sama, dan toast yang
+  // hilang beberapa detik adalah satu-satunya pembeda.
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (user?.role !== 'ADMIN') return;
 
+    setIsLoading(true);
+    setLoadError(null);
     try {
       const [statsData, companiesData] = await Promise.all([
         adminApi.getStats(),
@@ -23,7 +31,11 @@ export default function AdminDashboardPage() {
       setStats(statsData);
       setPendingCompanies(companiesData);
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Gagal memuat data dasbor admin.'));
+      const pesan = apiErrorMessage(err, 'Gagal memuat data dasbor admin.');
+      setLoadError(pesan);
+      toast.error(pesan);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
@@ -68,7 +80,23 @@ export default function AdminDashboardPage() {
       <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
         <h2 className="text-xl font-bold text-white mb-6">Perusahaan Menunggu Verifikasi (KYB)</h2>
 
-        {pendingCompanies.length === 0 ? (
+        {isLoading ? (
+          <p className="text-zinc-400 text-center py-8">Memuat antrean verifikasi...</p>
+        ) : loadError ? (
+          <div className="text-center py-8 space-y-3">
+            <p className="text-red-400 text-sm">{loadError}</p>
+            <p className="text-zinc-500 text-xs">
+              Antrean tidak bisa dibaca — ini bukan berarti antreannya kosong.
+            </p>
+            <button
+              type="button"
+              onClick={() => void fetchData()}
+              className="text-xs font-bold text-indigo-400 underline underline-offset-2 hover:text-indigo-300"
+            >
+              Coba muat lagi
+            </button>
+          </div>
+        ) : pendingCompanies.length === 0 ? (
           <p className="text-zinc-400 text-center py-8">Tidak ada perusahaan yang menunggu verifikasi.</p>
         ) : (
           <div className="overflow-x-auto">

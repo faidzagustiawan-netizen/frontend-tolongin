@@ -19,6 +19,8 @@ import {
   Search,
   ChevronRight,
   Loader2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 
 const PAGE_SIZE = 25;
@@ -86,7 +88,7 @@ export function CandidateBrowser({
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: response, isLoading, isFetching } = useQuery({
+  const { data: response, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: [
       'company-submissions',
       challengeId ?? 'all',
@@ -234,6 +236,24 @@ export function CandidateBrowser({
             <div className="flex flex-col items-center justify-center py-20" aria-busy="true">
               <Loader2 className="h-8 w-8 animate-spin text-success mb-4" aria-hidden="true" />
               <p className="text-muted-foreground">Memuat data kandidat...</p>
+            </div>
+          ) : isError ? (
+            /* Keadaan ketiga, di samping "belum ada kandidat" dan "penyaring
+               tidak memberi hasil": permintaannya sendiri gagal. Menyamakannya
+               dengan daftar kosong membuat rekruter berhenti memeriksa
+               kandidat yang sebenarnya sudah mengumpulkan solusi. */
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+              <div className="w-20 h-20 rounded-full bg-danger/10 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-10 h-10 text-danger" aria-hidden="true" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">Gagal memuat kandidat</h3>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                Daftar kandidat tidak berhasil diambil. Ini bukan berarti belum ada yang
+                mengumpulkan solusi.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Coba Lagi
+              </Button>
             </div>
           ) : submissions.length > 0 ? (
             <table className="w-full text-left border-collapse min-w-[720px]">

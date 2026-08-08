@@ -1,19 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { authService } from '@/services/auth.service';
-import { AlertTriangle, ArrowLeft, Pencil, Plus, Sparkles, X, Search } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Pencil, Plus, RefreshCw, Sparkles, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/common/Button';
+import { useDialogA11y } from '@/utils/useDialogA11y';
 import { CategoryResolution, skillsService } from '@/services/skills.service';
 
 export default function SkillsSettingsPage() {
   const router = useRouter();
   const { user, loadUserFromStorage } = useUserStore();
   const [skills, setSkills] = useState<string[]>([]);
-  
+  const [isLoadingSkills, setIsLoadingSkills] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const [skillToEdit, setSkillToEdit] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -28,27 +31,53 @@ export default function SkillsSettingsPage() {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
 
-  useEffect(() => {
-    if (user?.id) {
-      authService.getProfile(user.id).then((res) => {
-        const tp = res.data?.talentProfile;
-        if (tp) {
-          setSkills(tp.skills || []);
-        }
-      });
+  /**
+   * Setiap simpan mengirim seluruh array `skills` dan server menimpanya apa
+   * adanya. Karena itu pemuatan yang gagal tidak boleh berakhir sebagai daftar
+   * kosong: menambah satu keahlian sesudahnya akan mengirim `{ skills: [satu] }`
+   * dan menghapus seluruh keahlian lama.
+   */
+  const loadSkills = useCallback(async () => {
+    if (!user?.id) return;
+    setIsLoadingSkills(true);
+    setLoadFailed(false);
+    try {
+      const res = await authService.getProfile(user.id);
+      setSkills(res.data?.talentProfile?.skills || []);
+    } catch (_e: any) {
+      setLoadFailed(true);
+    } finally {
+      setIsLoadingSkills(false);
     }
   }, [user?.id]);
 
-  const handleUpdate = async (newSkills: string[]) => {
+  useEffect(() => {
+    void loadSkills();
+  }, [loadSkills]);
+
+  /** Selama false, tidak ada aksi yang boleh menulis daftar ini ke server. */
+  const isSkillsReady = !isLoadingSkills && !loadFailed;
+
+  /** Mengembalikan false bila simpanannya gagal, agar pemanggil tidak menutup
+   *  modal atau membuang ketikan pengguna. */
+  const handleUpdate = async (newSkills: string[]): Promise<boolean> => {
+    if (!isSkillsReady) {
+      toast.error('Daftar keahlian belum termuat. Muat ulang dulu sebelum menyimpan.');
+      return false;
+    }
+
     setIsSaving(true);
     try {
       await authService.updateProfile({ skills: newSkills });
       setSkills(newSkills);
       toast.success('Keahlian berhasil diperbarui');
+      return true;
     } catch (_e: any) {
       toast.error('Gagal memperbarui keahlian');
+      return false;
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -125,6 +154,13 @@ export default function SkillsSettingsPage() {
       return;
     }
 
+    // Pemeriksaan duplikat dan simpanannya sama-sama bertumpu pada daftar yang
+    // sudah termuat, jadi keduanya ditahan bersama.
+    if (!isSkillsReady) {
+      toast.error('Daftar keahlian belum termuat. Muat ulang dulu sebelum menambah.');
+      return;
+    }
+
     if (!force && skills.some(s => s.toLowerCase() === trimmedSearch.toLowerCase())) {
       toast.error(`Keahlian "${trimmedSearch}" sudah ditambahkan di profil Anda`);
       return;
@@ -160,7 +196,14 @@ export default function SkillsSettingsPage() {
       return;
     }
 
-    await handleUpdate([...skills, name]);
+    const tersimpan = await handleUpdate([...skills, name]);
+
+    // Modal dan ketikannya dibiarkan utuh saat gagal: menutupnya membuat
+    // pengguna mengira keahliannya masuk, dan mengetik ulang namanya percuma.
+    if (!tersimpan) {
+      setIsSaving(false);
+      return;
+    }
 
     setSearchTerm('');
     setSuggestions([]);
@@ -172,10 +215,34 @@ export default function SkillsSettingsPage() {
   const handleDelete = async () => {
     if (skillToEdit) {
       const newSkills = skills.filter((s) => s !== skillToEdit);
-      await handleUpdate(newSkills);
-      setSkillToEdit(null);
+      const terhapus = await handleUpdate(newSkills);
+      if (terhapus) setSkillToEdit(null);
     }
   };
+
+  const closeEditModal = useCallback(() => setSkillToEdit(null), []);
+  const closeAddModal = useCallback(() => setIsAddModalOpen(false), []);
+
+  // Escape, jebakan fokus Tab, kunci gulir, dan pengembalian fokus ke tombol
+  // pemicunya — sama seperti ExperienceModal/EducationModal, tanpa mengubah
+  // tata letak kedua modal yang sudah ada di bawah.
+  const editDialogRef = useRef<HTMLDivElement>(null);
+  const editDialogTitleId = useId();
+  useDialogA11y(!!skillToEdit, closeEditModal, editDialogRef);
+
+  const addDialogRef = useRef<HTMLDivElement>(null);
+  const addDialogTitleId = useId();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useDialogA11y(isAddModalOpen, closeAddModal, addDialogRef);
+
+  // useDialogA11y menaruh fokus awal di elemen fokusabel pertama (tombol
+  // tutup). Modal ini dibuka untuk mengetik, jadi fokusnya dikembalikan ke
+  // kolom pencarian pada frame yang sama, menggantikan `autoFocus` lama.
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const rafId = requestAnimationFrame(() => searchInputRef.current?.focus());
+    return () => cancelAnimationFrame(rafId);
+  }, [isAddModalOpen]);
 
   if (!user) return null;
 
@@ -190,7 +257,13 @@ export default function SkillsSettingsPage() {
             <h1 className="text-2xl font-display font-bold text-foreground">Keahlian</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleOpenAddModal} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors border border-border">
+            <button
+              onClick={handleOpenAddModal}
+              disabled={!isSkillsReady}
+              aria-label="Tambahkan keahlian"
+              title={isSkillsReady ? 'Tambahkan keahlian' : 'Menunggu daftar keahlian termuat'}
+              className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors border border-border disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
               <Plus className="h-5 w-5" />
             </button>
           </div>
@@ -198,11 +271,30 @@ export default function SkillsSettingsPage() {
 
         <div className="p-8">
           <div className="flex items-center gap-2 mb-6">
-            <span className="bg-emerald-600 text-white px-5 py-2 rounded-full text-sm font-medium">Semua keahlian ({skills.length})</span>
+            {/* Jumlahnya hanya berarti setelah daftarnya benar-benar termuat;
+                "(0)" saat gagal muat terbaca sebagai profil yang kosong. */}
+            <span className="bg-emerald-600 text-white px-5 py-2 rounded-full text-sm font-medium">
+              Semua keahlian{isSkillsReady ? ` (${skills.length})` : ''}
+            </span>
           </div>
 
           <div className="space-y-0">
-            {skills.length === 0 ? (
+            {isLoadingSkills ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Memuat keahlian…</p>
+            ) : loadFailed ? (
+              <div className="py-4 space-y-3 text-center">
+                <p className="text-sm text-red-500 flex items-center justify-center gap-2">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span>Keahlian Anda gagal dimuat. Ini bukan berarti daftarnya kosong.</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Menambah keahlian dimatikan sementara supaya keahlian yang sudah ada tidak tertimpa.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => void loadSkills()} className="rounded-full">
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> Muat ulang
+                </Button>
+              </div>
+            ) : skills.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Belum ada keahlian yang ditambahkan.</p>
             ) : (
               skills.map((skill, index) => (
@@ -224,11 +316,18 @@ export default function SkillsSettingsPage() {
       {/* Edit Skill Modal */}
       {skillToEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col">
+          <div
+            ref={editDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={editDialogTitleId}
+            tabIndex={-1}
+            className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col"
+          >
             <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">Edit keahlian</h2>
-              <button onClick={() => setSkillToEdit(null)} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
-                <X className="h-5 w-5" />
+              <h2 id={editDialogTitleId} className="text-xl font-semibold text-foreground">Edit keahlian</h2>
+              <button onClick={closeEditModal} type="button" aria-label="Tutup dialog" className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
             
@@ -246,8 +345,10 @@ export default function SkillsSettingsPage() {
               <Button variant="outline" onClick={handleDelete} isLoading={isSaving} className="text-red-500 hover:text-red-600 hover:bg-red-500/10 border-transparent">
                 Hapus keahlian
               </Button>
-              <Button onClick={() => setSkillToEdit(null)} className="rounded-full px-6">
-                Simpan
+              {/* Namanya tidak bisa disunting di sini, jadi tombolnya tidak
+                  menyimpan apa pun — labelnya menyesuaikan apa yang terjadi. */}
+              <Button onClick={closeEditModal} className="rounded-full px-6">
+                Tutup
               </Button>
             </div>
           </div>
@@ -257,11 +358,18 @@ export default function SkillsSettingsPage() {
       {/* Add Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col min-h-[550px] max-h-[90vh]">
+          <div
+            ref={addDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={addDialogTitleId}
+            tabIndex={-1}
+            className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col min-h-[550px] max-h-[90vh]"
+          >
             <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">Tambahkan keahlian</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
-                <X className="h-5 w-5" />
+              <h2 id={addDialogTitleId} className="text-xl font-semibold text-foreground">Tambahkan keahlian</h2>
+              <button onClick={closeAddModal} type="button" aria-label="Tutup dialog" className="p-2 rounded-full hover:bg-foreground/10 text-muted-foreground transition-colors">
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
             
@@ -271,8 +379,8 @@ export default function SkillsSettingsPage() {
                 <label className="text-sm font-medium text-foreground mb-1 block">Keahlian*</label>
                 <div className="flex items-center bg-background border border-border rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-emerald-500">
                   <Search className="h-4 w-4 text-muted-foreground mr-2" />
-                  <input 
-                    autoFocus
+                  <input
+                    ref={searchInputRef}
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
