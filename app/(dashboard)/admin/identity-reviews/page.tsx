@@ -14,6 +14,7 @@ import {
   Clock,
   Inbox,
 } from 'lucide-react';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 interface ProfilRingkas {
   id: string;
@@ -44,6 +45,9 @@ export default function AdminIdentityReviewsPage() {
   const [memuat, setMemuat] = useState(true);
   const [sedangProses, setSedangProses] = useState<string | null>(null);
   const [catatan, setCatatan] = useState<Record<string, string>>({});
+  const [dialog, setDialog] = useState<
+    { id: string; nama: string; setuju: boolean } | null
+  >(null);
 
   const ambilAntrean = useCallback(async () => {
     if (user?.role !== 'ADMIN') return;
@@ -60,12 +64,9 @@ export default function AdminIdentityReviewsPage() {
     ambilAntrean();
   }, [ambilAntrean]);
 
-  const tuntaskan = async (talentId: string, approve: boolean) => {
-    const label = approve
-      ? 'MENYETUJUI profil ini (dinyatakan orang yang sah dan berbeda dari profil pembanding)'
-      : 'MENOLAK profil ini (dinyatakan duplikat atau tidak cocok). Status menjadi FAILED dan acuan biometriknya dihapus';
-
-    if (!confirm(`Anda akan ${label}. Lanjutkan?`)) return;
+  const tuntaskan = async () => {
+    if (!dialog) return;
+    const { id: talentId, setuju: approve } = dialog;
 
     setSedangProses(talentId);
     try {
@@ -79,6 +80,7 @@ export default function AdminIdentityReviewsPage() {
         approve ? 'Profil disetujui dan kini terverifikasi.' : 'Profil ditolak.',
       );
       setAntrean((baris) => baris.filter((b) => b.id !== talentId));
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menyimpan keputusan. Coba lagi.'));
     } finally {
@@ -234,7 +236,9 @@ export default function AdminIdentityReviewsPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     disabled={sedangProses === baris.id}
-                    onClick={() => tuntaskan(baris.id, false)}
+                    onClick={() =>
+                      setDialog({ id: baris.id, nama: baris.fullName, setuju: false })
+                    }
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
                   >
                     <ShieldX className="h-4 w-4" />
@@ -242,7 +246,9 @@ export default function AdminIdentityReviewsPage() {
                   </button>
                   <button
                     disabled={sedangProses === baris.id}
-                    onClick={() => tuntaskan(baris.id, true)}
+                    onClick={() =>
+                      setDialog({ id: baris.id, nama: baris.fullName, setuju: true })
+                    }
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors shadow-lg"
                   >
                     <ShieldCheck className="h-4 w-4" />
@@ -254,6 +260,37 @@ export default function AdminIdentityReviewsPage() {
           })}
         </div>
       )}
+
+      <AdminActionDialog
+        open={!!dialog}
+        title={dialog?.setuju ? 'Setujui identitas' : 'Tolak identitas'}
+        confirmLabel={dialog?.setuju ? 'Setujui' : 'Tolak'}
+        destructive={dialog ? !dialog.setuju : false}
+        isBusy={sedangProses === dialog?.id}
+        onConfirm={() => void tuntaskan()}
+        onCancel={() => setDialog(null)}
+      >
+        {dialog?.setuju ? (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> dinyatakan orang yang sah dan
+            berbeda dari profil pembanding. Akunnya menjadi terverifikasi.
+          </p>
+        ) : (
+          <>
+            <p>
+              <strong className="text-foreground">{dialog?.nama}</strong> dinyatakan duplikat atau
+              tidak cocok. Statusnya menjadi <code className="text-xs">FAILED</code>.
+            </p>
+            <p className="text-muted-foreground">
+              Acuan biometriknya dihapus, jadi keputusan ini tidak bisa dibatalkan begitu saja —
+              pengguna harus mengulang verifikasi dari awal.
+            </p>
+          </>
+        )}
+        <p className="text-muted-foreground text-xs">
+          Catatan yang Anda tulis di kartu ikut tersimpan bersama keputusan ini.
+        </p>
+      </AdminActionDialog>
     </div>
   );
 }

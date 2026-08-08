@@ -5,6 +5,7 @@ import { Ban, ChevronLeft, ChevronRight, Search, MailWarning } from 'lucide-reac
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 const PAGE_SIZE = 25;
 
@@ -14,6 +15,13 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  /** Dialog yang sedang terbuka; membawa akun yang terdampak. */
+  const [dialog, setDialog] = useState<
+    | { jenis: 'ban'; id: string; nama: string; sedangDiblokir: boolean }
+    | { jenis: 'warning'; id: string; nama: string }
+    | null
+  >(null);
+  const [isActing, setIsActing] = useState(false);
   const [search, setSearch] = useState('');
   // Pencarian kini dikerjakan server, jadi setiap ketikan tidak boleh langsung
   // jadi satu permintaan.
@@ -50,35 +58,38 @@ export default function AdminUsersPage() {
     void fetchUsers();
   }, [fetchUsers]);
 
-  const handleBanToggle = async (userId: string, currentStatus: boolean) => {
-    const action = currentStatus ? 'membuka blokir' : 'memblokir';
-    if (!confirm(`Apakah Anda yakin ingin ${action} pengguna ini?`)) return;
+  const handleBanToggle = async (reason?: string) => {
+    if (!dialog || dialog.jenis !== 'ban') return;
+    const { id: userId, sedangDiblokir } = dialog;
 
-    // Alasan ikut tersimpan di jejak audit dan dikirim ke penggunanya.
-    const reason = currentStatus
-      ? undefined
-      : prompt('Alasan pemblokiran (opsional):') || undefined;
-
+    setIsActing(true);
     try {
-      await adminApi.toggleBanUser(userId, !currentStatus, reason);
+      // Alasan ikut tersimpan di jejak audit dan dikirim ke penggunanya.
+      await adminApi.toggleBanUser(userId, !sedangDiblokir, reason || undefined);
       setUsersList((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, isBanned: !currentStatus } : u)),
+        prev.map((u) => (u.id === userId ? { ...u, isBanned: !sedangDiblokir } : u)),
       );
-      toast.success(currentStatus ? 'Blokir dicabut.' : 'Pengguna diblokir.');
+      toast.success(sedangDiblokir ? 'Blokir dicabut.' : 'Pengguna diblokir.');
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal mengubah status blokir.'));
+    } finally {
+      setIsActing(false);
     }
   };
 
-  const handleWarning = async (userId: string) => {
-    const message = prompt('Masukkan pesan peringatan untuk pengguna ini:');
-    if (!message) return;
+  const handleWarning = async (message?: string) => {
+    if (!dialog || dialog.jenis !== 'warning' || !message) return;
 
+    setIsActing(true);
     try {
-      await adminApi.sendWarning(userId, message);
+      await adminApi.sendWarning(dialog.id, message);
       toast.success('Peringatan berhasil dikirim.');
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal mengirim peringatan.'));
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -146,14 +157,27 @@ export default function AdminUsersPage() {
                   <td className="py-3 px-4">
                     <div className="flex justify-end space-x-2">
                       <button
-                        onClick={() => handleWarning(u.id)}
+                        onClick={() =>
+                          setDialog({
+                            jenis: 'warning',
+                            id: u.id,
+                            nama: u.fullName || u.email,
+                          })
+                        }
                         className="p-2 text-yellow-500 hover:bg-yellow-500/10 rounded-lg transition-colors"
                         title="Kirim Peringatan"
                       >
                         <MailWarning className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleBanToggle(u.id, u.isBanned)}
+                        onClick={() =>
+                          setDialog({
+                            jenis: 'ban',
+                            id: u.id,
+                            nama: u.fullName || u.email,
+                            sedangDiblokir: u.isBanned,
+                          })
+                        }
                         disabled={u.id === user?.id}
                         className={`p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                           u.isBanned
@@ -218,6 +242,64 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      <AdminActionDialog
+        open={dialog?.jenis === 'ban'}
+        title={
+          dialog?.jenis === 'ban' && dialog.sedangDiblokir
+            ? 'Cabut blokir akun'
+            : 'Blokir akun'
+        }
+        confirmLabel={
+          dialog?.jenis === 'ban' && dialog.sedangDiblokir ? 'Cabut Blokir' : 'Blokir Akun'
+        }
+        destructive={dialog?.jenis === 'ban' && !dialog.sedangDiblokir}
+        isBusy={isActing}
+        reason={
+          dialog?.jenis === 'ban' && !dialog.sedangDiblokir
+            ? {
+                label: 'Alasan pemblokiran',
+                placeholder: 'Contoh: Terbukti memakai joki pada tiga studi kasus.',
+                hint: 'Opsional, tetapi tersimpan di jejak audit dan dikirim ke pengguna.',
+              }
+            : undefined
+        }
+        onConfirm={(reason) => void handleBanToggle(reason)}
+        onCancel={() => setDialog(null)}
+      >
+        {dialog?.jenis === 'ban' && dialog.sedangDiblokir ? (
+          <p>
+            <strong className="text-foreground">{dialog.nama}</strong> akan bisa masuk dan memakai
+            platform seperti biasa lagi.
+          </p>
+        ) : (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> tidak akan bisa masuk,
+            mengerjakan studi kasus, atau menerima tawaran. Blokir ini bisa dicabut lagi nanti.
+          </p>
+        )}
+      </AdminActionDialog>
+
+      <AdminActionDialog
+        open={dialog?.jenis === 'warning'}
+        title="Kirim peringatan"
+        confirmLabel="Kirim Peringatan"
+        isBusy={isActing}
+        reason={{
+          label: 'Isi peringatan',
+          placeholder: 'Tuliskan apa yang dilanggar dan apa yang harus diperbaiki.',
+          required: true,
+          minLength: 10,
+          hint: 'Dibaca langsung oleh pengguna sebagai notifikasi.',
+        }}
+        onConfirm={(pesan) => void handleWarning(pesan)}
+        onCancel={() => setDialog(null)}
+      >
+        <p>
+          Peringatan dikirim ke <strong className="text-foreground">{dialog?.nama}</strong>. Akunnya
+          tetap aktif — ini bukan pemblokiran.
+        </p>
+      </AdminActionDialog>
     </div>
   );
 }

@@ -96,12 +96,35 @@ export const LivenessKycTab = ({
 
       {isTalent ? (
         <div className="space-y-6">
+          {/* Judulnya dulu selalu "Verifikasi Ditolak:", termasuk untuk galat
+              jaringan — gangguan koneksi terbaca oleh pengguna sebagai
+              identitasnya yang ditolak. Putusan penolakan hanya sah bila server
+              memang mencatat statusnya FAILED; selain itu ini masalah teknis. */}
           {verificationError && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3 text-red-400 shadow-lg text-xs leading-relaxed">
+            <div
+              className={`rounded-2xl p-4 flex items-start gap-3 shadow-lg text-xs leading-relaxed border ${
+                statusKyc === 'FAILED'
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              }`}
+            >
               <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold block mb-0.5 text-red-300">Verifikasi Ditolak:</span>
+                <span
+                  className={`font-bold block mb-0.5 ${
+                    statusKyc === 'FAILED' ? 'text-red-300' : 'text-amber-300'
+                  }`}
+                >
+                  {statusKyc === 'FAILED'
+                    ? 'Verifikasi Ditolak:'
+                    : 'Pemeriksaan Gagal Dijalankan:'}
+                </span>
                 {verificationError}
+                {statusKyc !== 'FAILED' && (
+                  <span className="block mt-1 text-muted-foreground">
+                    Status identitas Anda tidak berubah. Coba lagi sebentar lagi.
+                  </span>
+                )}
               </div>
             </div>
           )}

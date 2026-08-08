@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { adminApi, apiErrorMessage, type TicketStatus } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 const STATUS_FILTERS: Array<{ label: string; value: TicketStatus | 'ALL' }> = [
   { label: 'Semua', value: 'ALL' },
@@ -26,6 +27,8 @@ export default function AdminTicketsPage() {
   const [replies, setReplies] = useState<any[]>([]);
   const [replyMessage, setReplyMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 350);
@@ -92,15 +95,18 @@ export default function AdminTicketsPage() {
 
   const handleCloseTicket = async () => {
     if (!selectedTicket) return;
-    if (!confirm('Tutup tiket ini? Pelapor akan diberi tahu.')) return;
 
+    setIsClosing(true);
     try {
       await adminApi.closeTicket(selectedTicket.id);
+      setShowCloseDialog(false);
       setSelectedTicket(null);
       await fetchTickets();
       toast.success('Tiket ditutup.');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menutup tiket.'));
+    } finally {
+      setIsClosing(false);
     }
   };
 
@@ -202,7 +208,7 @@ export default function AdminTicketsPage() {
                 </div>
                 {selectedTicket.status !== 'CLOSED' && (
                   <button
-                    onClick={handleCloseTicket}
+                    onClick={() => setShowCloseDialog(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm transition-colors"
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -273,6 +279,23 @@ export default function AdminTicketsPage() {
         </div>
 
       </div>
+
+      <AdminActionDialog
+        open={showCloseDialog}
+        title="Tutup tiket"
+        confirmLabel="Tutup Tiket"
+        isBusy={isClosing}
+        onConfirm={() => void handleCloseTicket()}
+        onCancel={() => setShowCloseDialog(false)}
+      >
+        <p>
+          Tiket <strong className="text-foreground">{selectedTicket?.subject}</strong> ditandai
+          selesai dan pelapor diberi tahu.
+        </p>
+        <p className="text-muted-foreground">
+          Setelah ditutup, tidak ada pihak yang bisa membalas di tiket ini lagi.
+        </p>
+      </AdminActionDialog>
     </div>
   );
 }

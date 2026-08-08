@@ -302,6 +302,22 @@ export default function TeamWorkspacePage() {
                 <Users size={32} className="mb-4 opacity-50" />
                 <p>Memuat data tim...</p>
               </div>
+            ) : isMembersError ? (
+              /* `teamMembers?.length === 0` bernilai false saat query gagal
+                 (datanya `undefined`), jadi cabang di bawah dulu merender tabel
+                 kosong tanpa satu pun pesan — daftar tim tampak benar-benar
+                 kosong padahal permintaannya yang gagal. */
+              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+                <AlertTriangle size={32} className="opacity-70 text-amber-500" />
+                <p className="text-sm">Daftar anggota tim gagal dimuat.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetchMembers()}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500 hover:underline"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Coba Lagi
+                </button>
+              </div>
             ) : teamMembers?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                 <ShieldCheck size={32} className="mb-4 opacity-50 text-emerald-500" />
@@ -425,6 +441,19 @@ export default function TeamWorkspacePage() {
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground animate-pulse">
                   <Activity size={32} className="mb-4 opacity-50 text-cyan-500" />
                   <p>Memuat log aktivitas perusahaan...</p>
+                </div>
+              ) : isLogsError ? (
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+                  <AlertTriangle size={32} className="opacity-70 text-amber-500" />
+                  <p className="text-sm">Log aktivitas gagal dimuat.</p>
+                  <p className="text-xs">Ini bukan berarti tidak ada aktivitas tercatat.</p>
+                  <button
+                    type="button"
+                    onClick={() => void refetchLogs()}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500 hover:underline"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Coba Lagi
+                  </button>
                 </div>
               ) : filteredLogs?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">

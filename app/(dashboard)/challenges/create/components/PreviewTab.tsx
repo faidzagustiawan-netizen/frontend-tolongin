@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { ChevronLeft, ChevronRight, Play, CheckCircle2, Lock, Clock } from 'lucide-react';
 import { CreateChallengePayload } from '@/services/challenges.service';
 import { QuestionTypeRegistry } from '@/components/question-types';
@@ -38,7 +39,12 @@ export default function PreviewTab({ manualData, onClose, onApprove }: PreviewTa
   };
 
   const handleSubmitStage = (idx: number) => {
-    alert(`Berhasil mengumpulkan stage ${idx + 1}! Payload Jawaban:\n\n${JSON.stringify(examAnswers, null, 2)}`);
+    // Dulu `alert()` bawaan peramban berisi dump JSON jawaban — sisa
+    // penelusuran yang ikut tampil ke perusahaan yang sedang melihat pratinjau
+    // studi kasusnya sendiri. Yang perlu mereka tahu cuma bahwa ini simulasi.
+    toast.success(
+      `Tahap ${idx + 1} selesai. Ini pratinjau — jawaban tidak dikirim ke mana pun.`,
+    );
 
     setCompletedStages([...completedStages, idx]);
     setActiveStageIdx(null);

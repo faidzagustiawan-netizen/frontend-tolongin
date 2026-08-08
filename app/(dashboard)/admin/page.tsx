@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 export default function AdminDashboardPage() {
   const { user } = useUserStore();
@@ -17,6 +18,10 @@ export default function AdminDashboardPage() {
   // hilang beberapa detik adalah satu-satunya pembeda.
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<
+    { id: string; nama: string; status: 'VERIFIED' | 'FAILED' } | null
+  >(null);
+  const [isActing, setIsActing] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (user?.role !== 'ADMIN') return;
@@ -43,21 +48,20 @@ export default function AdminDashboardPage() {
     void fetchData();
   }, [fetchData]);
 
-  const handleVerify = async (companyId: string, status: 'VERIFIED' | 'FAILED') => {
-    // Penolakan mencabut akses perusahaan dan dikirim ke pemiliknya, jadi
-    // alasannya diminta di sini alih-alih membiarkan mereka menebak.
-    const reason =
-      status === 'FAILED'
-        ? prompt('Alasan penolakan (dikirim ke perusahaan):') || undefined
-        : undefined;
-    if (status === 'FAILED' && !reason) return;
+  const handleVerify = async (reason?: string) => {
+    if (!dialog) return;
+    const { id: companyId, status } = dialog;
 
+    setIsActing(true);
     try {
-      await adminApi.verifyCompany(companyId, status, reason);
+      await adminApi.verifyCompany(companyId, status, reason || undefined);
       setPendingCompanies((prev) => prev.filter((c) => c.id !== companyId));
       toast.success(status === 'VERIFIED' ? 'Perusahaan diverifikasi.' : 'Verifikasi ditolak.');
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal memperbarui verifikasi perusahaan.'));
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -137,14 +141,26 @@ export default function AdminDashboardPage() {
                     <td className="py-4 px-4">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => handleVerify(company.id, 'VERIFIED')}
+                          onClick={() =>
+                            setDialog({
+                              id: company.id,
+                              nama: company.companyName,
+                              status: 'VERIFIED',
+                            })
+                          }
                           className="flex items-center space-x-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 rounded-lg text-sm transition-colors"
                         >
                           <CheckCircle className="w-4 h-4" />
                           <span>Terima</span>
                         </button>
                         <button
-                          onClick={() => handleVerify(company.id, 'FAILED')}
+                          onClick={() =>
+                            setDialog({
+                              id: company.id,
+                              nama: company.companyName,
+                              status: 'FAILED',
+                            })
+                          }
                           className="flex items-center space-x-1 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-sm transition-colors"
                         >
                           <XCircle className="w-4 h-4" />
@@ -159,6 +175,39 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      <AdminActionDialog
+        open={!!dialog}
+        title={dialog?.status === 'VERIFIED' ? 'Verifikasi perusahaan' : 'Tolak verifikasi'}
+        confirmLabel={dialog?.status === 'VERIFIED' ? 'Verifikasi' : 'Tolak'}
+        destructive={dialog?.status === 'FAILED'}
+        isBusy={isActing}
+        reason={
+          dialog?.status === 'FAILED'
+            ? {
+                label: 'Alasan penolakan',
+                placeholder: 'Contoh: Dokumen legal tidak terbaca dan nama badan usaha tidak cocok.',
+                required: true,
+                minLength: 10,
+                hint: 'Dikirim ke pemilik akun perusahaan supaya mereka tahu apa yang harus diperbaiki.',
+              }
+            : undefined
+        }
+        onConfirm={(reason) => void handleVerify(reason)}
+        onCancel={() => setDialog(null)}
+      >
+        {dialog?.status === 'VERIFIED' ? (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> akan bisa menerbitkan studi
+            kasus dan merekrut kandidat.
+          </p>
+        ) : (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> tetap tidak bisa menerbitkan
+            studi kasus. Mereka boleh mengajukan verifikasi ulang setelah memperbaiki dokumennya.
+          </p>
+        )}
+      </AdminActionDialog>
     </div>
   );
 }

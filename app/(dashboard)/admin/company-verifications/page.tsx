@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/userStore';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 import {
   Building2,
   ShieldCheck,
@@ -49,6 +50,9 @@ export default function AdminCompanyVerificationsPage() {
   const [companies, setCompanies] = useState<CompanyProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<
+    { id: string; nama: string; status: 'VERIFIED' | 'FAILED' } | null
+  >(null);
 
   const fetchPendingCompanies = useCallback(async () => {
     if (user?.role !== 'ADMIN') return;
@@ -65,29 +69,21 @@ export default function AdminCompanyVerificationsPage() {
     fetchPendingCompanies();
   }, [fetchPendingCompanies]);
 
-  const verifyCompany = async (companyId: string, status: 'VERIFIED' | 'FAILED') => {
-    const label = status === 'VERIFIED'
-      ? 'MENYETUJUI verifikasi perusahaan ini'
-      : 'MENOLAK verifikasi perusahaan ini';
-
-    if (!confirm(`Anda akan ${label}. Lanjutkan?`)) return;
-
-    // Alasan penolakan ikut dikirim ke perusahaan lewat notifikasi; tanpa itu
-    // yang ditolak tidak punya cara tahu dokumen mana yang bermasalah.
-    const reason =
-      status === 'FAILED'
-        ? prompt('Alasan penolakan (dikirim ke perusahaan):') || undefined
-        : undefined;
-    if (status === 'FAILED' && !reason) return;
+  const verifyCompany = async (reason?: string) => {
+    if (!dialog) return;
+    const { id: companyId, status } = dialog;
 
     setProcessing(companyId);
     try {
-      await adminApi.verifyCompany(companyId, status, reason);
+      // Alasan penolakan ikut dikirim ke perusahaan lewat notifikasi; tanpa itu
+      // yang ditolak tidak punya cara tahu dokumen mana yang bermasalah.
+      await adminApi.verifyCompany(companyId, status, reason || undefined);
 
       toast.success(
         status === 'VERIFIED' ? 'Perusahaan disetujui dan aktif.' : 'Perusahaan ditolak.'
       );
       setCompanies((prev) => prev.filter((c) => c.id !== companyId));
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menyimpan keputusan. Coba lagi.'));
     } finally {
@@ -215,7 +211,9 @@ export default function AdminCompanyVerificationsPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   disabled={processing === company.id}
-                  onClick={() => verifyCompany(company.id, 'FAILED')}
+                  onClick={() =>
+                    setDialog({ id: company.id, nama: company.companyName, status: 'FAILED' })
+                  }
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
                 >
                   <ShieldX className="h-4 w-4" />
@@ -223,7 +221,9 @@ export default function AdminCompanyVerificationsPage() {
                 </button>
                 <button
                   disabled={processing === company.id}
-                  onClick={() => verifyCompany(company.id, 'VERIFIED')}
+                  onClick={() =>
+                    setDialog({ id: company.id, nama: company.companyName, status: 'VERIFIED' })
+                  }
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors shadow-lg"
                 >
                   <ShieldCheck className="h-4 w-4" />
@@ -234,6 +234,39 @@ export default function AdminCompanyVerificationsPage() {
           ))}
         </div>
       )}
+
+      <AdminActionDialog
+        open={!!dialog}
+        title={dialog?.status === 'VERIFIED' ? 'Setujui verifikasi' : 'Tolak verifikasi'}
+        confirmLabel={dialog?.status === 'VERIFIED' ? 'Setujui & Aktifkan' : 'Tolak'}
+        destructive={dialog?.status === 'FAILED'}
+        isBusy={processing === dialog?.id}
+        reason={
+          dialog?.status === 'FAILED'
+            ? {
+                label: 'Alasan penolakan',
+                placeholder: 'Contoh: Akta pendirian tidak terbaca dan NIB tidak tercantum.',
+                required: true,
+                minLength: 10,
+                hint: 'Dikirim ke perusahaan lewat notifikasi.',
+              }
+            : undefined
+        }
+        onConfirm={(reason) => void verifyCompany(reason)}
+        onCancel={() => setDialog(null)}
+      >
+        {dialog?.status === 'VERIFIED' ? (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> akan langsung aktif dan bisa
+            menerbitkan studi kasus serta merekrut kandidat.
+          </p>
+        ) : (
+          <p>
+            <strong className="text-foreground">{dialog?.nama}</strong> tetap tidak bisa merekrut.
+            Mereka boleh mengajukan ulang setelah memperbaiki dokumennya.
+          </p>
+        )}
+      </AdminActionDialog>
     </div>
   );
 }

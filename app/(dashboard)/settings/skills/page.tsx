@@ -37,19 +37,25 @@ export default function SkillsSettingsPage() {
    * kosong: menambah satu keahlian sesudahnya akan mengirim `{ skills: [satu] }`
    * dan menghapus seluruh keahlian lama.
    */
+  // Id disalin ke variabel sendiri supaya kebergantungan yang disimpulkan
+  // React Compiler sama persis dengan yang ditulis. Membaca `user?.id` langsung
+  // di dalam callback membuatnya menyimpulkan `user` seutuhnya, dan
+  // ketidakcocokan itu membatalkan optimasi seluruh komponen.
+  const userId = user?.id;
+
   const loadSkills = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
     setIsLoadingSkills(true);
     setLoadFailed(false);
     try {
-      const res = await authService.getProfile(user.id);
+      const res = await authService.getProfile(userId);
       setSkills(res.data?.talentProfile?.skills || []);
     } catch (_e: any) {
       setLoadFailed(true);
     } finally {
       setIsLoadingSkills(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   useEffect(() => {
     void loadSkills();

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useDialogA11y } from '@/utils/useDialogA11y';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { verificationService } from '@/services/verification.service';
@@ -26,10 +27,16 @@ export default function KycVerificationPage() {
   const [livenessInstruction, setLivenessInstruction] = useState('Posisikan wajah Anda tepat di dalam bingkai oval');
   /** Alasan penolakan terakhir, menetap di tahap 2 setelah modal tertutup. */
   const [livenessError, setLivenessError] = useState<string | null>(null);
+  const kameraModalRef = useRef<HTMLDivElement>(null);
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
   const [isReverifying, setIsReverifying] = useState(false);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(true);
+  const tutupKameraModal = useCallback(() => setIsCameraModalOpen(false), []);
+
+  // Modal kamera digulung tangan (FaceScanner mengurus perangkat kameranya
+  // sendiri), jadi perilaku dialognya dipasang terpisah di sini.
+  useDialogA11y(isCameraModalOpen && step === 'LIVENESS', tutupKameraModal, kameraModalRef);
 
   // Polling KYC verification status every 3 seconds if PENDING or on Step 3
   const { data: kycStatusData } = useQuery({
@@ -528,17 +535,27 @@ export default function KycVerificationPage() {
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-left"
                   >
+                    {/* Digulung tangan supaya `FaceScanner` tetap mengurus
+                        kameranya sendiri, tetapi perilaku dialognya dipinjam
+                        dari `useDialogA11y`: Esc menutup, Tab terkunci di dalam,
+                        dan fokus kembali ke tombol pembukanya. Tanpa itu
+                        pengguna papan tik terjebak di belakang lapisan kamera. */}
                     <motion.div
+                      ref={kameraModalRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Pemindaian wajah"
+                      tabIndex={-1}
                       initial={{ scale: 0.9, opacity: 0, y: 20 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
                       exit={{ scale: 0.95, opacity: 0, y: 10 }}
                       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                      className="max-w-lg w-full relative"
+                      className="max-w-lg w-full relative outline-none"
                     >
-                      <FaceScanner 
-                        title="Pemindaian Wajah Anti-Spoofing" 
+                      <FaceScanner
+                        title="Pemindaian Wajah Anti-Spoofing"
                         description={livenessInstruction}
-                        onCancel={() => setIsCameraModalOpen(false)}
+                        onCancel={tutupKameraModal}
                         onCaptureComplete={(descriptor, imageDataUrl) => {
                           if (imageDataUrl) {
                             setIsCameraModalOpen(false);

@@ -481,8 +481,18 @@ export default function ExamSessionPage() {
           ...draftPayloadRef.current,
           completedSectionIndices: newCompleted,
         } as any);
-      } catch (err) {
-        console.error('Gagal menyimpan draf status tahap:', err);
+      } catch (err: any) {
+        // Tanpa tahapan server, penanda "tahap selesai" hanya hidup di draf.
+        // Dulu kegagalannya masuk console lalu kandidat tetap dipindahkan ke
+        // tahap berikutnya — penandanya hilang begitu halaman dimuat ulang, dan
+        // tahap yang sudah dikerjakan tampak belum selesai. Perpindahan
+        // dibatalkan supaya kandidat bisa mencoba lagi selagi jawabannya masih
+        // di layar.
+        setSubmitError(
+          err?.message ||
+            'Penanda tahap selesai gagal tersimpan, jadi perpindahan dibatalkan. Periksa koneksi Anda lalu coba lagi.',
+        );
+        return;
       }
     }
 
@@ -914,12 +924,18 @@ export default function ExamSessionPage() {
                     const unlocked = isSectionUnlocked(idx);
                     const isDone = completedSectionIndices.includes(idx);
                     const isCurrent = activeSectionIndex === idx;
+                    // Alasan terkunci datang dari server dan sudah ditampilkan
+                    // utuh di halaman ringkasan. Di sini dulu hanya ada ikon
+                    // gembok, jadi kandidat tidak tahu apakah harus menunggu
+                    // nilai keluar atau nilainya memang kurang.
+                    const alasanTerkunci = stageBySection.get(sec.id)?.lockReason;
 
                     return (
                       <button
                         key={sec.id || idx}
                         type="button"
                         disabled={!unlocked}
+                        title={!unlocked ? alasanTerkunci || undefined : undefined}
                         onClick={() => {
                           if (unlocked) {
                             setActiveSectionIndex(idx);
@@ -934,8 +950,13 @@ export default function ExamSessionPage() {
                               : 'bg-background/40 border-border/50 text-muted-foreground/50 cursor-not-allowed'
                         }`}
                       >
-                        <span className="truncate">
-                          {sec.title}
+                        <span className="min-w-0">
+                          <span className="block truncate">{sec.title}</span>
+                          {!unlocked && alasanTerkunci && (
+                            <span className="block text-[10px] font-medium normal-case text-muted-foreground/70 mt-0.5 line-clamp-2">
+                              {alasanTerkunci}
+                            </span>
+                          )}
                         </span>
                         {isDone ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />

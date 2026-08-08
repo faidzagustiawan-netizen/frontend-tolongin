@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { adminApi, apiErrorMessage } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 const PAGE_SIZE = 25;
 
@@ -25,6 +26,11 @@ export default function AdminChallengesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  /** Dialog yang sedang terbuka. `null` berarti tidak ada. */
+  const [dialog, setDialog] = useState<
+    { jenis: 'takedown' | 'restore'; id: string; judul: string } | null
+  >(null);
+  const [isActing, setIsActing] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -57,16 +63,11 @@ export default function AdminChallengesPage() {
     void fetchChallenges();
   }, [fetchChallenges]);
 
-  const handleTakedown = async (challengeId: string, challengeTitle: string) => {
-    // Alasannya wajib: pemilik menerimanya di notifikasi, dan tanpa itu ia
-    // tidak punya cara tahu apa yang harus diperbaiki.
-    const reason = prompt(
-      `Turunkan "${challengeTitle}" dari peredaran.\n\n` +
-        'Submisi, penilaian, dan portofolio talenta tetap tersimpan.\n' +
-        'Tuliskan alasannya (minimal 10 karakter):',
-    );
-    if (!reason) return;
+  const handleTakedown = async (reason?: string) => {
+    if (!dialog || dialog.jenis !== 'takedown' || !reason) return;
+    const { id: challengeId } = dialog;
 
+    setIsActing(true);
     try {
       await adminApi.takedownChallenge(challengeId, reason);
       setChallenges((prev) =>
@@ -77,14 +78,19 @@ export default function AdminChallengesPage() {
         ),
       );
       toast.success('Studi kasus diturunkan.');
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menurunkan studi kasus.'));
+    } finally {
+      setIsActing(false);
     }
   };
 
-  const handleRestore = async (challengeId: string, challengeTitle: string) => {
-    if (!confirm(`Cabut penurunan "${challengeTitle}"?`)) return;
+  const handleRestore = async () => {
+    if (!dialog || dialog.jenis !== 'restore') return;
+    const { id: challengeId } = dialog;
 
+    setIsActing(true);
     try {
       await adminApi.restoreChallenge(challengeId);
       setChallenges((prev) =>
@@ -95,8 +101,11 @@ export default function AdminChallengesPage() {
         ),
       );
       toast.success('Penurunan dicabut.');
+      setDialog(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal mencabut penurunan.'));
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -177,7 +186,7 @@ export default function AdminChallengesPage() {
                       </Link>
                       {c.takenDownAt ? (
                         <button
-                          onClick={() => handleRestore(c.id, c.title)}
+                          onClick={() => setDialog({ jenis: 'restore', id: c.id, judul: c.title })}
                           className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors"
                           title="Cabut penurunan"
                         >
@@ -185,7 +194,7 @@ export default function AdminChallengesPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleTakedown(c.id, c.title)}
+                          onClick={() => setDialog({ jenis: 'takedown', id: c.id, judul: c.title })}
                           className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                           title="Turunkan dari peredaran"
                         >
@@ -240,6 +249,49 @@ export default function AdminChallengesPage() {
           </div>
         )}
       </div>
+
+      <AdminActionDialog
+        open={dialog?.jenis === 'takedown'}
+        title="Turunkan studi kasus dari peredaran"
+        confirmLabel="Turunkan"
+        destructive
+        isBusy={isActing}
+        reason={{
+          label: 'Alasan penurunan',
+          placeholder: 'Contoh: Deskripsi memuat data pribadi kandidat lain.',
+          required: true,
+          // Panjangnya ditegakkan di sini. Sebelumnya syarat ini hanya tertulis
+          // di teks prompt sementara kodenya cuma memeriksa `!reason`, jadi
+          // alasan tiga huruf dikirim lalu ditolak server tanpa penjelasan.
+          minLength: 10,
+          hint: 'Dikirim ke pemilik studi kasus lewat notifikasi.',
+        }}
+        onConfirm={(reason) => void handleTakedown(reason)}
+        onCancel={() => setDialog(null)}
+      >
+        <p>
+          <strong className="text-foreground">{dialog?.judul}</strong> akan hilang dari direktori
+          publik dan tidak bisa diambil kandidat baru.
+        </p>
+        <p className="text-muted-foreground">
+          Submisi, penilaian, dan portofolio talenta yang pernah mengerjakannya tetap tersimpan.
+          Penurunan ini bisa dicabut lagi kapan saja.
+        </p>
+      </AdminActionDialog>
+
+      <AdminActionDialog
+        open={dialog?.jenis === 'restore'}
+        title="Cabut penurunan"
+        confirmLabel="Cabut Penurunan"
+        isBusy={isActing}
+        onConfirm={() => void handleRestore()}
+        onCancel={() => setDialog(null)}
+      >
+        <p>
+          <strong className="text-foreground">{dialog?.judul}</strong> akan kembali tampil di
+          direktori publik dan bisa diambil kandidat lagi.
+        </p>
+      </AdminActionDialog>
     </div>
   );
 }

@@ -6,12 +6,15 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useUserStore } from '@/store/userStore';
 import { adminApi, apiErrorMessage, type AnnouncementType } from '@/services/adminApi';
+import { AdminActionDialog } from '@/components/admin/AdminActionDialog';
 
 export default function AdminCMSPage() {
   const { user } = useUserStore();
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [dialogHapus, setDialogHapus] = useState<{ id: string; judul: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -72,14 +75,19 @@ export default function AdminCMSPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus pengumuman ini?')) return;
+  const handleDelete = async () => {
+    if (!dialogHapus) return;
+
+    setIsDeleting(true);
     try {
-      await adminApi.deleteAnnouncement(id);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      await adminApi.deleteAnnouncement(dialogHapus.id);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== dialogHapus.id));
       toast.success('Pengumuman dihapus.');
+      setDialogHapus(null);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Gagal menghapus pengumuman.'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -207,7 +215,7 @@ export default function AdminCMSPage() {
                   <div className="flex justify-between items-start gap-3">
                     <h3 className="font-bold text-white text-lg">{a.title}</h3>
                     <button
-                      onClick={() => handleDelete(a.id)}
+                      onClick={() => setDialogHapus({ id: a.id, judul: a.title })}
                       className="text-zinc-500 hover:text-red-500 transition-colors shrink-0"
                       title="Hapus"
                     >
@@ -239,6 +247,22 @@ export default function AdminCMSPage() {
         </div>
 
       </div>
+
+      <AdminActionDialog
+        open={!!dialogHapus}
+        title="Hapus pengumuman"
+        confirmLabel="Hapus"
+        destructive
+        isBusy={isDeleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setDialogHapus(null)}
+      >
+        <p>
+          <strong className="text-foreground">{dialogHapus?.judul}</strong> akan hilang dari spanduk
+          pengumuman di seluruh aplikasi.
+        </p>
+        <p className="text-muted-foreground">Tindakan ini tidak bisa dibatalkan.</p>
+      </AdminActionDialog>
     </div>
   );
 }
