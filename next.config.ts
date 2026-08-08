@@ -54,8 +54,15 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     // Tujuan proxy harus mengikuti lingkungan. Nilai localhost yang dipatok
-    // membuat rewrite ini menunjuk ke tempat yang salah saat di-deploy.
-    const apiOrigin = process.env.BACKEND_ORIGIN || 'https://podorukunspk.fun';
+    // membuat rewrite ini menunjuk ke tempat yang salah saat di-deploy, tapi
+    // memaksa produksi juga membuat `npm run dev` diam-diam menembak backend
+    // produksi. Jadi cadangannya dipilih per lingkungan — sama seperti
+    // `DEFAULT_ORIGIN` di `lib/apiConfig.ts`.
+    const apiOrigin =
+      process.env.BACKEND_ORIGIN ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://podorukunspk.fun'
+        : 'http://localhost:3001');
     return [
       {
         source: "/api/:path*",

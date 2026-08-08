@@ -8,11 +8,17 @@
  * HTTP pergi ke produksi sedangkan WebSocket mencari localhost — separuh
  * aplikasi berbicara dengan basis data yang salah tanpa satu pun galat.
  *
- * Cadangannya localhost, mengikuti `BACKEND_ORIGIN` di `next.config.ts`:
- * mesin pengembang yang lupa mengisi env sebaiknya gagal tersambung, bukan
- * diam-diam menulis ke produksi.
+ * Cadangannya mengikuti lingkungan, sejalan dengan `BACKEND_ORIGIN` di
+ * `next.config.ts`. Build produksi (Vercel) tetap punya alamat yang benar
+ * walau env luput di-set, sementara mesin pengembang yang lupa mengisi env
+ * gagal tersambung ke localhost — bukan diam-diam menulis ke produksi.
  */
-const DEFAULT_ORIGIN = 'https://podorukunspk.fun';
+const PRODUCTION_ORIGIN = 'https://podorukunspk.fun';
+
+const DEFAULT_ORIGIN =
+  process.env.NODE_ENV === 'production'
+    ? PRODUCTION_ORIGIN
+    : 'http://localhost:3001';
 
 /** Termasuk awalan `/api/v1`. Dipakai sebagai `baseURL` axios. */
 export const API_BASE_URL =

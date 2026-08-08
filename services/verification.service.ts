@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import type { VerificationStatus } from '@/types';
 
 export interface VerifyFaceData {
   selfiePhotoUrl: string;
@@ -33,7 +34,11 @@ export const verificationService = {
     return response.data;
   },
 
-  getStatus: async () => {
+  /**
+   * `{ status }` — `faceVerificationStatus` untuk talenta, `kybStatus` untuk
+   * perusahaan. Bentuknya rata, tanpa pembungkus `data`.
+   */
+  getStatus: async (): Promise<{ status: VerificationStatus }> => {
     const response = await apiClient.get('/verification/status');
     return response.data;
   }

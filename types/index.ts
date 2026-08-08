@@ -1,4 +1,11 @@
 /**
+ * Cermin enum `VerificationStatus` di `prisma/schema.prisma`. Ditulis ulang di
+ * sini supaya perbandingan status KYC di antarmuka salah ketik menjadi galat
+ * tipe, bukan cabang yang diam-diam tidak pernah benar.
+ */
+export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'FAILED';
+
+/**
  * Kolom profil yang dibaca antarmuka. Sengaja longgar: bentuknya berbeda-beda
  * antara talenta dan perusahaan, dan yang membacanya selalu satu-dua kolom.
  *
@@ -15,6 +22,8 @@ export interface UserProfile {
   website?: string;
   experiences?: any[];
   educations?: any[];
+  /** Hanya terisi untuk TalentProfile. Nilainya mengikuti enum `VerificationStatus` di backend. */
+  faceVerificationStatus?: VerificationStatus;
   [key: string]: unknown;
 }
 

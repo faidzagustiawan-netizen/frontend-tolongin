@@ -24,6 +24,7 @@ import { ChallengeStages } from '@/components/challenge/ChallengeStages';
 import { ContinuousProctoring } from '@/components/workspace/ContinuousProctoring';
 import { useStageGate, StageExpiryWatcher } from '@/hooks/useStageGate';
 import { stagesService } from '@/services/stages.service';
+import type { VerificationStatus } from '@/types';
 const FaceScanner = dynamic(() => import('@/components/workspace/FaceScanner').then(mod => mod.FaceScanner), { ssr: false });
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false, loading: () => <div className="p-4 bg-background text-muted-foreground animate-pulse text-xs font-mono">Memuat IDE Eksternal...</div> });
 
@@ -121,16 +122,16 @@ export default function EnrollmentWorkspacePage() {
     enabled: !!user,
   });
 
-  const kycStatus = 
-    verificationStatusData?.status || 
-    verificationStatusData?.data?.status || 
-    (user as any)?.profile?.faceVerificationStatus || 
+  // `GET /verification/status` menjawab `{ status }` dan itulah kebenarannya.
+  // Nilai dari store hanya dipakai selama jawaban itu belum tiba, supaya
+  // gerbang di bawah tidak berkedip "belum terverifikasi" pada milidetik
+  // pertama bagi akun yang sebenarnya sudah lolos.
+  const kycStatus: VerificationStatus =
+    verificationStatusData?.status ??
+    user?.profile?.faceVerificationStatus ??
     'UNVERIFIED';
 
-  const isKycVerified = 
-    kycStatus === 'VERIFIED' || 
-    kycStatus === 'APPROVED' || 
-    (user as any)?.profile?.faceVerificationStatus === 'VERIFIED';
+  const isKycVerified = kycStatus === 'VERIFIED';
 
   // Keadaan tahap datang dari server, termasuk keputusan terbuka atau tidak dan
   // sisa waktunya. Halaman ini tidak menghitung apa pun sendiri: hitungan di

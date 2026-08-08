@@ -84,7 +84,7 @@ export default function KycVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ['profile'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         loadUserFromStorage();
-      } else if (kycStatusData.status === 'REJECTED' && verificationResult?.status !== 'REJECTED') {
+      } else if (kycStatusData.status === 'FAILED' && verificationResult?.status !== 'REJECTED') {
         setVerificationResult({
           status: 'REJECTED',
           isMatch: false,
@@ -542,6 +542,26 @@ export default function KycVerificationPage() {
                         Anda bisa mencoba lagi.
                       </p>
                     </div>
+                  </div>
+                </>
+              ) : verificationResult?.status === 'REJECTED' ? (
+                /* Cabang ini dulu tidak ada: penolakan jatuh ke blok "Terverifikasi"
+                   di bawah dan tampil hijau. Layar yang mengabarkan keberhasilan
+                   atas pemeriksaan yang gagal lebih buruk daripada layar galat. */
+                <>
+                  <div className="mx-auto w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-10 w-10 text-red-500" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold font-display text-foreground">Verifikasi Ditolak</h3>
+                    <p className="text-muted-foreground">
+                      {verificationResult.reason ||
+                        'Foto wajah tidak cocok dengan dokumen KTP.'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Anda bisa mengulang dengan foto KTP yang lebih tajam dan pencahayaan wajah yang merata.
+                    </p>
                   </div>
                 </>
               ) : (
