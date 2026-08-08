@@ -103,4 +103,4 @@ Akun uji: `talent1@test.com` / `company1@test.com`, sandi `password123`.
 - **Gerbang KYC pada studi kasus berpengawasan.** Keempat pendaftaran milik `talent1@test.com` sudah lewat tenggat, sehingga tombol "Mulai Pengerjaan" tidak pernah muncul. Butuh data seed dengan pendaftaran yang masih berjalan.
 - **Layar penolakan KYC.** Butuh akun berstatus `FAILED`.
 - **Alur pembayaran Midtrans** sampai selesai.
-- **Panel admin dari sudut pandang admin** — tidak ada akun admin di seed (`admin@tolongin.co` hanya diisikan tombol dev, bukan dibuat oleh seeder).
+- ~~**Panel admin dari sudut pandang admin**~~ — sudah teratasi. Seeder kini membuat `admin@tolongin.co`, dan `pnpm run seed:admin` membuatnya tanpa menghapus data. Seluruh dialog keputusan admin sudah diuji langsung di peramban.

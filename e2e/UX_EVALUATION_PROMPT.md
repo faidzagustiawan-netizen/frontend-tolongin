@@ -18,6 +18,7 @@ ditekan memang tidak bisa ditekan.
 | Backend | entri `backend` di `../.claude/launch.json` (port 3001) |
 | Frontend | entri `frontend` di `../.claude/launch.json` (port 3000) |
 | Akun uji | hasil seed: `talent1@test.com`, `company1@test.com`, sandi `password123` |
+| Akun admin | `admin@tolongin.co` / `AdminPassword123` — buat dengan `pnpm run seed:admin` di `backend/` bila belum ada (idempoten, tidak menghapus data) |
 | Peramban | Playwright MCP, atau `npx playwright test` untuk spec yang ditulis agen |
 
 Bila backend mati, catat itu sebagai temuan tersendiri (frontend yang tidak menjelaskan backend
@@ -78,7 +79,7 @@ Tiap baris bisa diberikan ke satu agen terpisah. Rute ditulis relatif terhadap `
 | **F. Perusahaan — penilaian** | `/company/submissions`, `/company/submissions/[id]`, `/company/team` | Daftar kosong; nilai AI yang belum jadi; undangan anggota tim |
 | **G. Pengaturan profil** | `/settings`, `/settings/skills`, `/settings/experiences`, `/settings/educations` | Konfirmasi hapus; borang yang gagal simpan; keadaan kosong tiap bagian |
 | **H. Langganan dan token** | `/company/billing`, `/talent/tokens` | Batas kuota; alur pembayaran yang dibatalkan; harga yang tampil |
-| **I. Admin** | `/admin` dan seluruh anaknya | Akun bukan admin harus dipulangkan; antrean tinjauan identitas; audit |
+| **I. Admin** | `/admin` dan seluruh anaknya | Akun bukan admin harus dipulangkan; antrean tinjauan identitas; audit; dialog keputusan berisiko (`AdminActionDialog`) menyebut siapa yang terdampak dan memvalidasi alasannya |
 | **J. Dukungan dan notifikasi** | `/support`, `/support/[id]`, `/notifications` | Keadaan kosong; urutan waktu; tanda sudah dibaca |
 
 ---
